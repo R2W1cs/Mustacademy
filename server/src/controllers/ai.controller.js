@@ -1278,20 +1278,28 @@ export const generatePodcastSpeech = async (req, res) => {
             try {
                 await tts.setMetadata(voiceName, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
                 
-                // Aggressive chunking for stability - approx 400 chars per chunk
-                const chunks = text.match(/[\s\S]{1,400}(?=[.!?\n]|\s|$)/g) || [text];
+                // Larger chunks (800 chars) to reduce websocket handshakes and prevent 30s Render timeouts
+                const chunks = text.match(/[\s\S]{1,800}(?=[.!?\n]|\s|$)/g) || [text];
                 const audioBuffers = [];
 
+                // Global start time for the entire synthesis
+                const startTime = Date.now();
+
                 for (const chunk of chunks) {
+                    // Critical: Don't exceed 25 seconds total (Render limit is 30s)
+                    if (Date.now() - startTime > 25000) {
+                        console.warn("[Neural-TTS] Synthesis approaching Render timeout. Cutting short.");
+                        break;
+                    }
+
                     const cleanChunk = chunk.trim();
                     if (!cleanChunk) continue;
 
                     const readable = tts.toStream(cleanChunk);
                     const partChunks = [];
                     
-                    // Simple timeout wrapper for the stream
                     await new Promise(async (resolve, reject) => {
-                        const timeout = setTimeout(() => reject(new Error("Synthesis Timeout")), 15000);
+                        const timeout = setTimeout(() => reject(new Error("Chunk Timeout")), 10000);
                         try {
                             for await (const p of readable) partChunks.push(p);
                             clearTimeout(timeout);
@@ -1308,7 +1316,7 @@ export const generatePodcastSpeech = async (req, res) => {
                 finalBuffer = Buffer.concat(audioBuffers);
                 if (finalBuffer && finalBuffer.length > 500) break; 
             } catch (err) {
-                console.warn(`[Neural-TTS] Voice ${voiceName} trial failed: ${err.message}`);
+                console.warn(`[Neural-TTS] Voice ${voiceName} failed: ${err.message}`);
                 lastError = err;
             }
         }
