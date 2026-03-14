@@ -109,14 +109,20 @@ const Login = () => {
     try {
       const res = await api.post("/auth/login", { email, password });
       localStorage.setItem("token", res.data.token);
+      if (res.data.user?.id) {
+        localStorage.setItem("userId", res.data.user.id);
+        localStorage.setItem("userName", res.data.user.name || "Scholar");
+      }
       navigate("/dashboard");
     } catch (err) {
-      // Show specific error messages
       if (err.response?.status === 401) {
         setError("Incorrect email or password. Please check your credentials and try again.");
+      } else if (err.response?.status === 500) {
+        setError("Server is starting up. Please wait 30 seconds and try again.");
       } else {
         setError(err.response?.data?.message || "Login failed. Please try again.");
       }
+    } finally {
       setIsLoading(false);
     }
   };
