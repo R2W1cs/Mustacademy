@@ -218,8 +218,9 @@ export default function CsDocumentary() {
 
                 await audio.play();
             } catch (err) {
-                console.error("[TTS-Neural] Documentary Failure:", err);
-                // Fallback to next segment or stop
+                const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message;
+                console.error(`%c[Neural-Audio] Documentary Synthesis Failure: ${errorMsg}`, "color: #ef4444; font-weight: bold;");
+                // Stop or fallback
                 if (activeSegment < episode.segments.length - 1) setActiveSegment(prev => prev + 1);
                 else setIsPlaying(false);
             }

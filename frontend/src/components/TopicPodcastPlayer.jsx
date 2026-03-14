@@ -196,9 +196,10 @@ export default function TopicPodcastPlayer({ topic }) {
 
                 await audio.play();
             } catch (err) {
-                console.error("%c[Neural-Audio] Fetch Failure:", "color: #ef4444; font-weight: bold;", err);
-                console.warn("[TTS] Falling back to browser due to API connection error. Check if FRONTEND_URL/VITE_API_URL are set correctly.");
-                speakWithBrowser(text, speakerType); // Fallback to browser
+                const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message;
+                console.error(`%c[Neural-Audio] Fetch Failure: ${errorMsg}`, "color: #ef4444; font-weight: bold;");
+                console.warn("[TTS] Falling back to browser due to backend synthesis failure. Please check the 'error' field in the Network tab for the 503 response.");
+                speakWithBrowser(text, speakerType);
             }
         };
 

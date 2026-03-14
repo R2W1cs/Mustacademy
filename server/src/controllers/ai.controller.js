@@ -1267,36 +1267,42 @@ export const generatePodcastSpeech = async (req, res) => {
 
     try {
         const tts = new MsEdgeTTS();
-        const voiceName = speaker === "host" ? "en-US-AriaNeural" : "en-US-GuyNeural";
+        // Fallback strategy: If primary voice fails, try secondary
+        const voices = speaker === "host" ? ["en-US-AriaNeural", "en-US-JennyNeural"] : ["en-US-GuyNeural", "en-US-ChristopherNeural"];
         
-        console.log(`[Neural-TTS] Processing request for ${voiceName}... (Text length: ${text.length})`);
+        console.log(`[Neural-TTS] Synthesizing for speaker="${speaker}" (Try: ${voices[0]})...`);
         
-        await tts.setMetadata(voiceName, OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3);
-        
-        // Split text into chunks to handle length limits (approx 500 chars is safe)
-        const chunks = text.match(/[^.!?]+[.!?]+|\S+/g) || [text];
-        const audioBuffers = [];
+        let finalBuffer = null;
+        let synthesisError = null;
 
-        console.log(`[Neural-TTS] Split into ${chunks.length} chunks.`);
+        for (const voiceName of voices) {
+            try {
+                await tts.setMetadata(voiceName, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
+                
+                const chunks = text.match(/[^.!?]+[.!?]+|\S+/g) || [text];
+                const audioBuffers = [];
 
-        for (const chunk of chunks) {
-            if (!chunk.trim()) continue;
-            
-            const readable = tts.toStream(chunk.trim());
-            const partChunks = [];
-            for await (const p of readable) {
-                partChunks.push(p);
+                for (const chunk of chunks) {
+                    if (!chunk.trim()) continue;
+                    const readable = tts.toStream(chunk.trim());
+                    const partChunks = [];
+                    for await (const p of readable) partChunks.push(p);
+                    audioBuffers.push(Buffer.concat(partChunks));
+                }
+                
+                finalBuffer = Buffer.concat(audioBuffers);
+                if (finalBuffer && finalBuffer.length > 500) break; // Success
+            } catch (err) {
+                console.warn(`[Neural-TTS] Voice ${voiceName} failed: ${err.message}`);
+                synthesisError = err;
             }
-            audioBuffers.push(Buffer.concat(partChunks));
-        }
-        
-        const finalBuffer = Buffer.concat(audioBuffers);
-        
-        if (!finalBuffer || finalBuffer.length < 100) {
-            throw new Error("Synthesized audio buffer is empty or corrupted");
         }
 
-        console.log(`[Neural-TTS] Final Audio Ready: ${finalBuffer.length} bytes.`);
+        if (!finalBuffer || finalBuffer.length < 500) {
+            throw new Error(synthesisError ? `All neural voices failed: ${synthesisError.message}` : "Empty buffer generated");
+        }
+
+        console.log(`[Neural-TTS] Neural Output Success: ${finalBuffer.length} bytes.`);
 
         if (ttsCache.size < 500) {
             ttsCache.set(cacheKey, finalBuffer);
@@ -1305,13 +1311,19 @@ export const generatePodcastSpeech = async (req, res) => {
         res.set({
             'Content-Type': 'audio/mpeg',
             'Content-Length': finalBuffer.length,
-            'X-TTS-Engine': 'Neural-Edge-Chunked'
+            'X-TTS-Engine': 'Neural-Edge-Resilient',
+            'X-Neural-Voice': voices[0]
         });
         return res.send(finalBuffer);
 
     } catch (err) {
         console.error(`[Neural-TTS] CRITICAL FAILURE: ${err.message}`);
-        res.status(503).json({ message: 'Neural TTS service unavailable', error: err.message });
+        // Return 503 but WITH the error message in the body so we can see it in console
+        res.status(503).json({ 
+            message: 'Neural TTS service unreachable', 
+            error: err.message,
+            stack: process.env.NODE_ENV === 'development' ? err.stack : undefined 
+        });
     }
 };
 
