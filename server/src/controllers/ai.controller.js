@@ -1267,7 +1267,7 @@ export const generatePodcastSpeech = async (req, res) => {
 
     try {
         const tts = new MsEdgeTTS();
-        const voices = speaker === "host" ? ["en-US-AriaNeural", "en-US-JennyNeural"] : ["en-US-GuyNeural", "en-US-ChristopherNeural"];
+        const voices = speaker === "host" ? ["en-US-AriaNeural", "en-US-AvaNeural"] : ["en-US-JennyNeural", "en-US-EmmaNeural"];
         
         console.log(`[Neural-TTS] Synthesizing "${text.substring(0, 30)}..." for ${speaker}.`);
         

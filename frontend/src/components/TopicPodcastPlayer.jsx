@@ -10,8 +10,8 @@ import api from "../api/axios";
 import { useTheme } from "../auth/ThemeContext";
 
 const SPEAKERS = {
-    host: { name: "Studio Host (Neural)", color: "indigo", label: "AI Host" },
-    expert: { name: "Studio Expert (Neural)", color: "amber", label: "AI Expert" }
+    host: { name: "Dr. Aria (Neural)", color: "indigo", label: "AI Host" },
+    expert: { name: "Prof. Nova (Neural)", color: "amber", label: "AI Expert" }
 };
 
 export default function TopicPodcastPlayer({ topic }) {
