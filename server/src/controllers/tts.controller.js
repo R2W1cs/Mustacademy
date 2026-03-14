@@ -1,39 +1,35 @@
-import { Communicate } from 'edge-tts-universal';
+import { groqTTS } from '../utils/aiClient.js';
 
 /**
- * Controller for Standalone Neural TTS
- * Converts text to high-quality speech using Microsoft Edge Neural voices.
+ * Controller for Standalone Neural TTS (Groq Edition)
+ * Converts text to high-quality speech using Groq's Orpheus-v1 model.
  */
 export const generateTTS = async (req, res) => {
-    const { text, voice = 'en-US-AriaNeural' } = req.body;
+    let { text, voice } = req.body;
 
     if (!text) {
         return res.status(400).json({ error: 'Text is required for synthesis.' });
     }
 
-    console.log(`[TTS-Module] Synthesizing speech for: "${text.substring(0, 30)}..." using ${voice}`);
+    // Voice mapping for backward compatibility
+    // aria -> hannah, anything else -> tray (for Nova)
+    const groqVoice = (voice && voice.toLowerCase().includes('aria')) ? 'hannah' : 'tray';
+
+    console.log(`[TTS-Module-Groq] Synthesizing speech using Orpheus-v1 (${groqVoice})...`);
 
     try {
-        const communicate = new Communicate(text, { voice });
-        
-        // Set headers for MP3 streaming
-        res.setHeader('Content-Type', 'audio/mpeg');
-        res.setHeader('Transfer-Encoding', 'chunked');
+        const buffer = await groqTTS(text, groqVoice);
 
-        // Stream audio chunks directly to the response
-        for await (const chunk of communicate.stream()) {
-            if (chunk.type === 'audio' && chunk.data) {
-                res.write(chunk.data);
-            }
-        }
+        res.set({
+            'Content-Type': 'audio/wav',
+            'Content-Length': buffer.length,
+            'X-TTS-Engine': 'Groq-Orpheus-Standard',
+            'X-Neural-Voice': groqVoice
+        });
 
-        res.end();
+        return res.send(buffer);
     } catch (error) {
-        console.error('[TTS-Module] Synthesis Error:', error);
-        if (!res.headersSent) {
-            res.status(500).json({ error: 'Failed to generate speech. Service might be temporarily unavailable.' });
-        } else {
-            res.end();
-        }
+        console.error('[TTS-Module-Groq] Critical error:', error);
+        res.status(503).json({ error: 'Groq Orpheus synthesis failed.' });
     }
 };

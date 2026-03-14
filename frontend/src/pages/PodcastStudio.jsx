@@ -162,13 +162,9 @@ export default function CsDocumentary() {
         loadMasterclass();
     }, []);
 
-    // Voice Pre-loading
+    // Voice Pre-loading removed - Unified Neural TTS active via /api/tts
     useEffect(() => {
-        const synth = window.speechSynthesis;
-        if (synth.onvoiceschanged !== undefined) {
-            synth.onvoiceschanged = () => synth.getVoices();
-        }
-        synth.getVoices();
+        console.log("%c[Neural-Engine] Documentary Audio Lock v7.0 Active.", "color: #e50914; font-weight: bold;");
     }, []);
 
     const audioRef = useRef(null);
@@ -180,7 +176,6 @@ export default function CsDocumentary() {
                 audioRef.current.pause();
                 audioRef.current = null;
             }
-            window.speechSynthesis.cancel();
         };
 
         if (!isPlaying || !episode) { stopAudio(); return; }
@@ -190,9 +185,9 @@ export default function CsDocumentary() {
             if (!segment) return;
 
             try {
-                // Fetch Neural TTS from Backend
-                const response = await api.post("/ai/podcast/speech",
-                    { text: segment.text, speaker: segment.speaker },
+                // Fetch Unified Neural TTS from Backend
+                const response = await api.post("/tts",
+                    { text: segment.text, voice: segment.speaker === 'host' ? 'hannah' : 'tray' },
                     { responseType: 'blob' }
                 );
 
@@ -337,7 +332,6 @@ export default function CsDocumentary() {
                         <button
                             onClick={() => {
                                 if (filteredTopics.length > 0) {
-                                    window.speechSynthesis.speak(new SpeechSynthesisUtterance(""));
                                     generateStory(filteredTopics[0]);
                                 }
                             }}
@@ -419,7 +413,7 @@ export default function CsDocumentary() {
                                     <span className="border border-white/20 px-1.5 py-0.5 text-[10px] rounded text-white/50">AI Audio</span>
                                     <div className="flex gap-2 ml-auto flex-wrap">
                                         <button
-                                            onClick={() => { setShowAbout(false); if (filteredTopics.length > 0) { window.speechSynthesis.speak(new SpeechSynthesisUtterance('')); generateStory(filteredTopics[0]); } }}
+                                            onClick={() => { setShowAbout(false); if (filteredTopics.length > 0) { generateStory(filteredTopics[0]); } }}
                                             className="flex items-center gap-2 px-5 py-2 rounded font-bold text-sm text-black bg-white hover:bg-white/90 transition-all"
                                         >
                                             <Play size={16} fill="currentColor" /> Play
@@ -548,7 +542,7 @@ export default function CsDocumentary() {
                                                 <div className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer" style={{ backgroundColor: netflixRed, color: 'white' }}>
                                                     {isPlaying
                                                         ? <Pause size={20} fill="currentColor" onClick={() => setIsPlaying(false)} />
-                                                        : <Play size={20} fill="currentColor" onClick={() => { window.speechSynthesis.resume(); setIsPlaying(true); }} />
+                                                        : <Play size={20} fill="currentColor" onClick={() => setIsPlaying(true)} />
                                                     }
                                                 </div>
                                                 <span className="font-bold uppercase text-xs tracking-widest">
@@ -635,7 +629,7 @@ export default function CsDocumentary() {
                                     idx={idx}
                                     isDark={isDark}
                                     netflixRed={netflixRed}
-                                    onPlay={() => { window.speechSynthesis.speak(new SpeechSynthesisUtterance("")); generateStory(t); }}
+                                    onPlay={() => { generateStory(t); }}
                                 />
                             ))}
                         </div>
@@ -709,7 +703,7 @@ export default function CsDocumentary() {
                                                                 netflixRed={netflixRed}
                                                                 chapterColor={chapter.color}
                                                                 coverUrl={chapter.coverUrl}
-                                                                onPlay={() => { window.speechSynthesis.speak(new SpeechSynthesisUtterance("")); generateStory(t); }}
+                                                                onPlay={() => { generateStory(t); }}
                                                             />
                                                         ))}
                                                     </div>
@@ -769,7 +763,7 @@ export default function CsDocumentary() {
                                                                 idx={idx}
                                                                 isDark={isDark}
                                                                 netflixRed={netflixRed}
-                                                                onPlay={() => { window.speechSynthesis.speak(new SpeechSynthesisUtterance("")); generateStory(t); }}
+                                                                onPlay={() => { generateStory(t); }}
                                                             />
                                                         ))}
                                                     </div>

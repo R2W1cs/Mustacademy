@@ -37,11 +37,8 @@ export default function TopicPodcastPlayer({ topic }) {
     const audioRef = useRef(null);
 
     useEffect(() => {
-        const synth = window.speechSynthesis;
-
         // Cleanup function for stopping all audio
         const stopAllAudio = () => {
-            synth.cancel();
             if (audioRef.current) {
                 audioRef.current.pause();
                 audioRef.current.onended = null;
@@ -63,13 +60,10 @@ export default function TopicPodcastPlayer({ topic }) {
 
 
         const playCloudAudio = async (text, speakerType, retryCount = 0) => {
-            // Cancel everything immediately - we only want Human Neural voices
-            synth.cancel();
-            
             try {
-                // Fetch Neural TTS from Backend
-                const response = await api.post("/ai/podcast/speech",
-                    { text, speaker: speakerType },
+                // Fetch Neural TTS from Unified /tts Endpoint
+                const response = await api.post("/tts",
+                    { text, voice: speakerType === 'host' ? 'hannah' : 'tray' },
                     { responseType: 'blob', timeout: 30000 }
                 );
 
@@ -112,7 +106,6 @@ export default function TopicPodcastPlayer({ topic }) {
             }
         };
 
-        // EXCLUSIVE: We no longer fallback to browser robots. 100% human or silence.
         playCloudAudio(segment.text, segment.speaker);
 
         return stopAllAudio;
@@ -143,9 +136,6 @@ export default function TopicPodcastPlayer({ topic }) {
     // Make sure we stop speaking when user manually navigates segments
     const handleSegmentClick = (index) => {
         setActiveSegment(index);
-        if (isPlaying) {
-            window.speechSynthesis.cancel();
-        }
     };
 
     const handleAskQuestion = async () => {
@@ -293,9 +283,6 @@ export default function TopicPodcastPlayer({ topic }) {
                             </button>
                             <button
                                 onClick={() => {
-                                    if (isPlaying) {
-                                        window.speechSynthesis.cancel();
-                                    }
                                     setIsPlaying(!isPlaying);
                                 }}
                                 className={`w-14 h-14 rounded-full flex items-center justify-center font-black transition-all shadow-lg active:scale-95
