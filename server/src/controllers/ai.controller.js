@@ -1277,17 +1277,19 @@ export const generatePodcastSpeech = async (req, res) => {
             try {
                 await tts.setMetadata(voiceName, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
                 
-                // Nuclear Optimization: Only chunk if absolutely necessary (> 3000 chars)
-                // This reduces websocket handshakes which cause Render 503s.
-                const chunks = text.length > 3000 
-                    ? (text.match(/[\s\S]{1,3000}(?=[.!?\n]|\s|$)/g) || [text])
-                    : [text];
+                // Final Render-Optimized Chunking (600 chars)
+                // Small chunks = fast handshakes = No 503 Timeouts on Render
+                const chunks = text.match(/[\s\S]{1,600}(?=[.!?\n]|\s|$)/g) || [text];
                 
                 const audioBuffers = [];
-                const startTime = Date.now();
+                const requestStartTime = Date.now();
 
                 for (const chunk of chunks) {
-                    if (Date.now() - startTime > 26000) break; // Hard limit for Render (30s max)
+                    // Critical: Abort before Render's 30s wall (using 22s limit)
+                    if (Date.now() - requestStartTime > 22000) {
+                        console.warn(`[Neural-TTS] Approaching Render timeout for voice ${voiceName}. Aborting.`);
+                        break;
+                    }
 
                     const cleanChunk = chunk.trim();
                     if (!cleanChunk) continue;
@@ -1296,16 +1298,15 @@ export const generatePodcastSpeech = async (req, res) => {
                     const partChunks = [];
                     
                     await new Promise((resolve, reject) => {
-                        const timeout = setTimeout(() => reject(new Error("Synthesis Timeout")), 15000);
+                        const chunkTimeout = setTimeout(() => reject(new Error("Segment Synthesis Timeout")), 12000);
                         
-                        // Use explicit event listeners for more stability on Render
                         readable.on('data', (data) => partChunks.push(data));
                         readable.on('end', () => {
-                            clearTimeout(timeout);
+                            clearTimeout(chunkTimeout);
                             resolve();
                         });
                         readable.on('error', (err) => {
-                            clearTimeout(timeout);
+                            clearTimeout(chunkTimeout);
                             reject(err);
                         });
                     });
@@ -1314,9 +1315,12 @@ export const generatePodcastSpeech = async (req, res) => {
                 }
                 
                 finalBuffer = Buffer.concat(audioBuffers);
-                if (finalBuffer && finalBuffer.length > 500) break; 
+                if (finalBuffer && finalBuffer.length > 500) {
+                    console.log(`[Neural-TTS] Successfully synthesized ${finalBuffer.length} bytes using ${voiceName}`);
+                    break;
+                }
             } catch (err) {
-                console.warn(`[Neural-TTS] Voice ${voiceName} failed: ${err.message}`);
+                console.warn(`[Neural-TTS] Voice ${voiceName} failed on Render: ${err.message}`);
                 lastError = err;
             }
         }

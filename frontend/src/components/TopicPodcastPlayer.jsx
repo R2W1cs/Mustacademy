@@ -10,8 +10,8 @@ import api from "../api/axios";
 import { useTheme } from "../auth/ThemeContext";
 
 const SPEAKERS = {
-    host: { name: "Dr. Aria", color: "indigo", label: "AI Host" },
-    expert: { name: "Prof. Nova", color: "amber", label: "AI Expert" }
+    host: { name: "Studio Host (Neural)", color: "indigo", label: "AI Host" },
+    expert: { name: "Studio Expert (Neural)", color: "amber", label: "AI Expert" }
 };
 
 export default function TopicPodcastPlayer({ topic }) {
@@ -29,29 +29,8 @@ export default function TopicPodcastPlayer({ topic }) {
     const [voices, setVoices] = useState([]);
 
     useEffect(() => {
-        const synth = window.speechSynthesis;
-        const auditVoices = () => {
-            const voicesList = synth.getVoices();
-            setVoices(voicesList);
-            if (voicesList.length === 0) return;
-
-            const premium = voicesList.filter(v =>
-                v.name.includes("Natural") ||
-                v.name.includes("Online") ||
-                v.name.includes("Neural") ||
-                v.name.includes("Enhanced")
-            );
-
-            console.log(`%c[Voice Auditor] Found ${voicesList.length} total voices in Topic Studio.`, "color: #6366f1; font-weight: bold;");
-            if (premium.length > 0) {
-                console.log(`%c[Voice Auditor] Found ${premium.length} premium (Natural/Online) voices.`, "color: #10b981; font-weight: bold;");
-                console.log("[Voice Auditor] Best candidates:", premium.slice(0, 10).map(v => v.name));
-            }
-        };
-
-        auditVoices();
-        synth.addEventListener("voiceschanged", auditVoices);
-        return () => synth.removeEventListener("voiceschanged", auditVoices);
+        // Voice Auditor removed - Total Neural Lock active.
+        console.log("%c[Neural-Engine] Studio Audio Lock v7.0 Active.", "color: #10b981; font-weight: bold;");
     }, []);
 
     const utteranceRef = useRef(null);

@@ -2,10 +2,10 @@ import axios from "axios";
 
 const productionApiUrl = "https://mustacademy-backend.onrender.com/api";
 const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
-const SYNC_ID = "HUMAN_SOUND_v6_NUCLEAR";
+const SYNC_ID = "v7_TOTAL_WAR_HUMAN_ONLY";
 const baseURL = (import.meta.env.VITE_API_URL || (isProduction ? productionApiUrl : "http://localhost:5000/api")) + `?v=${SYNC_ID}`;
 
-console.log(`%c[Studio-Uplink] Targeting API: ${baseURL} | SYNC: ${SYNC_ID}`, "color: #f59e0b; font-weight: bold; background: #000; padding: 2px 5px; border-radius: 4px;");
+console.log(`%c[Studio-Uplink] Targeting API: ${baseURL} | SYNC: ${SYNC_ID}`, "color: #6366f1; font-weight: bold; background: #000; padding: 2px 5px; border-radius: 4px;");
 
 const api = axios.create({
   baseURL,
@@ -16,24 +16,21 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
+    // Self-Healing Cache Logic
+    const savedVersion = localStorage.getItem("STUDIO_SYNC_ID");
+    if (savedVersion !== SYNC_ID) {
+      console.log(`%c[Studio-Uplink] Newer build detected (${SYNC_ID}). Resetting cache...`, "color: #ef4444; font-weight: bold;");
+      localStorage.clear();
+      localStorage.setItem("STUDIO_SYNC_ID", SYNC_ID);
+    }
+
     const token = localStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => Promise.reject(error)
-);
-
-api.interceptors.response.use(
-  (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem("token");
-      if (!window.location.pathname.includes("/login")) {
-        window.location.href = "/login";
-      }
-    }
     return Promise.reject(error);
   }
 );
