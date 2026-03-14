@@ -1256,99 +1256,55 @@ export const generatePodcastSpeech = async (req, res) => {
     const cacheKey = `${speaker}:${text}`;
     if (ttsCache.has(cacheKey)) {
         const cached = ttsCache.get(cacheKey);
-        res.set({
-            'Content-Type': 'audio/mpeg',
-            'Content-Length': cached.length
-        });
+        res.set({ 'Content-Type': 'audio/mpeg', 'Content-Length': cached.length });
         return res.send(cached);
     }
 
-    console.log(`[Neural-TTS] Synthesizing human voice for speaker="${speaker}"...`);
+    const voiceName = speaker === "host" ? "en-US-AriaNeural" : "en-US-JennyNeural";
+    const fallbackVoice = speaker === "host" ? "en-US-AvaNeural" : "en-US-EmmaNeural";
+    console.log(`[Neural-TTS] Synthesizing with ${voiceName} for speaker="${speaker}"...`);
 
-    try {
-        const tts = new MsEdgeTTS();
-        const voices = speaker === "host" ? ["en-US-AriaNeural", "en-US-AvaNeural"] : ["en-US-JennyNeural", "en-US-EmmaNeural"];
-        
-        console.log(`[Neural-TTS] Synthesizing "${text.substring(0, 30)}..." for ${speaker}.`);
-        
-        let finalBuffer = null;
-        let lastError = null;
-        for (const voiceName of voices) {
-            try {
-                await tts.setMetadata(voiceName, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
-                
-                // Final Render-Optimized Chunking (600 chars)
-                // Small chunks = fast handshakes = No 503 Timeouts on Render
-                const chunks = text.match(/[\s\S]{1,600}(?=[.!?\n]|\s|$)/g) || [text];
-                
-                const audioBuffers = [];
-                const requestStartTime = Date.now();
-
-                for (const chunk of chunks) {
-                    // Critical: Abort before Render's 30s wall (using 22s limit)
-                    if (Date.now() - requestStartTime > 22000) {
-                        console.warn(`[Neural-TTS] Approaching Render timeout for voice ${voiceName}. Aborting.`);
-                        break;
-                    }
-
-                    const cleanChunk = chunk.trim();
-                    if (!cleanChunk) continue;
-
-                    const readable = tts.toStream(cleanChunk);
-                    const partChunks = [];
-                    
-                    await new Promise((resolve, reject) => {
-                        const chunkTimeout = setTimeout(() => reject(new Error("Segment Synthesis Timeout")), 12000);
-                        
-                        readable.on('data', (data) => partChunks.push(data));
-                        readable.on('end', () => {
-                            clearTimeout(chunkTimeout);
-                            resolve();
-                        });
-                        readable.on('error', (err) => {
-                            clearTimeout(chunkTimeout);
-                            reject(err);
-                        });
-                    });
-                    
-                    audioBuffers.push(Buffer.concat(partChunks));
-                }
-                
-                finalBuffer = Buffer.concat(audioBuffers);
-                if (finalBuffer && finalBuffer.length > 500) {
-                    console.log(`[Neural-TTS] Successfully synthesized ${finalBuffer.length} bytes using ${voiceName}`);
-                    break;
-                }
-            } catch (err) {
-                console.warn(`[Neural-TTS] Voice ${voiceName} failed on Render: ${err.message}`);
-                lastError = err;
+    const synthesize = async (voice) => {
+        const { Communicate } = await import('edge-tts-universal');
+        const communicate = new Communicate(text, { voice });
+        const buffers = [];
+        for await (const chunk of communicate.stream()) {
+            if (chunk.type === 'audio' && chunk.data) {
+                buffers.push(Buffer.from(chunk.data));
             }
         }
+        return Buffer.concat(buffers);
+    };
 
-        if (!finalBuffer || finalBuffer.length < 500) {
-            throw new Error(lastError ? lastError.message : "Synthesis produced no audio data");
+    try {
+        let audioBuffer = null;
+        try {
+            audioBuffer = await synthesize(voiceName);
+        } catch (err) {
+            console.warn(`[Neural-TTS] Primary voice ${voiceName} failed (${err.message}), trying fallback...`);
+            audioBuffer = await synthesize(fallbackVoice);
         }
 
-        console.log(`[Neural-TTS] Success: ${finalBuffer.length} bytes delivered.`);
+        if (!audioBuffer || audioBuffer.length < 500) {
+            throw new Error('Synthesis produced no audio data');
+        }
+
+        console.log(`[Neural-TTS] SUCCESS: ${audioBuffer.length} bytes delivered for ${voiceName}.`);
 
         if (ttsCache.size < 500) {
-            ttsCache.set(cacheKey, finalBuffer);
+            ttsCache.set(cacheKey, audioBuffer);
         }
 
         res.set({
             'Content-Type': 'audio/mpeg',
-            'Content-Length': finalBuffer.length,
-            'X-TTS-Engine': 'Neural-Edge-Hardened',
-            'X-Neural-Voice': voices[0]
+            'Content-Length': audioBuffer.length,
+            'X-Neural-Voice': voiceName,
         });
-        return res.send(finalBuffer);
+        return res.send(audioBuffer);
 
     } catch (err) {
         console.error(`[Neural-TTS] FAIL: ${err.message}`);
-        res.status(503).json({ 
-            message: 'High-fidelity synthesis failed', 
-            error: err.message 
-        });
+        res.status(503).json({ message: 'High-fidelity synthesis failed', error: err.message });
     }
 };
 
