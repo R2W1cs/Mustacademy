@@ -1182,11 +1182,11 @@ JSON STRUCTURE (Return EXCLUSIVELY this):
 
 STRICT RULES:
 - The "speaker" field MUST be either "host" or "expert".
-- Every segment from Dr. Aria must be labeled "host".
-- Every segment from Prof. Nova must be labeled "expert".
+- Every segment from Dr. Aria must be labeled "host". (Uses en-US-AriaNeural)
+- Every segment from Prof. Nova must be labeled "expert". (Uses en-US-JennyNeural)
 - Alternate between speakers naturally. Include 8-12 segments.
-- REALISM OVERRIDE: Include natural speech fillers (like "uhm", "well", "ah", "I mean") and verbal pauses to make it feel like a real conversational recording, not a textbook reading.
-- STOCHASTIC FLOW: Use varying sentence lengths. Aris should sometimes interrupt Leo with a "Wait, wait..." if the technical point is too important to wait.
+- STUDIO PURITY: DO NOT include any speech fillers like "uh", "um", "well", "ah", or "I mean". The audio must be clean, professional, and high-fidelity studio quality.
+- STOCHASTIC FLOW: Use varying sentence lengths. Aria should sometimes interrupt with a "Wait, wait..." if the technical point is too important to wait.
 - Return ONLY valid JSON. No conversational filler outside the JSON.`;
 
     try {
