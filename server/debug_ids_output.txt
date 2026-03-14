@@ -1,0 +1,37 @@
+--- Course Audit ---
+Course IDs found: 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190
+
+--- User Audit ---
+[
+  {
+    "id": 4,
+    "name": "Rayen Test",
+    "email": "rayen_test@musteducation.tn",
+    "year": null,
+    "semester": null
+  },
+  {
+    "id": 3,
+    "name": "rayen oueslati",
+    "email": "rayen.oueslati@musteducation.tn",
+    "year": 2,
+    "semester": 2
+  },
+  {
+    "id": 1,
+    "name": "tarek",
+    "email": "rayen@test.com",
+    "year": 2,
+    "semester": 2
+  },
+  {
+    "id": 2,
+    "name": "ahmed ",
+    "email": "ahmed@test.com",
+    "year": 1,
+    "semester": 2
+  }
+]
+
+--- Enrollment Audit ---
+Available tables: years, learning_paths, resources, semesters, user_stats, user_contributions, course_career, career_paths, user_courses, modules, course_skills, skills, user_skills, courses, learning_path_courses, projects, user_projects, user_topic_progress, user_badges, user_pets, chat_members, goal_submissions, daily_goals, cheatsheets, chat_rooms, chat_messages, asset_reviews, scholarly_assets, asset_hiding, video_reactions, career_roadmaps, users, notifications, peer_videos, video_feedback, interview_sessions, daily_plans, forum_threads, forum_comments, forum_upvotes, synaptic_messages, market_news, topic_lexicon_map, lexicon_terms, topics

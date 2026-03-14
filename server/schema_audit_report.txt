@@ -1,0 +1,55 @@
+🔍 Auditing Database Schema...
+
+Table: chat_messages
+ - room_id (integer)
+ - sender_id (integer)
+ - created_at (timestamp without time zone)
+ - id (integer)
+ - text (text)
+ - attachment_url (text)
+ - attachment_type (character varying)
+
+Table: chat_rooms
+ - id (integer)
+ - admin_id (integer)
+ - created_at (timestamp without time zone)
+ - name (character varying)
+ - type (character varying)
+ - password (character varying)
+
+Table: users
+ - id (integer)
+ - created_at (timestamp without time zone)
+ - year (integer)
+ - semester (integer)
+ - streak_current (integer)
+ - streak_last_active_date (date)
+ - pet_health (integer)
+ - last_fed_at (timestamp without time zone)
+ - current_asc (integer)
+ - last_active_at (timestamp without time zone)
+ - passion (text)
+ - status (text)
+ - name (character varying)
+ - email (character varying)
+ - password_hash (text)
+ - role (character varying)
+ - pet_name (character varying)
+ - resume_url (text)
+ - selected_pet (character varying)
+ - avatar_url (text)
+ - bio (text)
+
+Table: chat_members
+ - room_id (integer)
+ - user_id (integer)
+ - is_voice_active (boolean)
+ - joined_at (timestamp without time zone)
+
+Table: user_contributions
+ - id (integer)
+ - user_id (integer)
+ - points (integer)
+ - course_id (integer)
+ - created_at (timestamp without time zone)
+ - action_type (text)

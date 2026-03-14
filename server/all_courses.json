@@ -1,0 +1,212 @@
+[
+  {
+    "id": 162,
+    "name": "CS 121: Programming I",
+    "year_number": 1,
+    "semester_number": 1,
+    "semester_id": 1
+  },
+  {
+    "id": 163,
+    "name": "CS 161: Introduction to computer systems",
+    "year_number": 1,
+    "semester_number": 1,
+    "semester_id": 1
+  },
+  {
+    "id": 164,
+    "name": "CSE 123: Introduction to Digital Systems",
+    "year_number": 1,
+    "semester_number": 1,
+    "semester_id": 1
+  },
+  {
+    "id": 165,
+    "name": "ENG 101: Academic English",
+    "year_number": 1,
+    "semester_number": 1,
+    "semester_id": 1
+  },
+  {
+    "id": 166,
+    "name": "ISS 166: Freshman Seminar",
+    "year_number": 1,
+    "semester_number": 1,
+    "semester_id": 1
+  },
+  {
+    "id": 161,
+    "name": "MATH 111: Math I",
+    "year_number": 1,
+    "semester_number": 1,
+    "semester_id": 1
+  },
+  {
+    "id": 172,
+    "name": "COM 131: Public Speaking Seminar",
+    "year_number": 1,
+    "semester_number": 2,
+    "semester_id": 2
+  },
+  {
+    "id": 168,
+    "name": "CS 141: Data structures & algorithms",
+    "year_number": 1,
+    "semester_number": 2,
+    "semester_id": 2
+  },
+  {
+    "id": 169,
+    "name": "CS 203: Introduction to operating systems",
+    "year_number": 1,
+    "semester_number": 2,
+    "semester_id": 2
+  },
+  {
+    "id": 170,
+    "name": "CS 231: Introduction to databases",
+    "year_number": 1,
+    "semester_number": 2,
+    "semester_id": 2
+  },
+  {
+    "id": 171,
+    "name": "ENG 121: English composition",
+    "year_number": 1,
+    "semester_number": 2,
+    "semester_id": 2
+  },
+  {
+    "id": 167,
+    "name": "MATH 112: Math II",
+    "year_number": 1,
+    "semester_number": 2,
+    "semester_id": 2
+  },
+  {
+    "id": 177,
+    "name": "COM 225: Business & Technical Communication",
+    "year_number": 2,
+    "semester_number": 1,
+    "semester_id": 8
+  },
+  {
+    "id": 178,
+    "name": "CS 321: Principles of software engineering",
+    "year_number": 2,
+    "semester_number": 1,
+    "semester_id": 8
+  },
+  {
+    "id": 175,
+    "name": "CS 328: OO Software design & construction",
+    "year_number": 2,
+    "semester_number": 1,
+    "semester_id": 8
+  },
+  {
+    "id": 174,
+    "name": "CS 342: Algorithms & Complexity",
+    "year_number": 2,
+    "semester_number": 1,
+    "semester_id": 8
+  },
+  {
+    "id": 176,
+    "name": "CS 411: Computer Networks",
+    "year_number": 2,
+    "semester_number": 1,
+    "semester_id": 8
+  },
+  {
+    "id": 173,
+    "name": "MATH 270: Probability & statistics",
+    "year_number": 2,
+    "semester_number": 1,
+    "semester_id": 8
+  },
+  {
+    "id": 179,
+    "name": "CS 336: Data warehousing & management",
+    "year_number": 2,
+    "semester_number": 2,
+    "semester_id": 9
+  },
+  {
+    "id": 184,
+    "name": "CS 370: Human Computer Interaction",
+    "year_number": 2,
+    "semester_number": 2,
+    "semester_id": 9
+  },
+  {
+    "id": 180,
+    "name": "CS 425: Web application development",
+    "year_number": 2,
+    "semester_number": 2,
+    "semester_id": 9
+  },
+  {
+    "id": 181,
+    "name": "CS 428: Software Testing & quality assurance",
+    "year_number": 2,
+    "semester_number": 2,
+    "semester_id": 9
+  },
+  {
+    "id": 182,
+    "name": "CS 481: Artificial intelligence",
+    "year_number": 2,
+    "semester_number": 2,
+    "semester_id": 9
+  },
+  {
+    "id": 183,
+    "name": "PHIL 222: Contemporary Issues in Data Ethics",
+    "year_number": 2,
+    "semester_number": 2,
+    "semester_id": 9
+  },
+  {
+    "id": 187,
+    "name": "CS 412: Computer security",
+    "year_number": 3,
+    "semester_number": 1,
+    "semester_id": 10
+  },
+  {
+    "id": 188,
+    "name": "CS 423: Software architecture & design patterns",
+    "year_number": 3,
+    "semester_number": 1,
+    "semester_id": 10
+  },
+  {
+    "id": 186,
+    "name": "CS 426: Mobile application development",
+    "year_number": 3,
+    "semester_number": 1,
+    "semester_id": 10
+  },
+  {
+    "id": 185,
+    "name": "CS 455: Cloud computing",
+    "year_number": 3,
+    "semester_number": 1,
+    "semester_id": 10
+  },
+  {
+    "id": 189,
+    "name": "CS 488: Applied AI for Software Engineers",
+    "year_number": 3,
+    "semester_number": 1,
+    "semester_id": 10
+  },
+  {
+    "id": 190,
+    "name": "MGMT 322: Project management",
+    "year_number": 3,
+    "semester_number": 1,
+    "semester_id": 10
+  }
+]

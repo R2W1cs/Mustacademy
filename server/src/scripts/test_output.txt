@@ -1,0 +1,10 @@
+--- Testing Daily Plan Logic for User: 3 ---
+User Profile: Y2S2 (rayen oueslati)
+Semester Topics Context:
+[CS 336: Data warehousing & management]: Advanced data modeling techniques, Advantages of Cloud Data Warehousing, Big Data concepts, Challenges of Cloud Data Warehousing, Cloud data warehousing
+[CS 370: Human Computer Interaction]: Advanced Techniques, Core Principles, Fundamental Concepts, Ideation & Sketching, Industry Best Practices
+[CS 425: Web application development]: Advanced Techniques, Core Principles, Fundamental Concepts, Industry Best Practices, Practical Applications
+[CS 428: Software Testing & quality assurance]: Advanced Techniques, Core Principles, Fundamental Concepts, Industry Best Practices, Practical Applications
+[CS 481: Artificial intelligence]: Advanced Techniques, Core Principles, Fundamental Concepts, Industry Best Practices, Practical Applications
+[PHIL 222: Contemporary Issues in Data Ethics]: Ethical Data Gathering, Ethical Data Preprocessing, Ethical Data Sharing, Ethical Model Deployment, Ethical Model Evaluation
+✅ Successfully fetched semester-specific topics.

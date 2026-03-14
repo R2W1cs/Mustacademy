@@ -1,0 +1,233 @@
+[2026-02-22T16:11:07.199Z] ✨ SUCCESS: "User Research & Framing" (ID: 129) updated. Rows: 1
+[2026-02-22T16:11:23.205Z] ✨ SUCCESS: "Ideation & Sketching" (ID: 130) updated. Rows: 1
+[2026-02-22T16:11:35.845Z] ✨ SUCCESS: "Prototyping & Evaluation" (ID: 131) updated. Rows: 1
+[2026-02-22T16:11:52.728Z] ✨ SUCCESS: "Kernel Exploitation Basics" (ID: 150) updated. Rows: 1
+[2026-02-22T16:12:08.298Z] ✨ SUCCESS: "Memory Management Security" (ID: 151) updated. Rows: 1
+[2026-02-22T16:12:25.467Z] ✨ SUCCESS: "Process Isolation" (ID: 152) updated. Rows: 1
+[2026-02-22T16:12:43.017Z] ✨ SUCCESS: "Fundamental Concepts" (ID: 156) updated. Rows: 1
+[2026-02-22T16:13:00.393Z] ✨ SUCCESS: "Core Principles" (ID: 157) updated. Rows: 1
+[2026-02-22T16:13:16.165Z] ✨ SUCCESS: "Practical Applications" (ID: 158) updated. Rows: 1
+[2026-02-22T16:13:25.787Z] ✨ SUCCESS: "Advanced Techniques" (ID: 159) updated. Rows: 1
+[2026-02-22T16:13:34.842Z] ✨ SUCCESS: "Industry Best Practices" (ID: 160) updated. Rows: 1
+[2026-02-22T16:13:43.684Z] ✨ SUCCESS: "Real-World Case Studies" (ID: 161) updated. Rows: 1
+[2026-02-22T16:13:56.123Z] ✨ SUCCESS: "Fundamental Concepts" (ID: 162) updated. Rows: 1
+[2026-02-22T16:14:14.122Z] ✨ SUCCESS: "Core Principles" (ID: 163) updated. Rows: 1
+[2026-02-22T16:14:27.312Z] ✨ SUCCESS: "Practical Applications" (ID: 164) updated. Rows: 1
+[2026-02-22T16:14:38.785Z] ✨ SUCCESS: "Advanced Techniques" (ID: 165) updated. Rows: 1
+[2026-02-22T16:14:48.585Z] ✨ SUCCESS: "Industry Best Practices" (ID: 166) updated. Rows: 1
+[2026-02-22T16:14:59.245Z] ✨ SUCCESS: "Real-World Case Studies" (ID: 167) updated. Rows: 1
+[2026-02-22T16:15:10.764Z] ✨ SUCCESS: "Fundamental Concepts" (ID: 174) updated. Rows: 1
+[2026-02-22T16:15:29.649Z] ✨ SUCCESS: "Core Principles" (ID: 175) updated. Rows: 1
+[2026-02-22T16:15:41.340Z] ✨ SUCCESS: "Practical Applications" (ID: 176) updated. Rows: 1
+[2026-02-22T16:16:01.453Z] ✨ SUCCESS: "Advanced Techniques" (ID: 177) updated. Rows: 1
+[2026-02-22T16:16:20.013Z] ✨ SUCCESS: "Industry Best Practices" (ID: 178) updated. Rows: 1
+[2026-02-22T16:16:36.574Z] ✨ SUCCESS: "Real-World Case Studies" (ID: 179) updated. Rows: 1
+[2026-02-22T16:16:49.797Z] ✨ SUCCESS: "Fundamental Concepts" (ID: 180) updated. Rows: 1
+[2026-02-22T16:17:02.070Z] ✨ SUCCESS: "Core Principles" (ID: 181) updated. Rows: 1
+[2026-02-22T16:17:19.757Z] ✨ SUCCESS: "Practical Applications" (ID: 182) updated. Rows: 1
+[2026-02-22T16:17:33.387Z] ✨ SUCCESS: "Advanced Techniques" (ID: 183) updated. Rows: 1
+[2026-02-22T16:17:53.017Z] ✨ SUCCESS: "Industry Best Practices" (ID: 184) updated. Rows: 1
+[2026-02-22T16:18:10.867Z] ✨ SUCCESS: "Real-World Case Studies" (ID: 185) updated. Rows: 1
+[2026-02-22T16:18:27.240Z] ✨ SUCCESS: "Fundamental Concepts" (ID: 186) updated. Rows: 1
+[2026-02-22T16:18:43.045Z] ✨ SUCCESS: "Core Principles" (ID: 187) updated. Rows: 1
+[2026-02-22T16:18:59.278Z] ✨ SUCCESS: "Practical Applications" (ID: 188) updated. Rows: 1
+[2026-02-22T16:19:12.231Z] ✨ SUCCESS: "Advanced Techniques" (ID: 189) updated. Rows: 1
+[2026-02-22T16:19:30.587Z] ✨ SUCCESS: "Industry Best Practices" (ID: 190) updated. Rows: 1
+[2026-02-22T16:19:40.725Z] ✨ SUCCESS: "Real-World Case Studies" (ID: 191) updated. Rows: 1
+[2026-02-22T16:19:53.740Z] ✨ SUCCESS: "Fundamental Concepts" (ID: 192) updated. Rows: 1
+[2026-02-22T16:20:07.582Z] ✨ SUCCESS: "Core Principles" (ID: 193) updated. Rows: 1
+[2026-02-22T16:20:24.599Z] ✨ SUCCESS: "Practical Applications" (ID: 194) updated. Rows: 1
+[2026-02-22T16:20:41.806Z] ✨ SUCCESS: "Advanced Techniques" (ID: 195) updated. Rows: 1
+[2026-02-22T16:21:00.107Z] ✨ SUCCESS: "Industry Best Practices" (ID: 196) updated. Rows: 1
+[2026-02-22T16:21:12.875Z] ✨ SUCCESS: "Real-World Case Studies" (ID: 197) updated. Rows: 1
+[2026-02-22T16:21:30.116Z] ✨ SUCCESS: "Fundamental Concepts" (ID: 198) updated. Rows: 1
+[2026-02-22T16:21:46.228Z] ✨ SUCCESS: "Core Principles" (ID: 199) updated. Rows: 1
+[2026-02-22T16:23:07.727Z] ✨ SUCCESS: "Advanced Techniques" (ID: 201) updated. Rows: 1
+[2026-02-22T16:23:20.533Z] ✨ SUCCESS: "Industry Best Practices" (ID: 202) updated. Rows: 1
+[2026-02-22T16:23:28.610Z] ✨ SUCCESS: "Practical Applications" (ID: 200) updated. Rows: 1
+[2026-02-22T16:23:35.177Z] ✨ SUCCESS: "Real-World Case Studies" (ID: 203) updated. Rows: 1
+[2026-02-22T16:23:56.040Z] ✨ SUCCESS: "Fundamental Concepts" (ID: 204) updated. Rows: 1
+[2026-02-22T16:24:15.739Z] ✨ SUCCESS: "Core Principles" (ID: 205) updated. Rows: 1
+[2026-02-22T16:24:33.955Z] ✨ SUCCESS: "Practical Applications" (ID: 206) updated. Rows: 1
+[2026-02-22T16:26:42.497Z] ✨ SUCCESS: "Practical Applications" (ID: 206) updated. Rows: 1
+[2026-02-22T16:28:19.645Z] ✨ SUCCESS: "Fundamental Concepts" (ID: 210) updated. Rows: 1
+[2026-02-22T16:28:31.509Z] ✨ SUCCESS: "Memory Management Security" (ID: 151) updated. Rows: 1
+[2026-02-22T16:28:39.856Z] ✨ SUCCESS: "Core Principles" (ID: 211) updated. Rows: 1
+[2026-02-22T16:29:00.197Z] ✨ SUCCESS: "Practical Applications" (ID: 212) updated. Rows: 1
+[2026-02-22T16:29:20.033Z] ✨ SUCCESS: "Advanced Techniques" (ID: 213) updated. Rows: 1
+[2026-02-22T16:29:59.824Z] ✨ SUCCESS: "Industry Best Practices" (ID: 214) updated. Rows: 1
+[2026-02-22T16:30:20.640Z] ✨ SUCCESS: "Real-World Case Studies" (ID: 215) updated. Rows: 1
+[2026-02-22T16:30:41.310Z] ✨ SUCCESS: "Fundamental Concepts" (ID: 216) updated. Rows: 1
+[2026-02-22T16:31:44.075Z] ✨ SUCCESS: "Core Principles" (ID: 217) updated. Rows: 1
+[2026-02-22T16:32:03.732Z] ✨ SUCCESS: "Practical Applications" (ID: 218) updated. Rows: 1
+[2026-02-22T16:32:44.563Z] ✨ SUCCESS: "Advanced Techniques" (ID: 219) updated. Rows: 1
+[2026-02-22T16:33:05.542Z] ✨ SUCCESS: "Industry Best Practices" (ID: 220) updated. Rows: 1
+[2026-02-22T16:33:45.848Z] ✨ SUCCESS: "Real-World Case Studies" (ID: 221) updated. Rows: 1
+[2026-02-22T16:34:07.057Z] ✨ SUCCESS: "Fundamental Concepts" (ID: 222) updated. Rows: 1
+[2026-02-22T16:34:27.195Z] ✨ SUCCESS: "Core Principles" (ID: 223) updated. Rows: 1
+[2026-02-22T16:34:46.321Z] ✨ SUCCESS: "Practical Applications" (ID: 224) updated. Rows: 1
+[2026-02-22T16:35:07.580Z] ✨ SUCCESS: "Advanced Techniques" (ID: 225) updated. Rows: 1
+[2026-02-22T16:35:27.718Z] ✨ SUCCESS: "Industry Best Practices" (ID: 226) updated. Rows: 1
+[2026-02-22T16:35:48.415Z] ✨ SUCCESS: "Real-World Case Studies" (ID: 227) updated. Rows: 1
+[2026-02-22T16:36:07.528Z] ✨ SUCCESS: "Fundamental Concepts" (ID: 228) updated. Rows: 1
+[2026-02-23T07:57:05.866Z] 💥 ERROR: "Interaction Design Fundamentals" — Rate limited after 8 retries
+[2026-02-23T08:05:52.815Z] 💥 ERROR: "User Research & Framing" — Rate limited after 8 retries
+[2026-02-23T08:14:42.181Z] 💥 ERROR: "Ideation & Sketching" — Rate limited after 8 retries
+[2026-02-23T08:22:25.145Z] 💥 ERROR: "Interaction Design Fundamentals" — Could not find JSON in Ollama response
+[2026-02-23T08:22:48.400Z] 💥 ERROR: "User Research & Framing" — Could not find JSON in Ollama response
+[2026-02-23T08:23:11.424Z] 💥 ERROR: "Ideation & Sketching" — Could not find JSON in Ollama response
+[2026-02-23T08:23:29.628Z] 💥 ERROR: "Prototyping & Evaluation" — Rate limited after 8 retries
+[2026-02-23T08:23:32.981Z] 💥 ERROR: "Prototyping & Evaluation" — Expected ',' or '}' after property value in JSON at position 26 (line 2 column 25)
+[2026-02-23T08:23:57.535Z] 💥 ERROR: "Kernel Exploitation Basics" — Unexpected token '`', ..."arkdown": `
+## 1️⃣ T"... is not valid JSON
+[2026-02-23T08:24:19.416Z] 💥 ERROR: "Memory Management Security" — Could not find JSON in Ollama response
+[2026-02-23T08:24:41.997Z] 💥 ERROR: "Process Isolation" — Unexpected token '`', ..."arkdown": `
+## 1️⃣ T"... is not valid JSON
+[2026-02-23T08:25:02.993Z] 💥 ERROR: "Fundamental Concepts" — Could not find JSON in Ollama response
+[2026-02-23T08:25:21.966Z] 💥 ERROR: "Core Principles" — Could not find JSON in Ollama response
+[2026-02-23T08:25:58.934Z] ✨ SUCCESS: "Interaction Design Fundamentals" (ID: 128)
+[2026-02-23T08:26:09.763Z] 💥 ERROR: "Practical Applications" — Could not find JSON in Ollama response
+[2026-02-23T08:26:48.115Z] ✨ SUCCESS: "User Research & Framing" (ID: 129)
+[2026-02-23T08:26:57.544Z] 💥 ERROR: "Advanced Techniques" — Could not find JSON in Ollama response
+[2026-02-23T08:27:35.664Z] ✨ SUCCESS: "Ideation & Sketching" (ID: 130)
+[2026-02-23T08:27:42.854Z] 💥 ERROR: "Industry Best Practices" — Could not find JSON in Ollama response
+[2026-02-23T08:28:25.779Z] ✨ SUCCESS: "Ideation & Sketching" (ID: 130)
+[2026-02-23T08:29:10.946Z] ✨ SUCCESS: "Prototyping & Evaluation" (ID: 131)
+[2026-02-23T08:29:22.935Z] 💥 ERROR: "Real-World Case Studies" — Expected ',' or '}' after property value in JSON at position 3618 (line 2 column 3617)
+[2026-02-23T08:30:10.558Z] ✨ SUCCESS: "Prototyping & Evaluation" (ID: 131)
+[2026-02-23T08:31:07.617Z] ✨ SUCCESS: "Kernel Exploitation Basics" (ID: 150)
+[2026-02-23T08:31:16.167Z] 💥 ERROR: "Fundamental Concepts" — Bad control character in string literal in JSON at position 586 (line 2 column 585)
+[2026-02-23T08:31:55.725Z] ✨ SUCCESS: "Kernel Exploitation Basics" (ID: 150)
+[2026-02-23T08:32:16.843Z] 💥 ERROR: "Kernel Exploitation Basics" — Rate limited after 8 retries
+[2026-02-23T08:32:39.473Z] ✨ SUCCESS: "Memory Management Security" (ID: 151)
+[2026-02-23T08:32:52.187Z] 💥 ERROR: "Core Principles" — Bad control character in string literal in JSON at position 44 (line 2 column 43)
+[2026-02-23T08:33:42.827Z] ✨ SUCCESS: "Memory Management Security" (ID: 151)
+[2026-02-23T08:34:33.842Z] ✨ SUCCESS: "Process Isolation" (ID: 152)
+[2026-02-23T08:34:48.637Z] 💥 ERROR: "Practical Applications" — Bad escaped character in JSON at position 64 (line 2 column 63)
+[2026-02-23T08:35:29.534Z] ✨ SUCCESS: "Process Isolation" (ID: 152)
+[2026-02-23T08:36:00.584Z] ✨ SUCCESS: "Fundamental Concepts" (ID: 156)
+[2026-02-23T08:36:17.537Z] 💥 ERROR: "Advanced Techniques" — Bad control character in string literal in JSON at position 805 (line 2 column 804)
+[2026-02-23T08:36:58.071Z] ✨ SUCCESS: "Fundamental Concepts" (ID: 156)
+[2026-02-23T08:37:36.865Z] ✨ SUCCESS: "Core Principles" (ID: 157)
+[2026-02-23T08:37:51.336Z] 💥 ERROR: "Industry Best Practices" — Expected ',' or '}' after property value in JSON at position 26 (line 2 column 25)
+[2026-02-23T08:38:33.411Z] ✨ SUCCESS: "Core Principles" (ID: 157)
+[2026-02-23T08:39:09.130Z] ✨ SUCCESS: "Practical Applications" (ID: 158)
+[2026-02-23T08:39:10.488Z] ⚠️ SKIP: "Real-World Case Studies" — no content_markdown returned
+[2026-02-23T08:39:49.235Z] ✨ SUCCESS: "Practical Applications" (ID: 158)
+[2026-02-23T08:40:27.379Z] ✨ SUCCESS: "Advanced Techniques" (ID: 159)
+[2026-02-23T08:40:39.613Z] 💥 ERROR: "Fundamental Concepts" — Could not find JSON in Ollama response
+[2026-02-23T08:41:05.646Z] 💥 ERROR: "Memory Management Security" — Rate limited after 8 retries
+[2026-02-23T08:41:22.257Z] ✨ SUCCESS: "Advanced Techniques" (ID: 159)
+[2026-02-23T08:42:10.183Z] ✨ SUCCESS: "Industry Best Practices" (ID: 160)
+[2026-02-23T08:42:22.597Z] 💥 ERROR: "Core Principles" — Could not find JSON in Ollama response
+[2026-02-23T08:43:08.641Z] ✨ SUCCESS: "Industry Best Practices" (ID: 160)
+[2026-02-23T08:43:46.382Z] ✨ SUCCESS: "Real-World Case Studies" (ID: 161)
+[2026-02-23T08:44:01.199Z] ✨ SUCCESS: "Practical Applications" (ID: 176)
+[2026-02-23T08:44:09.482Z] ✨ SUCCESS: "Real-World Case Studies" (ID: 161)
+[2026-02-23T08:44:43.246Z] ✨ SUCCESS: "Fundamental Concepts" (ID: 162)
+[2026-02-23T08:44:56.686Z] 💥 ERROR: "Advanced Techniques" — Could not find JSON in Ollama response
+[2026-02-23T08:45:54.342Z] ✨ SUCCESS: "Fundamental Concepts" (ID: 162)
+[2026-02-23T08:46:30.241Z] ✨ SUCCESS: "Core Principles" (ID: 163)
+[2026-02-23T08:46:44.359Z] 💥 ERROR: "Industry Best Practices" — Could not find JSON in Ollama response
+[2026-02-23T08:47:33.218Z] ✨ SUCCESS: "Core Principles" (ID: 163)
+[2026-02-23T08:48:17.566Z] ✨ SUCCESS: "Practical Applications" (ID: 164)
+[2026-02-23T08:48:30.247Z] 💥 ERROR: "Real-World Case Studies" — Could not find JSON in Ollama response
+[2026-02-23T08:49:13.385Z] ✨ SUCCESS: "Practical Applications" (ID: 164)
+[2026-02-23T08:49:54.502Z] 💥 ERROR: "Process Isolation" — Rate limited after 8 retries
+[2026-02-23T08:50:13.086Z] ✨ SUCCESS: "Advanced Techniques" (ID: 165)
+[2026-02-23T08:50:25.108Z] 💥 ERROR: "Fundamental Concepts" — Could not find JSON in Ollama response
+[2026-02-23T08:51:11.582Z] ✨ SUCCESS: "Advanced Techniques" (ID: 165)
+[2026-02-23T08:51:52.094Z] ✨ SUCCESS: "Industry Best Practices" (ID: 166)
+[2026-02-23T08:52:08.461Z] 💥 ERROR: "Core Principles" — Could not find JSON in Ollama response
+[2026-02-23T08:52:59.210Z] ✨ SUCCESS: "Industry Best Practices" (ID: 166)
+[2026-02-23T08:53:46.523Z] ✨ SUCCESS: "Real-World Case Studies" (ID: 167)
+[2026-02-23T08:53:59.995Z] 💥 ERROR: "Practical Applications" — Could not find JSON in Ollama response
+[2026-02-23T08:54:29.387Z] ✨ SUCCESS: "Real-World Case Studies" (ID: 167)
+[2026-02-23T08:55:10.103Z] ✨ SUCCESS: "Fundamental Concepts" (ID: 174)
+[2026-02-23T08:55:25.071Z] ✨ SUCCESS: "Advanced Techniques" (ID: 183)
+[2026-02-23T08:56:06.219Z] ✨ SUCCESS: "Fundamental Concepts" (ID: 174)
+[2026-02-23T08:56:45.194Z] ✨ SUCCESS: "Core Principles" (ID: 175)
+[2026-02-23T08:58:43.667Z] 💥 ERROR: "Fundamental Concepts" — Rate limited after 8 retries
+[2026-02-23T09:00:34.922Z] 💥 ERROR: "Industry Best Practices" — fetch failed
+[2026-02-23T09:01:13.097Z] 💥 ERROR: "Core Principles" — fetch failed
+[2026-02-23T09:01:52.074Z] 💥 ERROR: "Practical Applications" — fetch failed
+[2026-02-23T09:02:03.293Z] 💥 ERROR: "Real-World Case Studies" — Could not find JSON in Ollama response
+[2026-02-23T09:02:44.439Z] ✨ SUCCESS: "Practical Applications" (ID: 176)
+[2026-02-23T09:02:52.423Z] ✨ SUCCESS: "Advanced Techniques" (ID: 177)
+[2026-02-23T09:03:05.010Z] 💥 ERROR: "Fundamental Concepts" — Could not find JSON in Ollama response
+[2026-02-23T09:03:50.008Z] ✨ SUCCESS: "Advanced Techniques" (ID: 177)
+[2026-02-23T09:04:43.193Z] ✨ SUCCESS: "Industry Best Practices" (ID: 178)
+[2026-02-23T09:04:53.152Z] 💥 ERROR: "Core Principles" — Could not find JSON in Ollama response
+[2026-02-23T09:05:37.803Z] ✨ SUCCESS: "Industry Best Practices" (ID: 178)
+[2026-02-23T09:06:10.450Z] ✨ SUCCESS: "Real-World Case Studies" (ID: 179)
+[2026-02-23T09:06:18.869Z] 💥 ERROR: "Practical Applications" — Could not find JSON in Ollama response
+[2026-02-23T09:06:25.907Z] ✨ SUCCESS: "Real-World Case Studies" (ID: 179)
+[2026-02-23T09:07:00.778Z] ✨ SUCCESS: "Fundamental Concepts" (ID: 180)
+[2026-02-23T09:07:31.392Z] 💥 ERROR: "Core Principles" — Rate limited after 8 retries
+[2026-02-23T09:07:34.129Z] ✨ SUCCESS: "Fundamental Concepts" (ID: 180)
+[2026-02-23T09:07:35.006Z] ⚠️ SKIP: "Advanced Techniques" — no content_markdown returned
+[2026-02-23T09:08:14.976Z] ✨ SUCCESS: "Core Principles" (ID: 181)
+[2026-02-23T09:08:26.765Z] 💥 ERROR: "Industry Best Practices" — Could not find JSON in Ollama response
+[2026-02-23T09:09:12.297Z] ✨ SUCCESS: "Core Principles" (ID: 181)
+[2026-02-23T09:10:03.033Z] ✨ SUCCESS: "Practical Applications" (ID: 182)
+[2026-02-23T09:10:13.026Z] 💥 ERROR: "Real-World Case Studies" — Could not find JSON in Ollama response
+[2026-02-23T09:11:10.440Z] ✨ SUCCESS: "Practical Applications" (ID: 182)
+[2026-02-23T09:12:09.349Z] ✨ SUCCESS: "Advanced Techniques" (ID: 183)
+[2026-02-23T09:12:14.395Z] ✨ SUCCESS: "Fundamental Concepts" (ID: 192)
+[2026-02-23T09:13:03.583Z] ✨ SUCCESS: "Advanced Techniques" (ID: 183)
+[2026-02-23T09:14:03.042Z] ✨ SUCCESS: "Industry Best Practices" (ID: 184)
+[2026-02-23T09:14:14.303Z] 💥 ERROR: "Core Principles" — Could not find JSON in Ollama response
+[2026-02-23T09:15:05.976Z] ✨ SUCCESS: "Industry Best Practices" (ID: 184)
+[2026-02-23T09:15:54.588Z] ✨ SUCCESS: "Real-World Case Studies" (ID: 185)
+[2026-02-23T09:16:05.144Z] 💥 ERROR: "Practical Applications" — Unexpected token '`', ..."arkdown": `
+## 1️⃣ T"... is not valid JSON
+[2026-02-23T09:16:19.146Z] 💥 ERROR: "Practical Applications" — Rate limited after 8 retries
+[2026-02-23T09:16:49.413Z] ✨ SUCCESS: "Real-World Case Studies" (ID: 185)
+[2026-02-23T09:16:57.780Z] ✨ SUCCESS: "Fundamental Concepts" (ID: 186)
+[2026-02-23T09:17:06.707Z] ✨ SUCCESS: "Advanced Techniques" (ID: 195)
+[2026-02-23T09:17:54.275Z] ✨ SUCCESS: "Fundamental Concepts" (ID: 186)
+[2026-02-23T09:18:45.594Z] ✨ SUCCESS: "Core Principles" (ID: 187)
+[2026-02-23T09:18:52.232Z] 💥 ERROR: "Industry Best Practices" — Could not find JSON in Ollama response
+[2026-02-23T09:19:42.772Z] ✨ SUCCESS: "Core Principles" (ID: 187)
+[2026-02-23T09:19:54.873Z] ✨ SUCCESS: "Practical Applications" (ID: 188)
+[2026-02-23T09:20:04.435Z] 💥 ERROR: "Real-World Case Studies" — Could not find JSON in Ollama response
+[2026-02-23T09:20:47.028Z] ✨ SUCCESS: "Practical Applications" (ID: 188)
+[2026-02-23T09:21:37.533Z] ✨ SUCCESS: "Advanced Techniques" (ID: 189)
+[2026-02-23T09:21:52.491Z] 💥 ERROR: "Fundamental Concepts" — Bad escaped character in JSON at position 4177 (line 2 column 4176)
+[2026-02-23T09:22:31.843Z] ✨ SUCCESS: "Advanced Techniques" (ID: 189)
+[2026-02-23T09:23:17.599Z] ✨ SUCCESS: "Industry Best Practices" (ID: 190)
+[2026-02-23T09:23:27.402Z] 💥 ERROR: "Core Principles" — Could not find JSON in Ollama response
+[2026-02-23T09:23:51.544Z] ✨ SUCCESS: "Industry Best Practices" (ID: 190)
+[2026-02-23T09:24:28.425Z] ✨ SUCCESS: "Real-World Case Studies" (ID: 191)
+[2026-02-23T09:25:00.022Z] 💥 ERROR: "Practical Applications" — Could not find JSON in Ollama response
+[2026-02-23T09:25:08.021Z] 💥 ERROR: "Advanced Techniques" — Rate limited after 8 retries
+[2026-02-23T09:25:44.323Z] ✨ SUCCESS: "Real-World Case Studies" (ID: 191)
+[2026-02-23T09:26:36.473Z] ✨ SUCCESS: "Fundamental Concepts" (ID: 192)
+[2026-02-23T09:26:46.607Z] 💥 ERROR: "Advanced Techniques" — Could not find JSON in Ollama response
+[2026-02-23T09:27:35.971Z] ✨ SUCCESS: "Fundamental Concepts" (ID: 192)
+[2026-02-23T09:28:24.285Z] ✨ SUCCESS: "Core Principles" (ID: 193)
+[2026-02-23T09:28:32.130Z] 💥 ERROR: "Industry Best Practices" — Could not find JSON in Ollama response
+[2026-02-23T09:29:17.256Z] ✨ SUCCESS: "Core Principles" (ID: 193)
+[2026-02-23T09:29:56.560Z] ✨ SUCCESS: "Practical Applications" (ID: 194)
+[2026-02-23T09:30:09.100Z] 💥 ERROR: "Real-World Case Studies" — Bad control character in string literal in JSON at position 943 (line 2 column 942)
+[2026-02-23T09:30:25.391Z] ✨ SUCCESS: "Practical Applications" (ID: 194)
+[2026-02-23T09:30:54.069Z] ✨ SUCCESS: "Advanced Techniques" (ID: 195)
+[2026-02-23T09:31:04.512Z] 💥 ERROR: "Fundamental Concepts" — Could not find JSON in Ollama response
+[2026-02-23T09:31:10.581Z] ✨ SUCCESS: "Advanced Techniques" (ID: 195)
+[2026-02-23T09:31:49.647Z] ✨ SUCCESS: "Industry Best Practices" (ID: 196)
+[2026-02-23T09:32:03.462Z] ✨ SUCCESS: "Industry Best Practices" (ID: 196)
+[2026-02-23T09:32:11.394Z] 💥 ERROR: "Core Principles" — Could not find JSON in Ollama response
+[2026-02-23T09:32:45.260Z] ✨ SUCCESS: "Real-World Case Studies" (ID: 197)
+[2026-02-23T09:33:17.176Z] ✨ SUCCESS: "Real-World Case Studies" (ID: 197)
+[2026-02-23T09:33:25.861Z] 💥 ERROR: "Practical Applications" — Unexpected token '`', ..."arkdown": ```
+## 1️⃣"... is not valid JSON
+[2026-02-23T09:33:56.446Z] 💥 ERROR: "Industry Best Practices" — Rate limited after 8 retries
+[2026-02-23T09:33:58.367Z] ✨ SUCCESS: "Fundamental Concepts" (ID: 198)
+[2026-02-23T09:34:37.835Z] ✨ SUCCESS: "Fundamental Concepts" (ID: 198)
+[2026-02-23T09:34:47.593Z] 💥 ERROR: "Advanced Techniques" — Could not find JSON in Ollama response
+[2026-02-23T09:35:39.693Z] ✨ SUCCESS: "Core Principles" (ID: 199)
+[2026-02-23T09:36:30.469Z] ✨ SUCCESS: "Core Principles" (ID: 199)
+[2026-02-23T09:36:41.287Z] 💥 ERROR: "Industry Best Practices" — Could not find JSON in Ollama response
+[2026-02-23T09:37:23.060Z] ✨ SUCCESS: "Practical Applications" (ID: 200)
+[2026-02-23T09:38:03.070Z] ✨ SUCCESS: "Practical Applications" (ID: 200)
+[2026-02-23T09:38:04.172Z] 💥 ERROR: "Real-World Case Studies" — Expected ',' or '}' after property value in JSON at position 29 (line 3 column 3)
