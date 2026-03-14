@@ -10,6 +10,10 @@ import {
 } from "../utils/aiRules.js";
 import { getNextPhase, updateInterviewSession, startInterviewSession } from "../services/interview.service.js";
 import { callOllama, callGroq, callAI, repairJson, streamAI, groq } from "../utils/aiClient.js";
+import { MsEdgeTTS, OUTPUT_FORMAT } from "msedge-tts";
+
+// In-memory cache for frequently requested TTS segments
+const ttsCache = new Map();
 
 // --- MOCK FALLBACK SYSTEM ---
 // Integrated via aiClient.js
@@ -1244,11 +1248,6 @@ Keep it under 3 paragraphs.`;
     }
 };
 
-import { MsEdgeTTS, OUTPUT_FORMAT } from "msedge-tts";
-
-// In-memory cache for frequently requested TTS segments
-const ttsCache = new Map();
-
 export const generatePodcastSpeech = async (req, res) => {
     const { text, speaker } = req.body;
     if (!text) return res.status(400).json({ message: 'Text required' });
@@ -1270,13 +1269,12 @@ export const generatePodcastSpeech = async (req, res) => {
         const tts = new MsEdgeTTS();
         
         // Define high-fidelity human personas
-        // Host: Dr. Aria (Natural, Professional)
-        // Expert: Prof. Nova (Senior, Authoritative)
         const voiceName = speaker === "host" ? "en-US-AriaNeural" : "en-US-GuyNeural";
+        
+        console.log(`[Neural-TTS] Fetching voice for ${voiceName}...`);
         
         await tts.setMetadata(voiceName, OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3);
         
-        // Handle potential timeouts or errors in synthesis
         const readable = tts.toStream(text);
         const chunks = [];
         
@@ -1286,20 +1284,26 @@ export const generatePodcastSpeech = async (req, res) => {
         
         const finalBuffer = Buffer.concat(chunks);
         
-        // Update cache (limit size to prevent memory leaks)
+        if (!finalBuffer || finalBuffer.length < 100) {
+            throw new Error("Synthesized audio buffer is empty or too small");
+        }
+
+        console.log(`[Neural-TTS] Success: ${finalBuffer.length} bytes for speaker="${speaker}"`);
+
+        // Update cache
         if (ttsCache.size < 500) {
             ttsCache.set(cacheKey, finalBuffer);
         }
 
         res.set({
             'Content-Type': 'audio/mpeg',
-            'Content-Length': finalBuffer.length
+            'Content-Length': finalBuffer.length,
+            'X-TTS-Engine': 'Neural-Edge'
         });
         return res.send(finalBuffer);
 
     } catch (err) {
-        console.error(`[Neural-TTS] Synthesis failed: ${err.message}`);
-        // Fallback: return 503 so frontend uses browser TTS as last resort
+        console.error(`[Neural-TTS] Synthesis CRITICAL FAILURE: ${err.message}`);
         res.status(503).json({ message: 'Neural TTS service unavailable', error: err.message });
     }
 };

@@ -161,13 +161,20 @@ export default function TopicPodcastPlayer({ topic }) {
 
         // Logic for both voices
         const playCloudAudio = async (text, speakerType) => {
-            // Force Cloud TTS for 100% human quality
+            // Cancel any robotic voice immediately
+            synth.cancel();
+            // Fetch Neural TTS from Backend
             try {
                 const response = await api.post("/ai/podcast/speech",
                     { text, speaker: speakerType },
                     { responseType: 'blob' }
                 );
 
+                if (!response.data || response.data.size < 500) {
+                    throw new Error("Invalid audio response from cloud");
+                }
+
+                console.log(`%c[Neural-Audio] Playing cloud-synthesis (${speakerType})...`, "color: #10b981; font-weight: bold;");
                 const url = URL.createObjectURL(response.data);
                 const audio = new Audio(url);
                 audioRef.current = audio;
