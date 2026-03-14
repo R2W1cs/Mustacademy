@@ -196,7 +196,8 @@ export default function TopicPodcastPlayer({ topic }) {
 
                 await audio.play();
             } catch (err) {
-                console.error("Cloud audio fetch failure:", err);
+                console.error("%c[Neural-Audio] Fetch Failure:", "color: #ef4444; font-weight: bold;", err);
+                console.warn("[TTS] Falling back to browser due to API connection error. Check if FRONTEND_URL/VITE_API_URL are set correctly.");
                 speakWithBrowser(text, speakerType); // Fallback to browser
             }
         };
