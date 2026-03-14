@@ -70,11 +70,12 @@ export const callGroq = async (prompt, expectJson = true, model = "llama-3.3-70b
     console.log(`[AI Groq] Attempting reasoning via ${model} (expectJson=${expectJson})...`);
     try {
         const payload = {
-            model: model,
+            model: model === "llama-3.3-70b-versatile" ? "openai/gpt-oss-120b" : model,
             messages: [{ role: "user", content: prompt }],
-            temperature: 0.7,
+            temperature: 1,
             max_completion_tokens: 8192,
-            top_p: 1
+            top_p: 1,
+            reasoning_effort: "medium"
         };
 
         if (expectJson) {
@@ -109,11 +110,12 @@ export const streamAI = async (prompt, model = "llama-3.3-70b-versatile") => {
         try {
             console.log(`[AI Groq] Initiating stream via ${model}...`);
             const stream = await groq.chat.completions.create({
-                model: model,
+                model: model === "llama-3.3-70b-versatile" ? "openai/gpt-oss-120b" : model,
                 messages: [{ role: "user", content: prompt }],
-                temperature: 0.7,
+                temperature: 1,
                 max_completion_tokens: 8192,
                 top_p: 1,
+                reasoning_effort: "medium",
                 stream: true,
             });
             return stream;
