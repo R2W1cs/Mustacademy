@@ -86,6 +86,16 @@ app.use('/api/market', marketRoutes);
 app.use('/api/projects', projectRoutes);
 
 
+app.get('/api/health', async (req, res) => {
+  try {
+    const { default: pool } = await import('./config/db.js');
+    const result = await pool.query('SELECT NOW()');
+    res.json({ status: 'ok', db: result.rows[0].now });
+  } catch (err) {
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
 app.get('/', (req, res) => {
   res.json({ message: 'Backend running successfully 🚀' });
 });
