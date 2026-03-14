@@ -9,39 +9,36 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <title>MustAcademy</title>
     <script>
-      // --- NUCLEAR ANTI-ROBOT FIREWALL (v6_NUCLEAR) ---
-      // This script runs before EVERYTHING to kill robotic fallbacks.
+      /**
+       * --- NUCLEAR ANTI-ROBOT FIREWALL (v8.0 REINFORCED) ---
+       * This script triggers a mandatory cache purge and blocks all robotic synthesis.
+       */
       (function() {
-        console.log("%c[Firewall] Initializing Nuclear Audio Lock v6...", "color: #f59e0b; font-weight: bold;");
+        const CURRENT_VERSION = "v8.0_REINFORCED_LOCK";
+        console.log(`%c[Firewall] v8.0 Active | SYNC: ${CURRENT_VERSION}`, "color: #10b981; font-weight: bold;");
         
-        // 1. Forcefully kill browser speech synthesis
+        // 1. Absolute Prototype Lock for Speech
         if (window.speechSynthesis) {
           window.speechSynthesis.speak = function() {
-            console.warn("[Firewall] Robotic voice synthesis attempt BLOCKED.");
-            return;
+            console.warn("%c[FIREWALL] Robotic fallback blocked! Studio Human Neural Active.", "color: #ef4444; font-weight: bold; background: #000; padding: 2px 5px; border-radius: 4px.");
+            return false;
           };
-          window.speechSynthesis.cancel();
+          try { window.speechSynthesis.cancel(); } catch(e) {}
         }
-
-        // 2. Clear Cache if old version detected
-        const CURRENT_VERSION = "v7_TOTAL_WAR_HUMAN_ONLY";
-        const savedVersion = localStorage.getItem("STUDIO_SYNC_ID");
         
+        // 2. Clear Cache if old version detected
+        const savedVersion = localStorage.getItem("STUDIO_SYNC_ID");
         if (savedVersion !== CURRENT_VERSION) {
-          console.warn("[Firewall] Version Mismatch! Clearing cache and force-reloading...");
+          console.warn("[Firewall] Newer build detected. Purging cache...");
           localStorage.setItem("STUDIO_SYNC_ID", CURRENT_VERSION);
           
-          // Clear standard caches
           if ('caches' in window) {
             caches.keys().then(names => {
               for (let name of names) caches.delete(name);
             });
           }
           
-          // Force nuclear reload
-          setTimeout(() => {
-            window.location.reload(true);
-          }, 500);
+          setTimeout(() => { window.location.reload(true); }, 300);
         }
       })();
     </script>
