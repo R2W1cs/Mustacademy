@@ -422,9 +422,9 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
             setRevealedLength(0);
             if (recognitionRef.current) try { recognitionRef.current.stop(); } catch (e) { }
 
-            // Fetch Neural TTS from Backend
-            const response = await api.post("/ai/podcast/speech", 
-                { text: cleanText, speaker: "expert" }, // Marcus uses Expert voice
+            // Fetch Neural TTS from Backend explicitly for Marcus (Male Premium)
+            const response = await api.post("/tts", 
+                { text: cleanText, voice: "en-US-BrianNeural" },
                 { responseType: 'blob' }
             );
 
