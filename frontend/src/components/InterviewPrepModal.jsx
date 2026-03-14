@@ -201,29 +201,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
     }, []);
 
     useEffect(() => {
-        const synth = window.speechSynthesis;
-        const auditVoices = () => {
-            const voices = synth.getVoices();
-            if (voices.length === 0) return;
-
-            const premium = voices.filter(v =>
-                v.name.includes("Natural") ||
-                v.name.includes("Online") ||
-                v.name.includes("Neural") ||
-                v.name.includes("Enhanced")
-            );
-
-            console.log(`%c[Voice Auditor] Found ${voices.length} total voices.`, "color: #6366f1; font-weight: bold;");
-            if (premium.length > 0) {
-                console.log(`%c[Voice Auditor] Found ${premium.length} premium (Natural/Online) voices.`, "color: #10b981; font-weight: bold;");
-                console.log("[Voice Auditor] Best candidates:", premium.slice(0, 10).map(v => v.name));
-            }
-        };
-
-        if (synth.onvoiceschanged !== undefined) {
-            synth.onvoiceschanged = auditVoices;
-        }
-        auditVoices();
+        // [Nuclear Firewall] Native Web Speech API blocked. Neural backend only.
 
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognition) {
@@ -274,7 +252,6 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
         }
         return () => {
             if (recognitionRef.current) recognitionRef.current.stop();
-            window.speechSynthesis.cancel();
             if (timerRef.current) clearTimeout(timerRef.current);
         };
     }, []);
@@ -349,8 +326,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
         if (timerRef.current) clearTimeout(timerRef.current);
 
         try {
-            // Prime the synth on the user click to unlock audio for the eventual async response
-            window.speechSynthesis.speak(new SpeechSynthesisUtterance(""));
+            // Proceed with neural backend audio
 
             const res = await api.post("/ai/interview/chat", {
                 message: textToSend,
@@ -405,10 +381,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
 
     const speak = async (text) => {
         if (!text || typeof text !== 'string') return;
-        const synth = window.speechSynthesis;
-        
         // Stop any existing audio
-        synth.cancel();
         if (audioRef.current) {
             audioRef.current.pause();
             audioRef.current = null;
