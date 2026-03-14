@@ -14,8 +14,8 @@
        * This script triggers a mandatory cache purge and blocks all robotic synthesis.
        */
       (function() {
-        const CURRENT_VERSION = "v8.0_REINFORCED_LOCK";
-        console.log(`%c[Firewall] v8.0 Active | SYNC: ${CURRENT_VERSION}`, "color: #10b981; font-weight: bold;");
+        const CURRENT_VERSION = "v8.1_FINAL_STORM";
+        console.log(`%c[NUCLEAR-FIREWALL] v8.1 INITIALIZED | ${CURRENT_VERSION}`, "color: #10b981; font-weight: bold; background: #000; padding: 10px; border: 2px solid #10b981; display: block; width: 100%; text-align: center;");
         
         // 1. Absolute Prototype Lock for Speech
         if (window.speechSynthesis) {
@@ -29,7 +29,8 @@
         // 2. Clear Cache if old version detected
         const savedVersion = localStorage.getItem("STUDIO_SYNC_ID");
         if (savedVersion !== CURRENT_VERSION) {
-          console.warn("[Firewall] Newer build detected. Purging cache...");
+          console.warn("[NUCLEAR-FIREWALL] Build upgrade detected. Purging all cached ghosts...");
+          localStorage.clear(); // Total wipe
           localStorage.setItem("STUDIO_SYNC_ID", CURRENT_VERSION);
           
           if ('caches' in window) {
@@ -38,7 +39,8 @@
             });
           }
           
-          setTimeout(() => { window.location.reload(true); }, 300);
+          console.log("%c[FIREWALL] Cache Purge Successful. Executing Forced Reload...", "color: #10b981; font-weight: bold;");
+          setTimeout(() => { window.location.reload(true); }, 500);
         }
       })();
     </script>
