@@ -473,6 +473,11 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                 { responseType: 'blob' }
             );
 
+            if (!response.data || response.data.size < 500) {
+                throw new Error("Empty audio response from cloud");
+            }
+
+            console.log("%c[Neural-Audio] Marcus Sterling high-fidelity stream active.", "color: #3b82f6; font-weight: bold;");
             const url = URL.createObjectURL(response.data);
             const audio = new Audio(url);
             audioRef.current = audio;
