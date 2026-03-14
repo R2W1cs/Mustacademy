@@ -428,23 +428,3 @@ const parseAiJson = (aiText) => {
     }
 };
 
-// --- GROQ ULTRA-PREMIUM TTS (Orpheus-v1) ---
-export const groqTTS = async (text, voice = 'hannah') => {
-    if (!groq) throw new Error("Groq client not initialized for TTS");
-
-    console.log(`[Groq-TTS] Synthesizing human voice: ${voice}...`);
-    try {
-        const response = await groq.audio.speech.create({
-            model: "canopylabs/orpheus-v1-english",
-            voice: voice,
-            input: text,
-            response_format: "wav"
-        });
-
-        return Buffer.from(await response.arrayBuffer());
-    } catch (err) {
-        console.error("[Groq-TTS] Fatal Error:", err.message);
-        throw err;
-    }
-};
-

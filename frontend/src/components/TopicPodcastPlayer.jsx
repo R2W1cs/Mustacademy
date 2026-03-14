@@ -37,6 +37,7 @@ export default function TopicPodcastPlayer({ topic }) {
     const audioRef = useRef(null);
 
     useEffect(() => {
+
         // Cleanup function for stopping all audio
         const stopAllAudio = () => {
             if (audioRef.current) {
@@ -61,9 +62,9 @@ export default function TopicPodcastPlayer({ topic }) {
 
         const playCloudAudio = async (text, speakerType, retryCount = 0) => {
             try {
-                // Fetch Neural TTS from Unified /tts Endpoint
-                const response = await api.post("/tts",
-                    { text, voice: speakerType === 'host' ? 'hannah' : 'tray' },
+                // Fetch Neural TTS from Backend
+                const response = await api.post("/ai/podcast/speech",
+                    { text, speaker: speakerType },
                     { responseType: 'blob', timeout: 30000 }
                 );
 
@@ -106,6 +107,7 @@ export default function TopicPodcastPlayer({ topic }) {
             }
         };
 
+        // EXCLUSIVE: We no longer fallback to browser robots. 100% human or silence.
         playCloudAudio(segment.text, segment.speaker);
 
         return stopAllAudio;

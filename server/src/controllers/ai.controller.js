@@ -9,7 +9,8 @@ import {
     PROFESSOR_IQ_160_PROMPT, MASTERCLASS_EPISODE_PROMPT
 } from "../utils/aiRules.js";
 import { getNextPhase, updateInterviewSession, startInterviewSession } from "../services/interview.service.js";
-import { callOllama, callGroq, callAI, repairJson, streamAI, groq, groqTTS } from "../utils/aiClient.js";
+import { callOllama, callGroq, callAI, repairJson, streamAI, groq } from "../utils/aiClient.js";
+import { MsEdgeTTS, OUTPUT_FORMAT } from "msedge-tts";
 
 // In-memory cache for frequently requested TTS segments
 const ttsCache = new Map();
@@ -1159,8 +1160,8 @@ export const generateTopicPodcast = async (req, res) => {
 You must create a deeply technical and engaging podcast script about "${topicTitle}".
 
 CHARACTERS:
-1. "Dr. Aria" (speaker ID: "host"): She is the moderator. She introduces the episode, asks probing questions, and ensures the conversation stays on track. She uses the High-Fidelity Studio Neural voice.
-2. "Prof. Nova" (speaker ID: "expert"): She is the domain expert with a PhD in Computer Science. She provides the technical depth, implementation details, and architectural trade-offs. She uses the High-Fidelity Studio Neural voice.
+1. "Dr. Aria" (speaker ID: "host"): She is the moderator. She introduces the episode, asks probing questions, and ensures the conversation stays on track. She uses the browser's default voice.
+2. "Prof. Nova" (speaker ID: "expert"): She is the domain expert with a PhD in Computer Science. She provides the technical depth, implementation details, and architectural trade-offs. She uses high-quality cloud audio.
 
 SEGMENT REQUIREMENTS:
 The conversation MUST cover:
@@ -1251,29 +1252,105 @@ export const generatePodcastSpeech = async (req, res) => {
     const { text, speaker } = req.body;
     if (!text) return res.status(400).json({ message: 'Text required' });
 
-    console.log(`[Groq-Neural-TTS] Synthesizing ultra-premium human voice for speaker="${speaker}" (Orpheus-v1)...`);
+    // Use cache if same text and speaker
+    const cacheKey = `${speaker}:${text}`;
+    if (ttsCache.has(cacheKey)) {
+        const cached = ttsCache.get(cacheKey);
+        res.set({
+            'Content-Type': 'audio/mpeg',
+            'Content-Length': cached.length
+        });
+        return res.send(cached);
+    }
+
+    console.log(`[Neural-TTS] Synthesizing human voice for speaker="${speaker}"...`);
 
     try {
-        const voice = speaker === "host" ? "hannah" : "tray";
-        const buffer = await groqTTS(text, voice);
+        const tts = new MsEdgeTTS();
+        const voices = speaker === "host" ? ["en-US-AriaNeural", "en-US-JennyNeural"] : ["en-US-GuyNeural", "en-US-ChristopherNeural"];
+        
+        console.log(`[Neural-TTS] Synthesizing "${text.substring(0, 30)}..." for ${speaker}.`);
+        
+        let finalBuffer = null;
+        let lastError = null;
+        for (const voiceName of voices) {
+            try {
+                await tts.setMetadata(voiceName, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
+                
+                // Final Render-Optimized Chunking (600 chars)
+                // Small chunks = fast handshakes = No 503 Timeouts on Render
+                const chunks = text.match(/[\s\S]{1,600}(?=[.!?\n]|\s|$)/g) || [text];
+                
+                const audioBuffers = [];
+                const requestStartTime = Date.now();
+
+                for (const chunk of chunks) {
+                    // Critical: Abort before Render's 30s wall (using 22s limit)
+                    if (Date.now() - requestStartTime > 22000) {
+                        console.warn(`[Neural-TTS] Approaching Render timeout for voice ${voiceName}. Aborting.`);
+                        break;
+                    }
+
+                    const cleanChunk = chunk.trim();
+                    if (!cleanChunk) continue;
+
+                    const readable = tts.toStream(cleanChunk);
+                    const partChunks = [];
+                    
+                    await new Promise((resolve, reject) => {
+                        const chunkTimeout = setTimeout(() => reject(new Error("Segment Synthesis Timeout")), 12000);
+                        
+                        readable.on('data', (data) => partChunks.push(data));
+                        readable.on('end', () => {
+                            clearTimeout(chunkTimeout);
+                            resolve();
+                        });
+                        readable.on('error', (err) => {
+                            clearTimeout(chunkTimeout);
+                            reject(err);
+                        });
+                    });
+                    
+                    audioBuffers.push(Buffer.concat(partChunks));
+                }
+                
+                finalBuffer = Buffer.concat(audioBuffers);
+                if (finalBuffer && finalBuffer.length > 500) {
+                    console.log(`[Neural-TTS] Successfully synthesized ${finalBuffer.length} bytes using ${voiceName}`);
+                    break;
+                }
+            } catch (err) {
+                console.warn(`[Neural-TTS] Voice ${voiceName} failed on Render: ${err.message}`);
+                lastError = err;
+            }
+        }
+
+        if (!finalBuffer || finalBuffer.length < 500) {
+            throw new Error(lastError ? lastError.message : "Synthesis produced no audio data");
+        }
+
+        console.log(`[Neural-TTS] Success: ${finalBuffer.length} bytes delivered.`);
+
+        if (ttsCache.size < 500) {
+            ttsCache.set(cacheKey, finalBuffer);
+        }
 
         res.set({
-            'Content-Type': 'audio/wav',
-            'Content-Length': buffer.length,
-            'X-TTS-Engine': 'Groq-Orpheus-Elite',
-            'X-Neural-Voice': voice
+            'Content-Type': 'audio/mpeg',
+            'Content-Length': finalBuffer.length,
+            'X-TTS-Engine': 'Neural-Edge-Hardened',
+            'X-Neural-Voice': voices[0]
         });
+        return res.send(finalBuffer);
 
-        return res.send(buffer);
-    } catch (error) {
-        console.error('[Groq-Neural-TTS] Synthesis Failure:', error.message);
+    } catch (err) {
+        console.error(`[Neural-TTS] FAIL: ${err.message}`);
         res.status(503).json({ 
-            message: 'High-fidelity Groq synthesis failed', 
-            error: error.message 
+            message: 'High-fidelity synthesis failed', 
+            error: err.message 
         });
     }
 };
-
 
 export const generateMasterclassEpisode = async (req, res) => {
     const { title, theme, partNumber } = req.body;
