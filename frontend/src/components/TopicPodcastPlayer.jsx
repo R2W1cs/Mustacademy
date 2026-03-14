@@ -159,22 +159,22 @@ export default function TopicPodcastPlayer({ topic }) {
             setTimeout(() => synth.speak(utterance), 50);
         };
 
-        // Logic for both voices
-        const playCloudAudio = async (text, speakerType) => {
-            // Cancel any robotic voice immediately
+        const playCloudAudio = async (text, speakerType, retryCount = 0) => {
+            // Cancel everything immediately - we only want Human Neural voices
             synth.cancel();
-            // Fetch Neural TTS from Backend
+            
             try {
+                // Fetch Neural TTS from Backend
                 const response = await api.post("/ai/podcast/speech",
                     { text, speaker: speakerType },
-                    { responseType: 'blob' }
+                    { responseType: 'blob', timeout: 30000 }
                 );
 
                 if (!response.data || response.data.size < 500) {
-                    throw new Error("Invalid audio response from cloud");
+                    throw new Error("Empty audio response");
                 }
 
-                console.log(`%c[Neural-Audio] Playing cloud-synthesis (${speakerType})...`, "color: #10b981; font-weight: bold;");
+                console.log(`%c[Neural-Audio] High-fidelity stream active (${speakerType}).`, "color: #10b981; font-weight: bold;");
                 const url = URL.createObjectURL(response.data);
                 const audio = new Audio(url);
                 audioRef.current = audio;
@@ -189,25 +189,31 @@ export default function TopicPodcastPlayer({ topic }) {
                 };
 
                 audio.onerror = (err) => {
-                    console.error("Cloud audio playback error:", err);
+                    console.error("[Neural-Audio] Playback interrupted.", err);
                     URL.revokeObjectURL(url);
-                    speakWithBrowser(text, speakerType); // Fallback to browser
+                    setIsPlaying(false);
                 };
 
                 await audio.play();
             } catch (err) {
                 const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message;
-                console.error(`%c[Neural-Audio] Fetch Failure: ${errorMsg}`, "color: #ef4444; font-weight: bold;");
-                console.warn("[TTS] Falling back to browser due to backend synthesis failure. Please check the 'error' field in the Network tab for the 503 response.");
-                speakWithBrowser(text, speakerType);
+                console.error(`%c[Neural-Audio] Cloud Fetch Failed: ${errorMsg}`, "color: #ef4444; font-weight: bold;");
+                
+                if (retryCount < 1) {
+                    console.warn("[Neural-Audio] Retrying high-fidelity synthesis...");
+                    return playCloudAudio(text, speakerType, retryCount + 1);
+                }
+
+                setError("High-fidelity audio service temporarily unreachable. Trying to reconnect...");
+                setIsPlaying(false);
             }
         };
 
-        // Play exclusively through Cloud TTS for higher quality
+        // EXCLUSIVE: We no longer fallback to browser robots. 100% human or silence.
         playCloudAudio(segment.text, segment.speaker);
 
         return stopAllAudio;
-    }, [isPlaying, activeSegment, episode, voices]);
+    }, [isPlaying, activeSegment, episode]);
 
     const generateEpisode = async () => {
         if (!topic) return;

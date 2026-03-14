@@ -400,51 +400,6 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
         return { cleanText: finalClean, speed };
     };
 
-    const speakFallback = (cleanText, speed) => {
-        const voices = window.speechSynthesis.getVoices();
-        const utterance = new SpeechSynthesisUtterance(cleanText);
-
-        const voice =
-            voices.find(v => v.name.includes("Microsoft Mark")) ||
-            voices.find(v => v.name.includes("Microsoft Brian")) ||
-            voices.find(v => v.name.includes("Microsoft David")) ||
-            voices.find(v => v.lang.startsWith("en") && v.name.toLowerCase().includes("male")) ||
-            voices[0];
-
-        if (voice) utterance.voice = voice;
-        utterance.rate = speed;
-        utterance.pitch = 0.9;
-
-        utterance.onstart = () => {
-            setIsSpeaking(true);
-            setRevealedLength(0);
-            if (recognitionRef.current) try { recognitionRef.current.stop(); } catch (e) { }
-        };
-        utterance.onboundary = (event) => {
-            if (event.name === 'word') {
-                const nextSpace = cleanText.indexOf(' ', event.charIndex + 1);
-                setRevealedLength(nextSpace === -1 ? cleanText.length : nextSpace);
-                setVoiceIntensity(0.8 + Math.random() * 0.4);
-            }
-        };
-        utterance.onend = () => {
-            setIsSpeaking(false);
-            setRevealedLength(cleanText.length);
-            if (!scorecard && !loadingRef.current) {
-                setTimeout(() => {
-                    if (recognitionRef.current && !isListeningRef.current && !isSpeakingRef.current && !loadingRef.current) {
-                        try { recognitionRef.current.start(); } catch (e) { }
-                    }
-                }, 800);
-            }
-        };
-        utterance.onerror = () => {
-            setIsSpeaking(false);
-            setRevealedLength(cleanText.length);
-        };
-
-        window.speechSynthesis.speak(utterance);
-    };
 
     const audioRef = useRef(null);
 
@@ -511,17 +466,17 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
             };
 
             audio.onerror = () => {
+                console.error("[Neural-Audio] Playback failure.");
                 setIsSpeaking(false);
                 URL.revokeObjectURL(url);
-                // Last resort fallback
-                speakFallback(cleanText, 0.95);
             };
 
             await audio.play();
 
         } catch (err) {
-            console.error("[TTS-Neural] Failed, falling back:", err);
-            speakFallback(cleanText, 0.95);
+            const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message;
+            console.error(`%c[Neural-Audio] Marcus Synthesis Failure: ${errorMsg}`, "color: #ef4444; font-weight: bold;");
+            setIsSpeaking(false);
         }
     };
 

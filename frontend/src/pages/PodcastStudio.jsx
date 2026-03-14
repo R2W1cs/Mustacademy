@@ -220,9 +220,15 @@ export default function CsDocumentary() {
             } catch (err) {
                 const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message;
                 console.error(`%c[Neural-Audio] Documentary Synthesis Failure: ${errorMsg}`, "color: #ef4444; font-weight: bold;");
-                // Stop or fallback
-                if (activeSegment < episode.segments.length - 1) setActiveSegment(prev => prev + 1);
-                else setIsPlaying(false);
+                
+                // STRICT: No robotic fallback. Wait and try next segment or stop.
+                setTimeout(() => {
+                    if (activeSegment < episode.segments.length - 1) {
+                        setActiveSegment(prev => prev + 1);
+                    } else {
+                        setIsPlaying(false);
+                    }
+                }, 1500); 
             }
         };
 
