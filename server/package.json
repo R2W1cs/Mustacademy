@@ -16,6 +16,7 @@
     "groq-sdk": "^0.37.0",
     "jsonwebtoken": "^9.0.2",
     "mammoth": "^1.11.0",
+    "msedge-tts": "^2.0.4",
     "multer": "^1.4.5-lts.1",
     "node-cron": "^4.2.1",
     "nodemailer": "^6.9.9",

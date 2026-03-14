@@ -52,17 +52,8 @@ export const checkTopicAccess = async (req, res) => {
         const prevScore = progressRes.rows[0]?.quiz_score || 0;
         // const prevCompleted = progressRes.rows[0]?.completed || false; // Optional strictness
 
-        if (prevScore >= 70) {
-            res.json({ locked: false, message: "Clearance granted." });
-        } else {
-            res.json({
-                locked: true,
-                message: "Clearance denied. Previous module assessment < 70%.",
-                reqScore: 70,
-                yourPrevScore: prevScore,
-                prevTopicId
-            });
-        }
+        // All topics are now accessible once the previous one is attempted
+        res.json({ locked: false, message: "Clearance granted." });
 
     } catch (err) {
         console.error(err);
@@ -84,10 +75,10 @@ export const submitQuizResult = async (req, res) => {
         // Upsert progress
         await pool.query(`
        INSERT INTO user_topic_progress (user_id, topic_id, quiz_score, completed)
-       VALUES ($1, $2, $3, $4)
+       VALUES ($1, $2, $3, true)
        ON CONFLICT (user_id, topic_id)
        DO UPDATE SET quiz_score = GREATEST(user_topic_progress.quiz_score, $3), completed = true
-     `, [userId, topicId, score, score >= 70]);
+     `, [userId, topicId, score]);
 
         // Award XP if > 70
         if (score >= 70) {

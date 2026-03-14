@@ -111,13 +111,11 @@ export const toggleTopicCompletion = async (req, res) => {
       [userId, topicId]
     );
   } else {
-    // If we are marking as complete, ensure score is at least 80 to unlock next
-    const isCompleted = exists.rows[0].completed;
     await pool.query(
       `
       UPDATE user_topic_progress
       SET completed = NOT completed,
-          quiz_score = CASE WHEN NOT completed THEN GREATEST(quiz_score, 80) ELSE quiz_score END
+          quiz_score = CASE WHEN NOT completed THEN 100 ELSE quiz_score END
       WHERE user_id = $1 AND topic_id = $2
       `,
       [userId, topicId]

@@ -88,18 +88,17 @@ export default function TopicPodcastPlayer({ topic }) {
             const utterance = new SpeechSynthesisUtterance(text);
             utteranceRef.current = utterance;
 
-            const premiumKeywords = ["Natural", "Online", "Enhanced", "Neural"];
-
-            // Personas derived from user feedback & brand standards
-            const hostPreferred = ["Aria", "Jenny", "Samantha", "Sonia", "Google US English"];
-            const expertPreferred = ["Marcus", "Guy", "Christopher", "Andrew", "David", "Mark", "Stefan"];
+            const premiumKeywords = ["Natural", "Online", "Enhanced", "Neural", "Google", "Microsoft"];
+            const hostPreferred = ["Aria", "Jenny", "Samantha", "Google US English", "Microsoft Zira"];
+            const expertPreferred = ["Marcus", "Guy", "Christopher", "Andrew", "David", "Google UK English Male", "Microsoft David"];
 
             const findBestVoice = (speakerType) => {
                 const preferred = speakerType === "host" ? hostPreferred : expertPreferred;
+                const langCode = "en-";
 
                 // 1. Try Natural/Online versions of preferred names first
                 const bestChoice = voices.find(v =>
-                    v.lang.startsWith("en") &&
+                    v.lang.includes(langCode) &&
                     preferred.some(name => v.name.includes(name)) &&
                     premiumKeywords.some(pk => v.name.includes(pk))
                 );
@@ -107,19 +106,19 @@ export default function TopicPodcastPlayer({ topic }) {
 
                 // 2. Try any Natural/Online voice for the speaker's gender/lang
                 const premiumVoice = voices.find(v =>
-                    v.lang.startsWith("en") &&
-                    (speakerType === "host" ? !v.name.toLowerCase().includes("male") : v.name.toLowerCase().includes("male")) &&
+                    v.lang.includes(langCode) &&
+                    (speakerType === "host" ? (v.name.toLowerCase().includes("female") || v.name.includes("Aria")) : (v.name.toLowerCase().includes("male") || v.name.includes("Guy"))) &&
                     premiumKeywords.some(pk => v.name.includes(pk))
                 );
                 if (premiumVoice) return premiumVoice;
 
-                // 3. Fallback to preferred names
+                // 3. Fallback to preferred names (even non-premium)
                 for (const name of preferred) {
                     const voice = voices.find(v => v.name.includes(name));
                     if (voice) return voice;
                 }
 
-                // 4. Ultimate fallback
+                // 4. Ultimate fallback: Any English voice
                 return voices.find(v => v.lang.startsWith("en")) || voices[0];
             };
 
@@ -129,12 +128,13 @@ export default function TopicPodcastPlayer({ topic }) {
                 utterance.voice = selectedVoice;
             }
 
+            // Fine-tuned acoustics for "Premium" feel
             if (type === "host") {
-                utterance.pitch = 1.05;
-                utterance.rate = 1.0;
+                utterance.pitch = 1.02; 
+                utterance.rate = 1.05; // Slightly faster, more energetic
             } else {
-                utterance.pitch = 0.95; // Deep, authoritative male voice
-                utterance.rate = 0.95;
+                utterance.pitch = 0.92; // Slightly deeper, authoritative
+                utterance.rate = 0.95; // Slightly slower, measured
             }
 
             utterance.onend = () => {
@@ -161,12 +161,7 @@ export default function TopicPodcastPlayer({ topic }) {
 
         // Logic for both voices
         const playCloudAudio = async (text, speakerType) => {
-            // User specifically requested Nova (expert) to use Windows Speech Synthesis directly
-            if (speakerType === "expert") {
-                speakWithBrowser(text, speakerType);
-                return;
-            }
-
+            // Force Cloud TTS for 100% human quality
             try {
                 const response = await api.post("/ai/podcast/speech",
                     { text, speaker: speakerType },

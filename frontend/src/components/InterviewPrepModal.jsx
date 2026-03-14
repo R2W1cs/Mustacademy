@@ -446,99 +446,78 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
         window.speechSynthesis.speak(utterance);
     };
 
-    const speak = (text) => {
+    const audioRef = useRef(null);
+
+    const speak = async (text) => {
         if (!text || typeof text !== 'string') return;
         const synth = window.speechSynthesis;
+        
+        // Stop any existing audio
         synth.cancel();
-
-        const { cleanText, speed } = parseProsody(text);
-        if (!cleanText) return;
-
-        const findBestVoice = () => {
-            const voices = synth.getVoices();
-            // Interviewer persona: Marcus Sterling (Professional Male)
-            // Strategy: 1. Natural/Online Male -> 2. Any Natural/Online -> 3. Preferred Names -> 4. Any Male
-
-            const premiumKeywords = ["Natural", "Online", "Enhanced", "Neural"];
-            const preferredNames = ["Mark", "David", "Christopher", "Andrew", "Guy", "Jason", "Stefan"];
-
-            // 1. Best: Online/Natural Male
-            const bestMale = voices.find(v =>
-                v.lang.startsWith("en") &&
-                preferredNames.some(name => v.name.includes(name)) &&
-                premiumKeywords.some(key => v.name.includes(key))
-            );
-            if (bestMale) return bestMale;
-
-            // 2. Second Best: Any Premium Male
-            const premiumMale = voices.find(v =>
-                v.lang.startsWith("en") &&
-                v.name.toLowerCase().includes("male") &&
-                premiumKeywords.some(key => v.name.includes(key))
-            );
-            if (premiumMale) return premiumMale;
-
-            // 3. Third Best: Any Premium Voice
-            const anyPremium = voices.find(v =>
-                v.lang.startsWith("en") &&
-                premiumKeywords.some(key => v.name.includes(key))
-            );
-            if (anyPremium) return anyPremium;
-
-            // 4. Fallback to preferred names
-            for (const name of preferredNames) {
-                const voice = voices.find(v => v.name.includes(name));
-                if (voice) return voice;
-            }
-
-            return voices.find(v => v.name.toLowerCase().includes("male")) ||
-                voices.find(v => v.lang.startsWith("en")) ||
-                voices[0];
-        };
-
-        const utterance = new SpeechSynthesisUtterance(cleanText);
-        const voice = findBestVoice();
-        if (voice) {
-            console.log("[TTS] Marcus selected voice:", voice.name);
-            utterance.voice = voice;
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current = null;
         }
 
-        utterance.rate = 0.95; // Slightly slower for professional gravitas
-        utterance.pitch = 1.0;
-        utterance.volume = 1.0;
+        const { cleanText } = parseProsody(text);
+        if (!cleanText) return;
 
-        utterance.onstart = () => {
+        try {
             setIsSpeaking(true);
             setRevealedLength(0);
             if (recognitionRef.current) try { recognitionRef.current.stop(); } catch (e) { }
-        };
 
-        utterance.onboundary = (event) => {
-            if (event.name === 'word') {
-                const nextSpace = cleanText.indexOf(' ', event.charIndex + 1);
-                setRevealedLength(nextSpace === -1 ? cleanText.length : nextSpace);
-                setVoiceIntensity(0.8 + Math.random() * 0.4);
-            }
-        };
+            // Fetch Neural TTS from Backend
+            const response = await api.post("/ai/podcast/speech", 
+                { text: cleanText, speaker: "expert" }, // Marcus uses Expert voice
+                { responseType: 'blob' }
+            );
 
-        utterance.onend = () => {
-            setIsSpeaking(false);
-            setRevealedLength(cleanText.length);
-            if (!scorecard && !loadingRef.current) {
-                setTimeout(() => {
-                    if (recognitionRef.current && !isListeningRef.current && !isSpeakingRef.current && !loadingRef.current) {
-                        try { recognitionRef.current.start(); } catch (e) { }
+            const url = URL.createObjectURL(response.data);
+            const audio = new Audio(url);
+            audioRef.current = audio;
+
+            audio.onplay = () => {
+                // Approximate word revealing since we lost onboundary
+                const words = cleanText.split(' ');
+                let currentWord = 0;
+                const interval = setInterval(() => {
+                    if (currentWord < words.length) {
+                        setRevealedLength(prev => prev + words[currentWord].length + 1);
+                        setVoiceIntensity(0.8 + Math.random() * 0.4);
+                        currentWord++;
+                    } else {
+                        clearInterval(interval);
                     }
-                }, 800);
-            }
-        };
+                }, (audio.duration * 1000) / words.length || 200);
+            };
 
-        utterance.onerror = () => {
-            setIsSpeaking(false);
-            setRevealedLength(cleanText.length);
-        };
+            audio.onended = () => {
+                setIsSpeaking(false);
+                setRevealedLength(cleanText.length);
+                URL.revokeObjectURL(url);
+                if (!scorecard && !loadingRef.current) {
+                    setTimeout(() => {
+                        if (recognitionRef.current && !isListeningRef.current && !isSpeakingRef.current && !loadingRef.current) {
+                            try { recognitionRef.current.start(); } catch (e) { }
+                        }
+                    }, 800);
+                }
+            };
 
-        synth.speak(utterance);
+            audio.onerror = () => {
+                setIsSpeaking(false);
+                URL.revokeObjectURL(url);
+                // Last resort fallback
+                speakFallback(cleanText, 0.95);
+            };
+
+            await audio.play();
+
+        } catch (err) {
+            console.error("[TTS-Neural] Failed, falling back:", err);
+            speakFallback(cleanText, 0.95);
+        }
     };
 
     const getAttitudeColor = (att) => {

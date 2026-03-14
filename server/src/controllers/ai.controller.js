@@ -1244,44 +1244,64 @@ Keep it under 3 paragraphs.`;
     }
 };
 
+import { MsEdgeTTS, OUTPUT_FORMAT } from "msedge-tts";
+
+// In-memory cache for frequently requested TTS segments
+const ttsCache = new Map();
+
 export const generatePodcastSpeech = async (req, res) => {
     const { text, speaker } = req.body;
     if (!text) return res.status(400).json({ message: 'Text required' });
 
-    const chatterboxUrl = process.env.CHATTERBOX_URL || "http://localhost:8000/tts";
-    console.log(`[generatePodcastSpeech] Attempting local Chatterbox TTS for speaker="${speaker}"...`);
-
-    try {
-        // 1. Attempt Local Chatterbox TTS Service
-        const response = await fetch(chatterboxUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                text,
-                voice: speaker || "narrator",
-                rate: req.body.rate || "+0%",
-                pitch: req.body.pitch || "+0Hz"
-            })
+    // Use cache if same text and speaker
+    const cacheKey = `${speaker}:${text}`;
+    if (ttsCache.has(cacheKey)) {
+        const cached = ttsCache.get(cacheKey);
+        res.set({
+            'Content-Type': 'audio/mpeg',
+            'Content-Length': cached.length
         });
-
-        if (response.ok) {
-            const contentType = response.headers.get('content-type') || 'audio/mpeg';
-            const arrayBuffer = await response.arrayBuffer();
-            const finalBuffer = Buffer.from(arrayBuffer);
-            res.set({
-                'Content-Type': contentType,
-                'Content-Length': finalBuffer.length
-            });
-            return res.send(finalBuffer);
-        }
-        console.warn(`[TTS] Chatterbox service at ${chatterboxUrl} failed (${response.status}), falling back to Google TTS.`);
-    } catch (err) {
-        console.warn(`[TTS] Chatterbox connection failed: ${err.message}. Falling back to Google TTS.`);
+        return res.send(cached);
     }
 
-    // 2. Fallback: return 503 so frontend uses browser TTS instead
-    console.warn('[generatePodcastSpeech] Local TTS unavailable. Signaling frontend to use browser TTS.');
-    res.status(503).json({ message: 'TTS service unavailable' });
+    console.log(`[Neural-TTS] Synthesizing human voice for speaker="${speaker}"...`);
+
+    try {
+        const tts = new MsEdgeTTS();
+        
+        // Define high-fidelity human personas
+        // Host: Dr. Aria (Natural, Professional)
+        // Expert: Prof. Nova (Senior, Authoritative)
+        const voiceName = speaker === "host" ? "en-US-AriaNeural" : "en-US-GuyNeural";
+        
+        await tts.setMetadata(voiceName, OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3);
+        
+        // Handle potential timeouts or errors in synthesis
+        const readable = tts.toStream(text);
+        const chunks = [];
+        
+        for await (const chunk of readable) {
+            chunks.push(chunk);
+        }
+        
+        const finalBuffer = Buffer.concat(chunks);
+        
+        // Update cache (limit size to prevent memory leaks)
+        if (ttsCache.size < 500) {
+            ttsCache.set(cacheKey, finalBuffer);
+        }
+
+        res.set({
+            'Content-Type': 'audio/mpeg',
+            'Content-Length': finalBuffer.length
+        });
+        return res.send(finalBuffer);
+
+    } catch (err) {
+        console.error(`[Neural-TTS] Synthesis failed: ${err.message}`);
+        // Fallback: return 503 so frontend uses browser TTS as last resort
+        res.status(503).json({ message: 'Neural TTS service unavailable', error: err.message });
+    }
 };
 
 export const generateMasterclassEpisode = async (req, res) => {

@@ -17,8 +17,8 @@
     "envVars": [
       {"key": "NODE_ENV", "value": "production"},
       {"key": "PORT", "value": "10000"},
-      {"key": "DATABASE_URL", "value": "postgresql://neondb_owner:npg_c9P6zXoWInMh@ep-odd-sound-a2ndvkyf-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require"},
-      {"key": "JWT_SECRET", "value": "9d9273dba12083a9a4936e90d9e71dd887a2aaead3e89eca85ee20d6d3790737d007ae507dd45a7627b92597b68bf430a74fc26c8e6bff97f97f3cd9bc5f354d0"},
+      {"key": "DATABASE_URL", "value": "YOUR_DATABASE_URL_HERE"},
+      {"key": "JWT_SECRET", "value": "YOUR_JWT_SECRET_HERE"},
       {"key": "FRONTEND_URL", "value": "https://mustacademy-frontend.vercel.app"}
     ]
   }

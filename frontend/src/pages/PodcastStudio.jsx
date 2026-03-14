@@ -171,71 +171,63 @@ export default function CsDocumentary() {
         synth.getVoices();
     }, []);
 
-    // Audio Playback Engine
+    const audioRef = useRef(null);
+
+    // Audio Playback Engine (Neural TTS)
     useEffect(() => {
-        const synth = window.speechSynthesis;
-        let activeUtterance = null;
-        const stopAudio = () => { synth.cancel(); if (intervalRef.current) clearInterval(intervalRef.current); };
+        const stopAudio = () => {
+            if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current = null;
+            }
+            window.speechSynthesis.cancel();
+        };
 
         if (!isPlaying || !episode) { stopAudio(); return; }
 
-        const findBestVoice = (speaker) => {
-            const voices = synth.getVoices();
-            const premiumKeywords = ["Natural", "Online", "Enhanced", "Neural"];
-            const preferred = speaker === "host"
-                ? ["Aria", "Jenny", "Google US English", "Microsoft Zira", "Sonia"]
-                : ["Guy", "Andrew", "Christopher", "Microsoft David", "Stefan", "Jason"];
-
-            const bestChoice = voices.find(v =>
-                v.lang.startsWith("en") &&
-                preferred.some(name => v.name.includes(name)) &&
-                premiumKeywords.some(pk => v.name.includes(pk))
-            );
-            if (bestChoice) return bestChoice;
-
-            const premiumVoice = voices.find(v =>
-                v.lang.startsWith("en") &&
-                (speaker === "host" ? !v.name.toLowerCase().includes("male") : v.name.toLowerCase().includes("male")) &&
-                premiumKeywords.some(pk => v.name.includes(pk))
-            );
-            if (premiumVoice) return premiumVoice;
-
-            for (const name of preferred) {
-                const voice = voices.find(v => v.name.includes(name));
-                if (voice) return voice;
-            }
-            return voices.find(v => v.lang.startsWith("en")) || voices[0];
-        };
-
-        const playSegment = () => {
+        const playSegment = async () => {
             const segment = episode.segments[activeSegment];
             if (!segment) return;
-            synth.resume();
-            const utterance = new SpeechSynthesisUtterance(segment.text);
-            const voice = findBestVoice(segment.speaker);
-            if (voice) utterance.voice = voice;
-            utterance.rate = segment.speaker === "host" ? 0.98 : 1.0;
-            utterance.pitch = 1.0;
-            utterance.volume = 1.0;
-            utterance.onend = () => {
+
+            try {
+                // Fetch Neural TTS from Backend
+                const response = await api.post("/ai/podcast/speech",
+                    { text: segment.text, speaker: segment.speaker },
+                    { responseType: 'blob' }
+                );
+
+                const url = URL.createObjectURL(response.data);
+                const audio = new Audio(url);
+                audioRef.current = audio;
+
+                audio.onended = () => {
+                    URL.revokeObjectURL(url);
+                    if (activeSegment < episode.segments.length - 1) {
+                        setActiveSegment(prev => prev + 1);
+                    } else {
+                        setIsPlaying(false);
+                    }
+                };
+
+                audio.onerror = () => {
+                    URL.revokeObjectURL(url);
+                    // Minimal fallback
+                    if (activeSegment < episode.segments.length - 1) setActiveSegment(prev => prev + 1);
+                    else setIsPlaying(false);
+                };
+
+                await audio.play();
+            } catch (err) {
+                console.error("[TTS-Neural] Documentary Failure:", err);
+                // Fallback to next segment or stop
                 if (activeSegment < episode.segments.length - 1) setActiveSegment(prev => prev + 1);
                 else setIsPlaying(false);
-            };
-            utterance.onerror = () => {
-                if (activeSegment < episode.segments.length - 1) setActiveSegment(prev => prev + 1);
-                else setIsPlaying(false);
-            };
-            activeUtterance = utterance;
-            synth.speak(utterance);
+            }
         };
 
-        if (synth.paused) synth.resume();
         playSegment();
 
-        return () => {
-            if (activeUtterance) { activeUtterance.onend = null; activeUtterance.onerror = null; }
-            synth.cancel();
-        };
+        return stopAudio;
     }, [isPlaying, activeSegment, episode]);
 
     const generateStory = async (topic) => {
