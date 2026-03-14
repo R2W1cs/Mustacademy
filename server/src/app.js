@@ -22,6 +22,7 @@ import protocolRoutes from './routes/protocol.routes.js';
 import forumRoutes from './routes/forum.routes.js';
 import marketRoutes from './routes/market.routes.js';
 import projectRoutes from './routes/project.routes.js';
+import ttsRoutes from './routes/tts.routes.js';
 
 
 const app = express();
@@ -84,6 +85,7 @@ app.use('/api/protocols', protocolRoutes);
 app.use('/api/forum', forumRoutes);
 app.use('/api/market', marketRoutes);
 app.use('/api/projects', projectRoutes);
+app.use('/api/tts', ttsRoutes);
 
 
 app.get('/api/health', async (req, res) => {
