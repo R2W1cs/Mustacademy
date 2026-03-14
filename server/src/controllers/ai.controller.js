@@ -1273,24 +1273,21 @@ export const generatePodcastSpeech = async (req, res) => {
         
         let finalBuffer = null;
         let lastError = null;
-
         for (const voiceName of voices) {
             try {
                 await tts.setMetadata(voiceName, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
                 
-                // Larger chunks (800 chars) to reduce websocket handshakes and prevent 30s Render timeouts
-                const chunks = text.match(/[\s\S]{1,800}(?=[.!?\n]|\s|$)/g) || [text];
+                // Nuclear Optimization: Only chunk if absolutely necessary (> 3000 chars)
+                // This reduces websocket handshakes which cause Render 503s.
+                const chunks = text.length > 3000 
+                    ? (text.match(/[\s\S]{1,3000}(?=[.!?\n]|\s|$)/g) || [text])
+                    : [text];
+                
                 const audioBuffers = [];
-
-                // Global start time for the entire synthesis
                 const startTime = Date.now();
 
                 for (const chunk of chunks) {
-                    // Critical: Don't exceed 25 seconds total (Render limit is 30s)
-                    if (Date.now() - startTime > 25000) {
-                        console.warn("[Neural-TTS] Synthesis approaching Render timeout. Cutting short.");
-                        break;
-                    }
+                    if (Date.now() - startTime > 26000) break; // Hard limit for Render (30s max)
 
                     const cleanChunk = chunk.trim();
                     if (!cleanChunk) continue;
@@ -1298,16 +1295,19 @@ export const generatePodcastSpeech = async (req, res) => {
                     const readable = tts.toStream(cleanChunk);
                     const partChunks = [];
                     
-                    await new Promise(async (resolve, reject) => {
-                        const timeout = setTimeout(() => reject(new Error("Chunk Timeout")), 10000);
-                        try {
-                            for await (const p of readable) partChunks.push(p);
+                    await new Promise((resolve, reject) => {
+                        const timeout = setTimeout(() => reject(new Error("Synthesis Timeout")), 15000);
+                        
+                        // Use explicit event listeners for more stability on Render
+                        readable.on('data', (data) => partChunks.push(data));
+                        readable.on('end', () => {
                             clearTimeout(timeout);
                             resolve();
-                        } catch (e) {
+                        });
+                        readable.on('error', (err) => {
                             clearTimeout(timeout);
-                            reject(e);
-                        }
+                            reject(err);
+                        });
                     });
                     
                     audioBuffers.push(Buffer.concat(partChunks));
