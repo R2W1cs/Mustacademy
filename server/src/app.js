@@ -99,7 +99,7 @@ app.get('/api/health', async (req, res) => {
 });
 
 app.get('/api', (req, res) => {
-  res.json({ message: 'MustAcademy API - v19.0 GOD_MODE Diagnostics Active 🚀' });
+  res.json({ message: 'MustAcademy API - v19.4 GOD_MODE Precision Sync Active 🚀' });
 });
 
 app.get('/', (req, res) => {
