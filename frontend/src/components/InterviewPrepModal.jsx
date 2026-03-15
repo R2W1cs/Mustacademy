@@ -75,7 +75,19 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
             setCurrentSidebarWidth(e.detail.isCollapsed ? 80 : 256);
         };
         window.addEventListener('sidebarToggle', handleToggle);
-        return () => window.removeEventListener('sidebarToggle', handleToggle);
+        
+        // v17.0 Audio Purity: Ensure total silence on unmount
+        return () => {
+            window.removeEventListener('sidebarToggle', handleToggle);
+            if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current = null;
+            }
+            if (textIntervalRef.current) {
+                clearInterval(textIntervalRef.current);
+                textIntervalRef.current = null;
+            }
+        };
     }, []);
 
     // Pick a random opening variant once per mount
@@ -444,7 +456,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
 
                 // Wait for duration availability
                 const duration = audio.duration || cleanText.length / 15; // fallback
-                const tickRate = Math.max(100, (duration * 1000) / (words.length || 1)) * 1.35;
+                const tickRate = Math.max(120, (duration * 1000) / (words.length || 1)) * 1.85; // v17.0: significantly slowed down
 
                 textIntervalRef.current = setInterval(() => {
                     if (currentWord < words.length) {
