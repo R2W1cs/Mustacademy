@@ -17,7 +17,7 @@
        * This script triggers a mandatory cache purge and blocks all robotic synthesis.
        */
       (function() {
-        const CURRENT_VERSION = "v12.0_LIGHTMODE_FIX";
+        const CURRENT_VERSION = "v13.0_AUTH_PRESERVED";
         console.log(`%c[NUCLEAR-FIREWALL] v8.1 INITIALIZED | ${CURRENT_VERSION}`, "color: #10b981; font-weight: bold; background: #000; padding: 10px; border: 2px solid #10b981; display: block; width: 100%; text-align: center;");
         
         // 1. Absolute Prototype Lock for Speech
@@ -33,7 +33,19 @@
         const savedVersion = localStorage.getItem("STUDIO_SYNC_ID");
         if (savedVersion !== CURRENT_VERSION) {
           console.warn("[NUCLEAR-FIREWALL] Build upgrade detected. Purging all cached ghosts...");
+          
+          // PRESERVE AUTHENTICATION TOKENS
+          const token = localStorage.getItem("token");
+          const userId = localStorage.getItem("userId");
+          const userName = localStorage.getItem("userName");
+          
           localStorage.clear(); // Total wipe
+          
+          // RESTORE AUTHENTICATION TOKENS
+          if (token) localStorage.setItem("token", token);
+          if (userId) localStorage.setItem("userId", userId);
+          if (userName) localStorage.setItem("userName", userName);
+
           localStorage.setItem("STUDIO_SYNC_ID", CURRENT_VERSION);
           
           if ('caches' in window) {
