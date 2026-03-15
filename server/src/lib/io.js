@@ -21,7 +21,8 @@ export const initIo = (server) => {
         cors: {
             origin: allowedOrigins,
             methods: ["GET", "POST", "OPTIONS"],
-            credentials: true
+            credentials: true,
+            allowedHeaders: ['Content-Type', 'Authorization', 'X-Sync-ID', 'x-sync-id']
         }
     });
 
