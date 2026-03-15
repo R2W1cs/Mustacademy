@@ -210,7 +210,7 @@ const UMLDiagramChallenge = ({ type = 'use case' }) => {
     const addNodeToCanvas = (type) => {
         const offset = (nodes.length * 20) % 200;
         const newNode = {
-            id: `node-\${nodes.length}-\${type}`,
+            id: `node-${nodes.length}-${type}`,
             type,
             x: 50 + offset,
             y: 50 + offset
@@ -357,7 +357,7 @@ const UMLDiagramChallenge = ({ type = 'use case' }) => {
                                 <button
                                     key={i}
                                     onClick={() => addNodeToCanvas(tool.type)}
-                                    className={`p-3 border-2 rounded-xl flex flex-col items-center justify-center gap-2 bg-[#0a0a0c] hover:bg-white/5 transition-all shadow-lg \${tool.colorClass}`}
+                                    className={`p-3 border-2 rounded-xl flex flex-col items-center justify-center gap-2 bg-[#0a0a0c] hover:bg-white/5 transition-all shadow-lg ${tool.colorClass}`}
                                 >
                                     {tool.icon}
                                     <span className="text-[9px] font-black uppercase tracking-widest">{tool.label}</span>
@@ -376,7 +376,7 @@ const UMLDiagramChallenge = ({ type = 'use case' }) => {
                         <button
                             onClick={() => setShowSolution(!showSolution)}
                             className={`w-full py-3 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2
-                                \${showSolution ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-300' : 'bg-indigo-600 hover:bg-indigo-500 border-indigo-500 text-white shadow-[0_0_20px_rgba(99,102,241,0.3)]'}
+                                ${showSolution ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-300' : 'bg-indigo-600 hover:bg-indigo-500 border-indigo-500 text-white shadow-[0_0_20px_rgba(99,102,241,0.3)]'}
                             `}
                         >
                             {showSolution ? <><Eye size={14} /> Hide Solution</> : <><CheckCircle2 size={14} /> Show Solution</>}
