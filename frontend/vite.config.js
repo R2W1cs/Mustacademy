@@ -5,6 +5,13 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   build: {
-    cssMinify: 'esbuild'
+    cssMinify: 'esbuild',
+    rollupOptions: {
+      output: {
+        entryFileNames: `assets/[name]-[hash]-v21.js`,
+        chunkFileNames: `assets/[name]-[hash]-v21.js`,
+        assetFileNames: `assets/[name]-[hash]-v21.[ext]`
+      }
+    }
   }
 })
