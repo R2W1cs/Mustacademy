@@ -1,0 +1,8 @@
+{
+  "name": "mustacademy-platform",
+  "private": true,
+  "scripts": {
+    "build": "cd frontend && npm install && npm run build",
+    "install-all": "cd frontend && npm install && cd ../server && npm install"
+  }
+}
