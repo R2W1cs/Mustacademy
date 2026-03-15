@@ -84,7 +84,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                 audioRef.current = null;
             }
             if (textIntervalRef.current) {
-                clearInterval(textIntervalRef.current);
+                cancelAnimationFrame(textIntervalRef.current);
                 textIntervalRef.current = null;
             }
         };
@@ -156,7 +156,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
         }
         // 2. Kill Text Intervals
         if (textIntervalRef.current) {
-            clearInterval(textIntervalRef.current);
+            cancelAnimationFrame(textIntervalRef.current);
             textIntervalRef.current = null;
         }
         // 3. Kill Recognition
@@ -435,9 +435,9 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
             setRevealedLength(0);
             if (recognitionRef.current) try { recognitionRef.current.stop(); } catch (e) { }
 
-            // Clear any lingering intervals
+            // Cancel any lingering animation frame
             if (textIntervalRef.current) {
-                clearInterval(textIntervalRef.current);
+                cancelAnimationFrame(textIntervalRef.current);
                 textIntervalRef.current = null;
             }
 
@@ -460,17 +460,21 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                 const words = cleanText.split(' ').filter(w => w.trim().length > 0);
                 
                 const sync = () => {
-                    if (!audioRef.current || !audioRef.current.duration) {
-                        textIntervalRef.current = requestAnimationFrame(sync);
+                    const audio = audioRef.current;
+                    if (!audio || !audio.duration || audio.paused || audio.ended) {
                         return;
                     }
                     
-                    const progress = audioRef.current.currentTime / audioRef.current.duration;
-                    const charTarget = Math.floor(progress * cleanText.length);
+                    const clean = cleanText || "";
+                    const progress = audio.currentTime / audio.duration;
+                    const charTarget = Math.floor(progress * clean.length);
                     
                     let currentLen = 0;
                     let lastWordBoundary = 0;
-                    for (const word of words) {
+                    const wordList = words || [];
+                    
+                    for (const word of wordList) {
+                        if (!word) continue;
                         if (currentLen + word.length <= charTarget + 1) {
                             currentLen += word.length + 1;
                             lastWordBoundary = currentLen;
@@ -479,12 +483,10 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                         }
                     }
                     
-                    setRevealedLength(Math.min(lastWordBoundary, cleanText.length));
+                    setRevealedLength(Math.min(lastWordBoundary, clean.length));
                     setVoiceIntensity(0.6 + Math.random() * 0.4);
 
-                    if (!audioRef.current.paused && !audioRef.current.ended) {
-                        textIntervalRef.current = requestAnimationFrame(sync);
-                    }
+                    textIntervalRef.current = requestAnimationFrame(sync);
                 };
 
                 textIntervalRef.current = requestAnimationFrame(sync);
