@@ -37,7 +37,7 @@ const AiMentorModal = lazy(() => import("../components/AiMentorModal"));
 const QuizModal = lazy(() => import("../components/QuizModal"));
 
 const DailyPlanModal = lazy(() => import("../components/DailyPlanModal"));
-const BoardroomModal = lazy(() => import("../components/BoardroomModal"));
+const SwainBoardroom = lazy(() => import("../components/SwainBoardroom"));
 const MultiplayerQuizModal = lazy(() => import("../components/MultiplayerQuizModal"));
 import StreakWidget from "../components/StreakWidget";
 
@@ -567,7 +567,7 @@ export default function Dashboard() {
                     {showInterview && (
                         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
                             <Suspense fallback={<div className="text-white">Loading Boardroom...</div>}>
-                                <BoardroomModal onClose={() => setShowInterview(false)} />
+                                <SwainBoardroom onClose={() => setShowInterview(false)} />
                             </Suspense>
                         </div>
                     )}

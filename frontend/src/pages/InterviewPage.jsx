@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import InterviewPrepModal from "../components/InterviewPrepModal";
+import SwainBoardroom from "../components/SwainBoardroom";
 import { useTheme } from "../auth/ThemeContext";
 import { ArrowLeft, Briefcase } from "lucide-react";
 
@@ -36,7 +36,7 @@ export default function InterviewPage() {
                 </div>
 
                 <div className="flex-1 bg-slate-950/50 rounded-[3rem] border border-slate-800 shadow-2xl overflow-hidden backdrop-blur-xl">
-                    <BoardroomModal isPage={true} onClose={() => navigate(-1)} />
+                    <SwainBoardroom isPage={true} onClose={() => navigate(-1)} />
                 </div>
             </div>
         </div>

@@ -61,7 +61,7 @@ const OPENING_VARIANTS = [
     },
 ];
 
-export default function BoardroomModal({ onClose, isPage = false }) {
+export default function SwainBoardroom({ onClose, isPage = false }) {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
 
@@ -251,6 +251,7 @@ export default function BoardroomModal({ onClose, isPage = false }) {
 
             recognitionRef.current.onresult = (e) => {
                 let currentTranscript = "";
+                if (!e.results) return;
                 for (let i = 0; i < e.results.length; i++) {
                     currentTranscript += e.results[i][0].transcript;
                 }
@@ -442,7 +443,7 @@ export default function BoardroomModal({ onClose, isPage = false }) {
 
         // Freeze these into local variables — no closures over mutable refs
         const textSnapshot = cleanText;
-        const totalChars = textSnapshot.length;
+        const totalChars = (textSnapshot || "").length;
 
         try {
             setIsSpeaking(true);
@@ -471,7 +472,7 @@ export default function BoardroomModal({ onClose, isPage = false }) {
             let pos = 0;
             for (const w of words) {
                 pos += w.length + 1; // +1 for space
-                wordBoundaries.push(Math.min(pos, totalChars));
+                wordBoundaries.push(Math.min(pos, totalChars || 0));
             }
 
             audio.onplay = () => {
@@ -480,7 +481,7 @@ export default function BoardroomModal({ onClose, isPage = false }) {
                     const a = audioRef.current;
                     if (!a || !a.duration || isNaN(a.duration) || a.duration <= 0) return;
 
-                    const progress = Math.min(a.currentTime / a.duration, 1);
+                    const progress = Math.min(a.currentTime / (a.duration || 1), 1);
                     const charTarget = Math.floor(progress * totalChars);
 
                     // Find last word boundary that fits within charTarget
@@ -873,7 +874,8 @@ export default function BoardroomModal({ onClose, isPage = false }) {
 
                                         {messages.map((m, i) => {
                                             const isAI = m.sender === 'ai';
-                                            const isLastAI = isAI && i === messages.length - 1;
+                                            const messagesLength = messages?.length || 0;
+                                            const isLastAI = isAI && i === messagesLength - 1;
                                             const showCursor = isLastAI && isSpeaking;
 
                                             const userStyles = isDark ? 'bg-slate-900/60 text-white border-slate-800' : 'bg-slate-100 text-slate-900 border-gray-200';
