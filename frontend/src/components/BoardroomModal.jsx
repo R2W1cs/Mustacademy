@@ -61,7 +61,7 @@ const OPENING_VARIANTS = [
     },
 ];
 
-export default function InterviewPrepModal({ onClose, isPage = false }) {
+export default function BoardroomModal({ onClose, isPage = false }) {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
 
