@@ -898,7 +898,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                                                                     </>
                                                                 );
                                                             }
-                                                            return cleanText;
+                                                            return <span>{cleanText}</span>;
                                                         })()}
                                                         {showCursor && <span className="inline-block w-2 h-5 ml-2 bg-indigo-500 animate-pulse align-middle" />}
                                                     </div>
