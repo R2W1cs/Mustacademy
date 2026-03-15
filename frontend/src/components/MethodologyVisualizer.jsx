@@ -450,7 +450,10 @@ const MethodologyVisualizer = ({ type = 'waterfall' }) => {
             {/* Header */}
             <div className="p-8 border-b border-white/5 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 bg-gradient-to-b from-white/[0.03] to-transparent">
                 <div className="flex items-center gap-5">
-                    <div className={`w-12 h-12 bg-${config.color}-500/20 rounded-2xl flex items-center justify-center border border-${config.color}-500/20 shadow-[0_0_20px_rgba(var(--${config.color}-500),0.2)]`}>
+                    <div 
+                        className={`w-12 h-12 bg-${config.color}-500/20 rounded-2xl flex items-center justify-center border border-${config.color}-500/20`}
+                        style={{ boxShadow: `0 0 20px rgba(var(--${config.color}-500), 0.2)` }}
+                    >
                         {config.icon}
                     </div>
                     <div>
@@ -499,7 +502,12 @@ const MethodologyVisualizer = ({ type = 'waterfall' }) => {
 
                                     <button
                                         onClick={() => isPlaying ? setIsPlaying(false) : setIsPlaying(true)}
-                                        className={`flex items-center gap-2 px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isPlaying ? 'bg-red-500 hover:bg-red-600 shadow-[0_0_15px_rgba(239,68,68,0.3)]' : `bg-${config.color}-500 hover:bg-${config.color}-600 shadow-[0_0_15px_rgba(var(--${config.color}-500),0.3)]`}`}
+                                        className={`flex items-center gap-2 px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isPlaying ? 'bg-red-500 hover:bg-red-600' : `bg-${config.color}-500 hover:bg-${config.color}-600`}`}
+                                        style={{ 
+                                            boxShadow: isPlaying 
+                                                ? '0 0 15px rgba(239, 68, 68, 0.3)' 
+                                                : `0 0 15px rgba(var(--${config.color}-500), 0.3)` 
+                                        }}
                                     >
                                         {isPlaying ? "Pause" : <><Play size={12} /> Auto Play</>}
                                     </button>
