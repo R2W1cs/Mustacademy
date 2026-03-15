@@ -480,7 +480,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                             return;
                         }
 
-                        if (currentWord < words.length) {
+                        if (words && words.length > 0 && currentWord < words.length) {
                             const word = words[currentWord];
                             if (word !== undefined && word !== null) {
                                 const wordLen = typeof word === 'string' ? word.length : String(word).length;

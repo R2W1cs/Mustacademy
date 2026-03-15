@@ -430,8 +430,7 @@ const UMLDiagramVisualizer = ({ type = 'use case' }) => {
             <div className="p-8 border-b border-white/5 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 bg-gradient-to-b from-white/[0.03] to-transparent">
                 <div className="flex items-center gap-5">
                     <div 
-                        className={`w-12 h-12 bg-${config.color}-500/20 rounded-2xl flex items-center justify-center border border-${config.color}-500/20`}
-                        style={{ boxShadow: `0 0 20px rgba(var(--${config.color}-500), 0.2)` }}
+                        className={`w-12 h-12 bg-${config.color}-500/20 rounded-2xl flex items-center justify-center border border-${config.color}-500/20 shadow-lg`}
                     >
                         {config.icon}
                     </div>
