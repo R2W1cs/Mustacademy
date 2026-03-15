@@ -84,7 +84,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                 audioRef.current = null;
             }
             if (textIntervalRef.current) {
-                cancelAnimationFrame(textIntervalRef.current);
+                clearInterval(textIntervalRef.current);
                 textIntervalRef.current = null;
             }
         };
@@ -156,7 +156,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
         }
         // 2. Kill Text Intervals
         if (textIntervalRef.current) {
-            cancelAnimationFrame(textIntervalRef.current);
+            clearInterval(textIntervalRef.current);
             textIntervalRef.current = null;
         }
         // 3. Kill Recognition
@@ -419,95 +419,103 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
     const audioRef = useRef(null);
     const textIntervalRef = useRef(null);
 
-    const speak = async (text) => {
-        if (!text || typeof text !== 'string') return;
-        // Stop any existing audio
+    // Helper to kill all audio + sync
+    const killAudio = () => {
+        if (textIntervalRef.current) {
+            clearInterval(textIntervalRef.current);
+            textIntervalRef.current = null;
+        }
         if (audioRef.current) {
-            audioRef.current.pause();
+            try { audioRef.current.pause(); } catch (e) {}
             audioRef.current = null;
         }
+    };
 
-        const { cleanText } = parseProsody(text);
-        if (!cleanText) return;
+    const speak = async (rawText) => {
+        if (!rawText || typeof rawText !== 'string') return;
+
+        // Kill anything currently playing
+        killAudio();
+
+        const { cleanText } = parseProsody(rawText);
+        if (!cleanText || !cleanText.trim()) return;
+
+        // Freeze these into local variables — no closures over mutable refs
+        const textSnapshot = cleanText;
+        const totalChars = textSnapshot.length;
 
         try {
             setIsSpeaking(true);
             setRevealedLength(0);
-            if (recognitionRef.current) try { recognitionRef.current.stop(); } catch (e) { }
+            if (recognitionRef.current) try { recognitionRef.current.stop(); } catch (e) {}
 
-            // Cancel any lingering animation frame
-            if (textIntervalRef.current) {
-                cancelAnimationFrame(textIntervalRef.current);
-                textIntervalRef.current = null;
-            }
-
-            // Fetch Neural TTS from Backend explicitly for Marcus (Male Premium)
-            const response = await api.post("/tts", 
-                { text: cleanText, voice: "en-US-BrianNeural" },
+            const response = await api.post(
+                '/tts',
+                { text: textSnapshot, voice: 'en-US-BrianNeural' },
                 { responseType: 'blob' }
             );
 
             if (!response.data || response.data.size < 500) {
-                throw new Error("Empty audio response from cloud");
+                throw new Error('Empty audio response');
             }
 
-            console.log("%c[Neural-Audio] Marcus Sterling high-fidelity stream active.", "color: #3b82f6; font-weight: bold;");
+            console.log('%c[Neural-Audio] Marcus Sterling high-fidelity stream active.', 'color: #3b82f6; font-weight: bold;');
+
             const url = URL.createObjectURL(response.data);
             const audio = new Audio(url);
             audioRef.current = audio;
 
+            // Word-boundary map built once
+            const words = textSnapshot.split(' ').filter(Boolean);
+            const wordBoundaries = [];
+            let pos = 0;
+            for (const w of words) {
+                pos += w.length + 1; // +1 for space
+                wordBoundaries.push(Math.min(pos, totalChars));
+            }
+
             audio.onplay = () => {
-                const words = cleanText.split(' ').filter(w => w.trim().length > 0);
-                
-                const sync = () => {
-                    const audio = audioRef.current;
-                    if (!audio || !audio.duration || audio.paused || audio.ended) {
-                        return;
+                // Poll audio.currentTime every 50ms — simple, safe, reliable
+                textIntervalRef.current = setInterval(() => {
+                    const a = audioRef.current;
+                    if (!a || !a.duration || isNaN(a.duration) || a.duration <= 0) return;
+
+                    const progress = Math.min(a.currentTime / a.duration, 1);
+                    const charTarget = Math.floor(progress * totalChars);
+
+                    // Find last word boundary that fits within charTarget
+                    let reveal = 0;
+                    for (const boundary of wordBoundaries) {
+                        if (boundary <= charTarget + 2) reveal = boundary;
+                        else break;
                     }
-                    
-                    const clean = cleanText || "";
-                    const progress = audio.currentTime / audio.duration;
-                    const charTarget = Math.floor(progress * clean.length);
-                    
-                    let currentLen = 0;
-                    let lastWordBoundary = 0;
-                    const wordList = words || [];
-                    
-                    for (const word of wordList) {
-                        if (!word) continue;
-                        if (currentLen + word.length <= charTarget + 1) {
-                            currentLen += word.length + 1;
-                            lastWordBoundary = currentLen;
-                        } else {
-                            break;
-                        }
-                    }
-                    
-                    setRevealedLength(Math.min(lastWordBoundary, clean.length));
+
+                    setRevealedLength(Math.min(reveal, totalChars));
                     setVoiceIntensity(0.6 + Math.random() * 0.4);
+                }, 50);
 
-                    textIntervalRef.current = requestAnimationFrame(sync);
-                };
-
-                textIntervalRef.current = requestAnimationFrame(sync);
-                console.log(`%c[GOD-MODE] Precision Word-Sync Active. Words: ${words.length}`, "color: #a855f7; font-weight: bold;");
+                console.log(`%c[GOD-MODE] Word-Sync Active. ${words.length} words tracked.`, 'color: #a855f7; font-weight: bold;');
             };
 
             audio.onended = () => {
+                clearInterval(textIntervalRef.current);
+                textIntervalRef.current = null;
                 setIsSpeaking(false);
-                setRevealedLength(cleanText.length);
+                setRevealedLength(totalChars);
                 URL.revokeObjectURL(url);
                 if (!scorecard && !loadingRef.current) {
                     setTimeout(() => {
                         if (recognitionRef.current && !isListeningRef.current && !isSpeakingRef.current && !loadingRef.current) {
-                            try { recognitionRef.current.start(); } catch (e) { }
+                            try { recognitionRef.current.start(); } catch (e) {}
                         }
                     }, 800);
                 }
             };
 
             audio.onerror = () => {
-                console.error("[Neural-Audio] Playback failure.");
+                clearInterval(textIntervalRef.current);
+                textIntervalRef.current = null;
+                console.error('[Neural-Audio] Playback failure.');
                 setIsSpeaking(false);
                 URL.revokeObjectURL(url);
             };
@@ -515,8 +523,9 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
             await audio.play();
 
         } catch (err) {
+            killAudio();
             const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message;
-            console.error(`%c[Neural-Audio] Marcus Synthesis Failure: ${errorMsg}`, "color: #ef4444; font-weight: bold;");
+            console.error(`%c[Neural-Audio] Synthesis Failure: ${errorMsg}`, 'color: #ef4444; font-weight: bold;');
             setIsSpeaking(false);
         }
     };
