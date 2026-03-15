@@ -130,7 +130,7 @@ const CommandPalette = () => {
                                             <div className="flex items-center space-x-4">
                                                 <div className={`
                                                     p-2.5 rounded-xl flex items-center justify-center transition-colors
-                                                    ${index === selectedIndex ? 'bg-indigo-500 text-white shadow-[0_0_15px_rgba(99,102,241,0.5)]' : 'bg-white/5 text-slate-400'}
+                                                    ${index === selectedIndex ? 'bg-indigo-500 text-white shadow-lg' : 'bg-white/5 text-slate-400'}
                                                 `}>
                                                     <action.icon size={18} />
                                                 </div>
@@ -184,3 +184,4 @@ const CommandPalette = () => {
 };
 
 export default CommandPalette;
+

@@ -248,7 +248,7 @@ export default function GlobalAIPilot() {
                                                             : done ? (isDark ? 'text-slate-600 line-through' : 'text-slate-300 line-through')
                                                                 : (isDark ? 'text-slate-500' : 'text-slate-400')
                                                             }`}>
-                                                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${done ? 'bg-emerald-500' : active ? (isDark ? 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]' : 'bg-red-500 shadow-[0_0_8px_rgba(192,22,54,0.6)]') : (isDark ? 'bg-slate-700' : 'bg-slate-200')}`} />
+                                                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${done ? 'bg-emerald-500' : active ? (isDark ? 'bg-indigo-500 shadow-lg' : 'bg-red-500 shadow-lg') : (isDark ? 'bg-slate-700' : 'bg-slate-200')}`} />
                                                             <span className="truncate flex-1">{b.action}</span>
                                                             <span className="shrink-0 tabular-nums">{b.duration}m</span>
                                                         </div>
@@ -548,3 +548,4 @@ export default function GlobalAIPilot() {
         </div>
     );
 }
+

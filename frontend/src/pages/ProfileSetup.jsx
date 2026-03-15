@@ -21,8 +21,8 @@ const Field = ({ label, icon: Icon, children, isDark }) => (
 
 const inputCls = (isDark) =>
     `w-full px-5 py-4 rounded-xl border outline-none transition-all text-sm font-bold ${isDark
-        ? "bg-[#0a0e1a]/80 text-white border-white/10 focus:border-indigo-500/80 focus:bg-white/5 focus:shadow-[0_0_15px_rgba(99,102,241,0.2)] placeholder-white/20"
-        : "bg-white text-slate-900 border-indigo-100 focus:border-indigo-400 focus:bg-white focus:shadow-[0_0_15px_rgba(99,102,241,0.1)] placeholder-slate-400"}`;
+        ? "bg-[#0a0e1a]/80 text-white border-white/10 focus:border-indigo-500/80 focus:bg-white/5 focus:shadow-lg placeholder-white/20"
+        : "bg-white text-slate-900 border-indigo-100 focus:border-indigo-400 focus:bg-white focus:shadow-lg placeholder-slate-400"}`;
 
 const selectCls = (isDark) =>
     `${inputCls(isDark)} appearance-none cursor-pointer`;
@@ -68,7 +68,7 @@ const Section = ({ title, subtitle, icon: Icon, children, isDark }) => (
         <div className={`absolute top-0 right-0 w-64 h-64 rounded-full opacity-0 group-hover:opacity-10 transition-opacity duration-700 blur-[80px] pointer-events-none ${isDark ? 'bg-indigo-500' : 'bg-indigo-600'}`} />
 
         <div className="flex items-center gap-4 relative z-10">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${isDark ? "bg-[#0a0e1a] border-white/10 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.2)]" : "bg-white border-indigo-100 text-indigo-600 shadow-md"}`}>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${isDark ? "bg-[#0a0e1a] border-white/10 text-indigo-400 shadow-lg" : "bg-white border-indigo-100 text-indigo-600 shadow-md"}`}>
                 <Icon size={18} />
             </div>
             <div>
@@ -185,7 +185,7 @@ export default function ProfileSetup() {
                         </div>
                     </div>
 
-                    <div className={`hidden md:flex items-center gap-4 px-6 py-3 rounded-2xl border backdrop-blur-sm ${isDark ? 'bg-[#0f1729]/80 border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 'bg-emerald-50 border-emerald-200'}`}>
+                    <div className={`hidden md:flex items-center gap-4 px-6 py-3 rounded-2xl border backdrop-blur-sm ${isDark ? 'bg-[#0f1729]/80 border-emerald-500/30 shadow-lg' : 'bg-emerald-50 border-emerald-200'}`}>
                         <div className="text-right">
                             <p className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-emerald-500/50' : 'text-emerald-600/60'}`}>Clearance</p>
                             <p className={`text-xs font-black uppercase tracking-widest ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>Verified</p>
@@ -241,7 +241,7 @@ export default function ProfileSetup() {
                                             onClick={() => setActiveStatus(s.value)}
                                             className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-[11px] font-black tracking-widest uppercase transition-all ${activeStatus === s.value
                                                 ? (isDark
-                                                    ? `bg-[#0a0e1a] ${s.ring} shadow-[0_0_15px_rgba(0,0,0,0.2)]`
+                                                    ? `bg-[#0a0e1a] ${s.ring} shadow-lg`
                                                     : `bg-white ${s.ring} shadow-md text-slate-900`)
                                                 : (isDark
                                                     ? "border-white/5 bg-white/5 text-white/30 hover:text-white/60 hover:bg-white/10"
@@ -261,7 +261,7 @@ export default function ProfileSetup() {
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
-                                className={`rounded-3xl border p-8 flex flex-col justify-center items-center text-center relative overflow-hidden ${isDark ? "bg-[#0f1729]/80 border-indigo-500/20 shadow-[0_0_30px_rgba(99,102,241,0.05)]" : "bg-indigo-600 border-indigo-700 shadow-xl"}`}
+                                className={`rounded-3xl border p-8 flex flex-col justify-center items-center text-center relative overflow-hidden ${isDark ? "bg-[#0f1729]/80 border-indigo-500/20 shadow-lg" : "bg-indigo-600 border-indigo-700 shadow-xl"}`}
                             >
                                 <div className="absolute top-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-400 to-transparent opacity-50" />
                                 <p className={`text-[10px] font-black uppercase tracking-[0.3em] mb-4 ${isDark ? "text-indigo-400" : "text-indigo-200"}`}>
@@ -373,7 +373,7 @@ export default function ProfileSetup() {
                             {saved && (
                                 <motion.div
                                     initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                                    className="flex items-center gap-3 p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-black uppercase tracking-widest shadow-[0_0_20px_rgba(16,185,129,0.1)]"
+                                    className="flex items-center gap-3 p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-black uppercase tracking-widest shadow-lg"
                                 >
                                     <CheckCircle size={18} /> Changes Saved. Rerouting...
                                 </motion.div>
@@ -404,7 +404,7 @@ export default function ProfileSetup() {
                                 onClick={saveProfile}
                                 className={`group relative flex items-center justify-center gap-3 w-full max-w-md py-6 rounded-2xl font-black text-sm md:text-base uppercase tracking-[0.2em] transition-all overflow-hidden ${saving
                                     ? "bg-[#0a0e1a] border border-white/10 text-white/40 cursor-not-allowed"
-                                    : "bg-indigo-500 text-white hover:bg-indigo-400 shadow-[0_0_30px_rgba(99,102,241,0.3)] hover:shadow-[0_0_40px_rgba(99,102,241,0.5)] border border-indigo-400/50"
+                                    : "bg-indigo-500 text-white hover:bg-indigo-400 shadow-lg hover:shadow-lg border border-indigo-400/50"
                                     }`}
                             >
                                 {saving ? (
@@ -424,3 +424,4 @@ export default function ProfileSetup() {
         </div>
     );
 }
+

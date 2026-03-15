@@ -166,7 +166,7 @@ export default function TopicPodcastPlayer({ topic }) {
     return (
         <section className="max-w-6xl mx-auto px-6 animate-in fade-in slide-in-from-bottom-10 duration-1000 mt-16 mb-24">
             <div className="flex items-center gap-4 mb-8">
-                <div className="w-1.5 h-10 bg-indigo-500 rounded-full shadow-[0_0_20px_rgba(99,102,241,0.5)]" />
+                <div className="w-1.5 h-10 bg-indigo-500 rounded-full shadow-lg" />
                 <div>
                     <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-500 mb-1">Interactive Studio</h3>
                     <h2 className={`text-3xl font-black ${primaryText} tracking-tight uppercase`}>Topic Podcast</h2>
@@ -175,7 +175,7 @@ export default function TopicPodcastPlayer({ topic }) {
 
             {!episode && !loading && (
                 <div className={`rounded-[3rem] p-12 text-center flex flex-col items-center border ${cardBg}`}>
-                    <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mb-6 shadow-sm border ${isDark ? 'bg-indigo-500/10 border-indigo-500/20 shadow-[0_0_40px_rgba(99,102,241,0.1)]' : 'bg-indigo-50 border-indigo-200'}`}>
+                    <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mb-6 shadow-sm border ${isDark ? 'bg-indigo-500/10 border-indigo-500/20 shadow-lg' : 'bg-indigo-50 border-indigo-200'}`}>
                         <Headphones size={32} className="text-indigo-500" />
                     </div>
                     <h3 className={`text-2xl font-black uppercase tracking-[0.2em] mb-4 ${primaryText}`}>Audio Deep Dive</h3>
@@ -184,7 +184,7 @@ export default function TopicPodcastPlayer({ topic }) {
                     </p>
                     <button
                         onClick={generateEpisode}
-                        className={`group relative px-10 py-4 font-black uppercase tracking-widest text-xs rounded-2xl transition-all hover:scale-105 active:scale-95 overflow-hidden flex items-center gap-3 ${isDark ? 'bg-indigo-500 text-white shadow-[0_20px_50px_rgba(99,102,241,0.2)]' : 'bg-indigo-600 text-white shadow-xl shadow-indigo-500/30'}`}
+                        className={`group relative px-10 py-4 font-black uppercase tracking-widest text-xs rounded-2xl transition-all hover:scale-105 active:scale-95 overflow-hidden flex items-center gap-3 ${isDark ? 'bg-indigo-500 text-white shadow-lg' : 'bg-indigo-600 text-white shadow-xl shadow-indigo-500/30'}`}
                     >
                         <Radio size={16} />
                         Generate AI Podcast
@@ -320,7 +320,7 @@ export default function TopicPodcastPlayer({ topic }) {
 
                     {/* Ask a Question */}
                     <div className={`lg:col-span-1 rounded-[3rem] border p-8 flex flex-col ${cardBg}`}>
-                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-6 shadow-sm border ${isDark ? 'bg-amber-500/10 border-amber-500/20 shadow-[0_0_40px_rgba(245,158,11,0.1)]' : 'bg-amber-50 border-amber-200'}`}>
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-6 shadow-sm border ${isDark ? 'bg-amber-500/10 border-amber-500/20 shadow-lg' : 'bg-amber-50 border-amber-200'}`}>
                             <MessageCircle size={20} className="text-amber-500" />
                         </div>
                         <h3 className={`text-lg font-black uppercase tracking-widest mb-2 ${primaryText}`}>Ask the Studio</h3>
@@ -372,3 +372,4 @@ export default function TopicPodcastPlayer({ topic }) {
         </section>
     );
 }
+

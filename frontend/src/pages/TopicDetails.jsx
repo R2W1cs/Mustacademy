@@ -183,7 +183,7 @@ const TopicDetails = () => {
                 <div className="glass-morphism rounded-[3rem] p-16 text-center relative overflow-hidden border-white/5 shadow-2xl">
                     <div className="absolute top-0 right-0 p-40 bg-red-500/5 blur-[120px] rounded-full pointer-events-none" />
 
-                    <div className="w-24 h-24 bg-red-500/10 rounded-3xl flex items-center justify-center mx-auto mb-10 border border-red-500/20 text-red-500 shadow-[0_0_50px_rgba(239,68,68,0.1)]">
+                    <div className="w-24 h-24 bg-red-500/10 rounded-3xl flex items-center justify-center mx-auto mb-10 border border-red-500/20 text-red-500 shadow-lg">
                         <AlertTriangle size={40} className="animate-pulse" />
                     </div>
 
@@ -207,7 +207,7 @@ const TopicDetails = () => {
 
                     <button
                         onClick={() => navigate(`/topics/${access.prevTopicId}`)}
-                        className="px-16 py-6 bg-red-500 hover:bg-red-600 text-white font-black rounded-2xl transition-all shadow-[0_20px_40px_rgba(239,68,68,0.3)] hover:scale-105 active:scale-95 uppercase tracking-[0.4em] text-[11px]"
+                        className="px-16 py-6 bg-red-500 hover:bg-red-600 text-white font-black rounded-2xl transition-all shadow-lg hover:scale-105 active:scale-95 uppercase tracking-[0.4em] text-[11px]"
                     >
                         Retreat to Previous Module
                     </button>
@@ -226,7 +226,7 @@ const TopicDetails = () => {
             <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: topic.completed ? "100%" : "0%" }}
-                className={`fixed top-0 left-0 h-1 z-50 transition-all duration-1000 ${isDark ? 'bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shadow-[0_0_15px_rgba(99,102,241,0.5)]' : 'bg-red-600 shadow-[0_0_15px_rgba(192,22,54,0.5)]'}`}
+                className={`fixed top-0 left-0 h-1 z-50 transition-all duration-1000 ${isDark ? 'bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shadow-lg' : 'bg-red-600 shadow-lg'}`}
             />
 
 
@@ -245,7 +245,7 @@ const TopicDetails = () => {
                             <motion.div
                                 initial={{ scale: 0.95, opacity: 0, y: 20 }}
                                 animate={{ scale: 1, opacity: 1, y: 0 }}
-                                className="max-w-md w-full glass-morphism border-white/10 rounded-[2.5rem] p-12 flex flex-col items-center relative overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,0.6)]"
+                                className="max-w-md w-full glass-morphism border-white/10 rounded-[2.5rem] p-12 flex flex-col items-center relative overflow-hidden shadow-lg"
                             >
                                 <div className="absolute inset-0 bg-indigo-500/5 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] pointer-events-none" />
 
@@ -255,7 +255,7 @@ const TopicDetails = () => {
                                         transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
                                         className="absolute inset-[-20px] border border-dashed border-indigo-500/40 rounded-full"
                                     />
-                                    <div className="w-24 h-24 bg-indigo-500/10 border border-indigo-500/20 rounded-full flex items-center justify-center relative shadow-[0_0_40px_rgba(99,102,241,0.2)]">
+                                    <div className="w-24 h-24 bg-indigo-500/10 border border-indigo-500/20 rounded-full flex items-center justify-center relative shadow-lg">
                                         <Sparkles className="text-indigo-400" size={40} />
                                     </div>
                                     <motion.div
@@ -276,12 +276,12 @@ const TopicDetails = () => {
                                             initial={{ x: '-100%' }}
                                             animate={{ x: '100%' }}
                                             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                                            className="absolute top-0 bottom-0 left-0 w-1/2 bg-gradient-to-r from-transparent via-cyan-400 to-transparent rounded-full shadow-[0_0_15px_rgba(34,211,238,0.5)]"
+                                            className="absolute top-0 bottom-0 left-0 w-1/2 bg-gradient-to-r from-transparent via-cyan-400 to-transparent rounded-full shadow-lg"
                                         />
                                     </div>
                                     <div className="flex justify-between items-center mt-4">
                                         <span className="text-[10px] font-black uppercase text-indigo-400/60 tracking-widest flex items-center gap-3">
-                                            <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse shadow-[0_0_8px_rgba(99,102,241,0.8)]"></div>
+                                            <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse shadow-lg"></div>
                                             Active Matrix Sync
                                         </span>
                                         <span className="text-[10px] font-black uppercase text-indigo-400/30 tracking-widest">Protocol 11.4β</span>
@@ -483,7 +483,7 @@ const TopicDetails = () => {
                         <button
                             onClick={handleToggle}
                             className={`flex items-center gap-2 px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${topic.completed
-                                ? (isDark ? 'bg-gradient-gold text-white shadow-gold pulse-ring' : 'bg-slate-900 text-slate-50 shadow-[0_10px_25px_rgba(15,23,42,0.3)] border border-slate-800')
+                                ? (isDark ? 'bg-gradient-gold text-white shadow-gold pulse-ring' : 'bg-slate-900 text-slate-50 shadow-lg border border-slate-800')
                                 : (isDark ? 'bg-indigo-500/5 text-foreground/40 border border-indigo-500/10 hover:bg-indigo-500/10' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 shadow-sm')
                                 }`}
                         >
@@ -596,7 +596,7 @@ const TopicDetails = () => {
                                 topic?.title?.toLowerCase().includes("algorithmic domains")) && !topic?.title?.toLowerCase().includes("bfs") && !topic?.title?.toLowerCase().includes("dfs") && (
                                     <section className="max-w-6xl mx-auto px-6 animate-in fade-in slide-in-from-bottom-10 duration-1000">
                                         <div className="flex items-center gap-4 mb-10">
-                                            <div className="w-1.5 h-10 bg-orange-500 rounded-full shadow-[0_0_20px_rgba(249,115,22,0.5)]" />
+                                            <div className="w-1.5 h-10 bg-orange-500 rounded-full shadow-lg" />
                                             <div>
                                                 <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-orange-400">Foundational Lab</h3>
                                                 <h2 className="text-3xl font-black text-foreground tracking-tight uppercase">Search & Sort Protocol</h2>
@@ -618,7 +618,7 @@ const TopicDetails = () => {
                                 topic?.title?.toLowerCase().includes("dfs")) && (
                                     <section className="max-w-6xl mx-auto px-6 animate-in fade-in slide-in-from-bottom-10 duration-1000">
                                         <div className="flex items-center gap-4 mb-10">
-                                            <div className="w-1.5 h-10 bg-indigo-500 rounded-full shadow-[0_0_20px_rgba(99,102,241,0.5)]" />
+                                            <div className="w-1.5 h-10 bg-indigo-500 rounded-full shadow-lg" />
                                             <div>
                                                 <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-400">Knowledge Lab</h3>
                                                 <h2 className="text-3xl font-black text-foreground tracking-tight uppercase">Neural Visualization Protocol</h2>
@@ -643,7 +643,7 @@ const TopicDetails = () => {
                             {(topic?.title?.toLowerCase().includes("dynamic programming") || topic?.title?.toLowerCase().includes("knapsack")) && (
                                 <section className="max-w-6xl mx-auto px-6 animate-in fade-in slide-in-from-bottom-10 duration-1000">
                                     <div className="flex items-center gap-4 mb-10">
-                                        <div className="w-1.5 h-10 bg-emerald-500 rounded-full shadow-[0_0_20px_rgba(16,185,129,0.5)]" />
+                                        <div className="w-1.5 h-10 bg-emerald-500 rounded-full shadow-lg" />
                                         <div>
                                             <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-400">Optimization Lab</h3>
                                             <h2 className="text-3xl font-black text-foreground tracking-tight uppercase">Recursive-to-Matrix Protocol</h2>
@@ -665,7 +665,7 @@ const TopicDetails = () => {
                                 topic?.title?.toLowerCase().includes("oltp")) && (
                                     <section className="max-w-6xl mx-auto px-6 pb-20 animate-in fade-in slide-in-from-bottom-10 duration-1000">
                                         <div className="flex items-center gap-4 mb-10">
-                                            <div className="w-1.5 h-10 bg-indigo-500 rounded-full shadow-[0_0_20px_rgba(99,102,241,0.5)]" />
+                                            <div className="w-1.5 h-10 bg-indigo-500 rounded-full shadow-lg" />
                                             <div>
                                                 <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-400">Architectural Lab</h3>
                                                 <h2 className="text-3xl font-black text-foreground tracking-tight uppercase">Decision Support Protocol</h2>
@@ -689,7 +689,7 @@ const TopicDetails = () => {
                             {(topic?.title?.toLowerCase().includes("recurrence") || topic?.title?.toLowerCase().includes("substitution")) && (
                                 <section className="max-w-6xl mx-auto px-6 animate-in fade-in slide-in-from-bottom-10 duration-1000">
                                     <div className="flex items-center gap-4 mb-10">
-                                        <div className="w-1.5 h-10 bg-amber-500 rounded-full shadow-[0_0_20px_rgba(245,158,11,0.5)]" />
+                                        <div className="w-1.5 h-10 bg-amber-500 rounded-full shadow-lg" />
                                         <div>
                                             <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-amber-400">Mathematical Lab</h3>
                                             <h2 className="text-3xl font-black text-foreground tracking-tight uppercase">Neural Substitution Protocol</h2>
@@ -706,7 +706,7 @@ const TopicDetails = () => {
                             {(topic?.title?.toLowerCase().includes("asymptotic") || topic?.title?.toLowerCase().includes("complexity") || topic?.title?.toLowerCase().includes("growth") || topic?.title?.toLowerCase().includes("limit")) && (
                                 <section className="max-w-6xl mx-auto px-6 animate-in fade-in slide-in-from-bottom-10 duration-1000">
                                     <div className="flex items-center gap-4 mb-10">
-                                        <div className="w-1.5 h-10 bg-blue-500 rounded-full shadow-[0_0_20px_rgba(59,130,246,0.5)]" />
+                                        <div className="w-1.5 h-10 bg-blue-500 rounded-full shadow-lg" />
                                         <div>
                                             <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-400">Asymptotic Lab</h3>
                                             <h2 className="text-3xl font-black text-foreground tracking-tight uppercase">Growth Synthesis Protocol</h2>
@@ -730,7 +730,7 @@ const TopicDetails = () => {
                                 topic?.title?.toLowerCase().includes("sdlc")) && (
                                     <section className="max-w-6xl mx-auto px-6 animate-in fade-in slide-in-from-bottom-10 duration-1000">
                                         <div className="flex items-center gap-4 mb-10">
-                                            <div className="w-1.5 h-10 bg-rose-500 rounded-full shadow-[0_0_20px_rgba(244,63,94,0.5)]" />
+                                            <div className="w-1.5 h-10 bg-rose-500 rounded-full shadow-lg" />
                                             <div>
                                                 <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-rose-400">Process Lab</h3>
                                                 <h2 className="text-3xl font-black text-foreground tracking-tight uppercase">SDLC Simulation Protocol</h2>
@@ -752,7 +752,7 @@ const TopicDetails = () => {
                                 topic?.title?.toLowerCase().includes("uml")) && (
                                     <section className="max-w-6xl mx-auto px-6 animate-in fade-in slide-in-from-bottom-10 duration-1000">
                                         <div className="flex items-center gap-4 mb-10">
-                                            <div className="w-1.5 h-10 bg-emerald-500 rounded-full shadow-[0_0_20px_rgba(16,185,129,0.5)]" />
+                                            <div className="w-1.5 h-10 bg-emerald-500 rounded-full shadow-lg" />
                                             <div>
                                                 <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-400">Blueprint Lab</h3>
                                                 <h2 className="text-3xl font-black text-foreground tracking-tight uppercase">UML Construction Protocol</h2>
@@ -772,7 +772,7 @@ const TopicDetails = () => {
                             {topic.song_url && (
                                 <section id="mastery-anthem" className="max-w-6xl mx-auto px-6 py-12 border-t border-white/5 animate-in fade-in slide-in-from-bottom-10 duration-1000 scroll-mt-24">
                                     <div className="flex items-center gap-4 mb-8">
-                                        <div className="w-1.5 h-10 bg-indigo-500 rounded-full shadow-[0_0_20px_rgba(99,102,241,0.5)]" />
+                                        <div className="w-1.5 h-10 bg-indigo-500 rounded-full shadow-lg" />
                                         <div>
                                             <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-400">Synaptic Summary</h3>
                                             <h2 className="text-3xl font-black text-foreground tracking-tight uppercase">Mastery Anthem</h2>
@@ -831,3 +831,4 @@ const TopicDetails = () => {
 };
 
 export default TopicDetails;
+

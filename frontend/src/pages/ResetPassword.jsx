@@ -140,7 +140,7 @@ const ResetPassword = () => {
                         <button
                             type="submit"
                             disabled={isLoading || success}
-                            className="w-full py-4 rounded-2xl font-black text-lg uppercase tracking-wider bg-gradient-to-r from-[#FFD700] to-[#FDB931] text-black hover:shadow-[0_0_40px_rgba(255,215,0,0.5)] transition-all duration-300 disabled:opacity-50"
+                            className="w-full py-4 rounded-2xl font-black text-lg uppercase tracking-wider bg-gradient-to-r from-[#FFD700] to-[#FDB931] text-black hover:shadow-lg transition-all duration-300 disabled:opacity-50"
                         >
                             {isLoading ? "Updating..." : "Reset Password"}
                         </button>
@@ -158,3 +158,4 @@ const ResetPassword = () => {
 };
 
 export default ResetPassword;
+

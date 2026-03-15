@@ -82,7 +82,7 @@ const Navbar = () => {
     return (
         <header className="fixed top-0 left-0 right-0 z-50 transition-all duration-300">
             {/* Glassmorphic Background */}
-            <div className={`absolute inset-0 backdrop-blur-xl border-b transition-colors duration-300 shadow-[0_4px_30px_rgba(0,0,0,0.05)] ${isDark ? 'bg-[#0a0e1a]/80 border-white/10' : 'bg-white/80 border-gray-100'}`}></div>
+            <div className={`absolute inset-0 backdrop-blur-xl border-b transition-colors duration-300 shadow-lg ${isDark ? 'bg-[#0a0e1a]/80 border-white/10' : 'bg-white/80 border-gray-100'}`}></div>
 
             <div className="relative max-w-7xl mx-auto px-6 h-24 grid grid-cols-3 items-center">
                 {/* LEFT — LOGO */}
@@ -122,7 +122,7 @@ const Navbar = () => {
                                     {isActive && (
                                         <motion.div
                                             layoutId="navPill"
-                                            className="absolute inset-0 bg-nebula rounded-full shadow-[0_0_20px_rgba(0,242,255,0.4)]"
+                                            className="absolute inset-0 bg-nebula rounded-full shadow-lg"
                                             transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                                         />
                                     )}
@@ -142,7 +142,7 @@ const Navbar = () => {
                         >
                             <Bell size={18} />
                             {isSocketConnected && (
-                                <span className="absolute -top-0.5 -left-0.5 w-2 h-2 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_5px_cyan]" title="Network Sync Active" />
+                                <span className="absolute -top-0.5 -left-0.5 w-2 h-2 bg-cyan-400 rounded-full animate-pulse shadow-lg" title="Network Sync Active" />
                             )}
                             {notifications.filter(n => !n.read).length > 0 && (
                                 <span className="absolute top-0 right-0 w-4 h-4 bg-rose-500 border-2 border-white rounded-full flex items-center justify-center text-[8px] font-black text-white">
@@ -230,7 +230,7 @@ const Navbar = () => {
                                 group flex items-center gap-4 pl-5 pr-1.5 py-1.5 rounded-full
                                 border transition-all duration-300
                                 ${open
-                                    ? isDark ? "bg-white/10 border-cyan-500/50 shadow-[0_0_20px_rgba(0,242,255,0.2)]" : "bg-white border-cyan-500 shadow-lg"
+                                    ? isDark ? "bg-white/10 border-cyan-500/50 shadow-lg" : "bg-white border-cyan-500 shadow-lg"
                                     : isDark ? "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20" : "bg-white border-slate-200 hover:border-slate-300 shadow-sm"}
                             `}
                         >
@@ -257,7 +257,7 @@ const Navbar = () => {
                                         </div>
                                     )}
                                 </div>
-                                <div className={`absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 z-20 shadow-[0_0_10px_rgba(16,185,129,0.5)] ${isDark ? 'border-[#0a0e1a]' : 'border-indigo-50'}`}></div>
+                                <div className={`absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 z-20 shadow-lg ${isDark ? 'border-[#0a0e1a]' : 'border-indigo-50'}`}></div>
                             </div>
                         </motion.button>
 
@@ -268,7 +268,7 @@ const Navbar = () => {
                                     animate={{ opacity: 1, y: 0, scale: 1 }}
                                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
                                     transition={{ duration: 0.2 }}
-                                    className={`absolute right-0 mt-4 w-80 backdrop-blur-2xl rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] border overflow-hidden z-[60] ${isDark ? 'bg-[#0f1729]/95 border-white/10' : 'bg-white/95 border-slate-200'}`}
+                                    className={`absolute right-0 mt-4 w-80 backdrop-blur-2xl rounded-[2rem] shadow-lg border overflow-hidden z-[60] ${isDark ? 'bg-[#0f1729]/95 border-white/10' : 'bg-white/95 border-slate-200'}`}
                                 >
                                     <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-br from-indigo-500/20 via-purple-500/10 to-transparent pointer-events-none" />
 
@@ -312,7 +312,7 @@ const Navbar = () => {
                                                         <motion.div
                                                             initial={{ width: 0 }}
                                                             animate={{ width: "60%" }}
-                                                            className={`${isDark ? 'bg-nebula' : 'bg-nebula'} h-full rounded-full shadow-[0_0_10px_rgba(0,242,255,0.4)]`}
+                                                            className={`${isDark ? 'bg-nebula' : 'bg-nebula'} h-full rounded-full shadow-lg`}
                                                         />
                                                     </div>
                                                 </div>

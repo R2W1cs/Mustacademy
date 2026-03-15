@@ -135,7 +135,7 @@ export default function Dashboard() {
     const themeClass = isDark ? "bg-[#050810] text-white" : "light bg-[#FFFFFF] text-gray-900";
     const sidebarClass = isDark ? "bg-[#0a0e1a] border-white/5" : "bg-white border-gray-100 border-r";
     const cardClass = isDark
-        ? "glass-morphism hover:border-white/20 hover:scale-[1.01] hover:shadow-[0_20px_40px_rgba(0,0,0,0.5)] transition-all duration-500"
+        ? "glass-morphism hover:border-white/20 hover:scale-[1.01] hover:shadow-lg transition-all duration-500"
         : "glass-morphism hover:border-red-200 hover:scale-[1.01] transition-all duration-500 shadow-sm";
     const textMuted = isDark ? "text-gray-400" : "text-slate-500 font-medium";
     const headingColor = isDark ? "text-white" : "text-slate-900";
@@ -425,7 +425,7 @@ export default function Dashboard() {
                                     <p className={`text-xs ${textMuted}`}>Session construct</p>
                                 </div>
                             </div>
-                            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
+                            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-lg"></span>
                         </div>
                         <p className={`text-xs mb-6 leading-relaxed ${isDark ? 'text-purple-200/70' : 'text-slate-600'}`}>
                             "Build momentum and unlock new protocols. Your advisor is ready."
@@ -590,3 +590,4 @@ export default function Dashboard() {
         </div >
     );
 }
+

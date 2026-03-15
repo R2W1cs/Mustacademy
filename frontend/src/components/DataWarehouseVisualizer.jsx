@@ -287,7 +287,7 @@ const DataWarehouseVisualizer = ({ type = 'etl' }) => {
                 {/* Staging & Transform Node */}
                 <div className="flex flex-col items-center gap-8">
                     <div className={`relative w-48 h-48 rounded-[2.5rem] border-2 transition-all duration-700 flex flex-col items-center justify-center p-6
-                        ${step === 1 || step === 2 ? 'border-indigo-400 bg-indigo-500/10 shadow-[0_0_50px_rgba(99,102,241,0.2)]' : 'border-white/10 bg-white/5'}
+                        ${step === 1 || step === 2 ? 'border-indigo-400 bg-indigo-500/10 shadow-lg' : 'border-white/10 bg-white/5'}
                     `}>
                         <AnimatePresence mode="wait">
                             {step < 2 ? (
@@ -315,7 +315,7 @@ const DataWarehouseVisualizer = ({ type = 'etl' }) => {
 
                 {/* Data Warehouse */}
                 <div className={`w-56 h-56 border-2 rounded-[3rem] p-8 flex flex-col items-center justify-center transition-all duration-700
-                    ${step === 3 ? 'border-emerald-400 bg-emerald-500/10 shadow-[0_0_60px_rgba(16,185,129,0.2)]' : 'border-white/10 bg-white/5 grayscale'}
+                    ${step === 3 ? 'border-emerald-400 bg-emerald-500/10 shadow-lg' : 'border-white/10 bg-white/5 grayscale'}
                 `}>
                     <Database size={48} className={step === 3 ? "text-emerald-400" : "text-white/20"} />
                     <h4 className={`text-[11px] font-black uppercase tracking-widest mt-4 text-center ${step === 3 ? "text-white" : "text-white/30"}`}>Central Data Warehouse</h4>
@@ -437,7 +437,7 @@ const DataWarehouseVisualizer = ({ type = 'etl' }) => {
                                     y: i < 3 ? [100, 0] : [-100, 0]
                                 }}
                                 transition={{ duration: 2, repeat: Infinity, delay: i * 0.5 }}
-                                className="absolute top-1/2 left-1/2 w-4 h-4 rounded-full bg-white shadow-[0_0_20px_white]"
+                                className="absolute top-1/2 left-1/2 w-4 h-4 rounded-full bg-white shadow-lg"
                             />
                         ))}
                     </div>
@@ -468,7 +468,7 @@ const DataWarehouseVisualizer = ({ type = 'etl' }) => {
 
                 {/* Central DW */}
                 <div className={`flex-1 max-w-xs h-72 border-2 rounded-[3rem] p-10 flex flex-col items-center justify-center relative transition-all duration-700
-                    ${step === 0 ? 'border-indigo-400 bg-indigo-500/10 shadow-[0_0_80px_rgba(99,102,241,0.15)]' : 'border-white/10 bg-white/5'}
+                    ${step === 0 ? 'border-indigo-400 bg-indigo-500/10 shadow-lg' : 'border-white/10 bg-white/5'}
                 `}>
                     <Database size={64} className={step === 0 ? "text-indigo-400" : "text-white/20"} />
                     <h4 className="text-[12px] font-black uppercase tracking-[0.3em] text-white/80 mt-6 text-center">Central Warehouse</h4>
@@ -479,7 +479,7 @@ const DataWarehouseVisualizer = ({ type = 'etl' }) => {
                 {/* Filtering / Partitioning Node */}
                 <div className="flex flex-col items-center justify-center gap-4">
                     <motion.div animate={{ rotate: step === 1 ? 360 : 0 }} transition={{ duration: 4, repeat: Infinity, ease: "linear" }} className={`w-24 h-24 rounded-full border-2 flex items-center justify-center
-                        ${step === 1 ? 'border-amber-400 bg-amber-500/10 shadow-[0_0_30px_rgba(245,158,11,0.2)]' : 'border-white/5'}
+                        ${step === 1 ? 'border-amber-400 bg-amber-500/10 shadow-lg' : 'border-white/5'}
                     `}>
                         <Filter className={step === 1 ? "text-amber-400" : "text-white/10"} size={32} />
                     </motion.div>
@@ -520,7 +520,7 @@ const DataWarehouseVisualizer = ({ type = 'etl' }) => {
                 <div className="flex flex-col items-center justify-center gap-6">
                     <ArrowRight size={24} className={step === 2 ? "text-emerald-500" : "text-white/5"} />
                     <div className={`w-32 h-32 rounded-3xl border-2 flex flex-col items-center justify-center p-4 transition-all
-                        ${step === 3 ? 'border-emerald-400 bg-emerald-500/10 shadow-[0_0_40px_rgba(16,185,129,0.2)]' : 'border-white/5 opacity-20'}
+                        ${step === 3 ? 'border-emerald-400 bg-emerald-500/10 shadow-lg' : 'border-white/5 opacity-20'}
                     `}>
                         <Users size={32} className={step === 3 ? "text-emerald-400" : ""} />
                         <span className="text-[9px] font-black uppercase tracking-widest text-center mt-3 text-white">Subject Specialists</span>
@@ -547,11 +547,11 @@ const DataWarehouseVisualizer = ({ type = 'etl' }) => {
     );
 
     return (
-        <div className="w-full bg-[#0a0a0c] border border-white/10 rounded-[3rem] overflow-hidden flex flex-col shadow-[0_0_80px_rgba(0,0,0,0.6)] selection:bg-indigo-500/30">
+        <div className="w-full bg-[#0a0a0c] border border-white/10 rounded-[3rem] overflow-hidden flex flex-col shadow-lg selection:bg-indigo-500/30">
             {/* Header */}
             <div className="p-10 border-b border-white/5 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 bg-gradient-to-b from-white/[0.04] to-transparent">
                 <div className="flex items-center gap-6">
-                    <div className="w-16 h-16 bg-indigo-600/10 rounded-2xl flex items-center justify-center border border-indigo-500/20 shadow-[0_0_30px_rgba(99,102,241,0.15)] relative overflow-hidden">
+                    <div className="w-16 h-16 bg-indigo-600/10 rounded-2xl flex items-center justify-center border border-indigo-500/20 shadow-lg relative overflow-hidden">
                         <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 to-transparent" />
                         {isETL ? <Zap size={32} className="text-indigo-400 relative z-10" /> : <Layers size={32} className="text-indigo-400 relative z-10" />}
                     </div>
@@ -664,3 +664,4 @@ const DataWarehouseVisualizer = ({ type = 'etl' }) => {
 };
 
 export default DataWarehouseVisualizer;
+

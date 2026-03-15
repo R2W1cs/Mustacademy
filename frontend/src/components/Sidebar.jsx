@@ -89,7 +89,7 @@ export default function Sidebar({ isCollapsed, toggleSidebar }) {
         { name: "Career Profile", icon: User, path: "/profile", id: "profile" },
     ];
 
-    const sidebarClass = isDark ? "glass-morphism border-r border-white/5 shadow-[20px_0_40px_rgba(0,0,0,0.4)]" : "bg-white border-r border-gray-200/50 shadow-[20px_0_60px_rgba(0,0,0,0.03)]";
+    const sidebarClass = isDark ? "glass-morphism border-r border-white/5 shadow-lg" : "bg-white border-r border-gray-200/50 shadow-lg";
     const headingColor = isDark ? "text-white" : "text-gray-900";
     const textMuted = isDark ? "text-gray-400" : "text-gray-500";
 
@@ -167,7 +167,7 @@ export default function Sidebar({ isCollapsed, toggleSidebar }) {
                                             <span className={`
                                                 ml-auto px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-tighter shrink-0
                                                 ${item.id === 'market'
-                                                    ? 'bg-cyan-500/10 text-cyan-500 border border-cyan-500/20 shadow-[0_0_10px_rgba(34,211,238,0.2)]'
+                                                    ? 'bg-cyan-500/10 text-cyan-500 border border-cyan-500/20 shadow-lg'
                                                     : isDark ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' : 'bg-red-50 text-red-600 border border-red-100'
                                                 }
                                             `}>
@@ -200,7 +200,7 @@ export default function Sidebar({ isCollapsed, toggleSidebar }) {
                                 <div className="flex-1 truncate overflow-hidden">
                                     <p className={`text-[11px] font-black uppercase tracking-widest leading-none ${headingColor} truncate mb-1`}>{userName}</p>
                                     <div className="flex items-center space-x-1.5 translate-y-[1px]">
-                                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+                                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse shadow-lg" />
                                         <span className="text-[9px] text-green-500 font-black uppercase tracking-tighter">New Member</span>
                                     </div>
                                 </div>
@@ -259,3 +259,4 @@ export default function Sidebar({ isCollapsed, toggleSidebar }) {
         </aside>
     );
 }
+

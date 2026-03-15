@@ -62,7 +62,7 @@ const CourseCard = ({ course, index }) => {
       <div className={`absolute -inset-1 rounded-[3rem] blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-1000 animate-pulse ${isDark ? 'bg-gradient-to-r from-cyan-500/20 via-violet-500/20 to-magenta-500/20' : 'bg-red-500/10'}`} />
 
       {/* Main Glass Card */}
-      <div className={`relative h-full glass-morphism rounded-[2.5rem] p-10 overflow-hidden transition-all duration-700 ${isDark ? 'border-white/5 hover:border-cyan-400/40 hover:shadow-[0_20px_40px_rgba(0,0,0,0.5)]' : 'group-hover:border-red-500/30 shadow-[0_20px_50px_rgba(0,0,0,0.05)]'}`}>
+      <div className={`relative h-full glass-morphism rounded-[2.5rem] p-10 overflow-hidden transition-all duration-700 ${isDark ? 'border-white/5 hover:border-cyan-400/40 hover:shadow-lg' : 'group-hover:border-red-500/30 shadow-lg'}`}>
 
         {/* Iridescent Border Overlay */}
         <div className="absolute inset-0 z-0 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none glass-border rounded-[2.5rem]" />
@@ -82,7 +82,7 @@ const CourseCard = ({ course, index }) => {
           {/* Header Area */}
           <div className="flex justify-between items-start mb-12">
             <div className="relative">
-              <div className={`w-20 h-20 rounded-[1.5rem] border flex items-center justify-center transition-all duration-700 ${isDark ? 'bg-white/5 border-white/10 text-cyan-400 shadow-[0_0_30px_rgba(0,242,255,0.1)] group-hover:shadow-[0_0_50px_rgba(0,242,255,0.4)] group-hover:bg-cyan-500/10 group-hover:border-cyan-500/30' : 'bg-white border-gray-100 text-red-600 shadow-sm group-hover:shadow-red-200 group-hover:bg-red-50/50 group-hover:border-red-200'}`}>
+              <div className={`w-20 h-20 rounded-[1.5rem] border flex items-center justify-center transition-all duration-700 ${isDark ? 'bg-white/5 border-white/10 text-cyan-400 shadow-lg group-hover:shadow-lg group-hover:bg-cyan-500/10 group-hover:border-cyan-500/30' : 'bg-white border-gray-100 text-red-600 shadow-sm group-hover:shadow-red-200 group-hover:bg-red-50/50 group-hover:border-red-200'}`}>
                 {getAbstractIcon(course.name)}
               </div>
               {/* Pulsing Aura */}
@@ -92,7 +92,7 @@ const CourseCard = ({ course, index }) => {
             <div className="text-right">
               <span className={`text-[10px] font-black uppercase tracking-[0.4em] mb-2 block ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Section Registry</span>
               <div className="flex items-center gap-2 justify-end">
-                <div className={`w-1.5 h-1.5 rounded-full ${isDark ? 'bg-cyan-400 shadow-[0_0_8px_#00f2ff]' : 'bg-red-500 shadow-[0_0_8px_rgba(192,22,54,0.4)]'}`} />
+                <div className={`w-1.5 h-1.5 rounded-full ${isDark ? 'bg-cyan-400 shadow-lg' : 'bg-red-500 shadow-lg'}`} />
                 <span className={`text-xl font-black transition-colors ${isDark ? 'text-white/40 group-hover:text-cyan-300' : 'text-slate-400 group-hover:text-red-600'}`}>SEC-{course.id.toString().slice(-2)}</span>
               </div>
             </div>
@@ -148,3 +148,4 @@ const CourseCard = ({ course, index }) => {
 };
 
 export default memo(CourseCard);
+

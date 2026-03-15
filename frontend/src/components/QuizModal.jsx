@@ -87,7 +87,7 @@ const QuizModal = ({ isOpen, onClose, topic, topicId }) => {
                 {/* Header */}
                 <div className="p-8 border-b border-[var(--academic-border)] flex justify-between items-center bg-foreground/[0.02] backdrop-blur-xl">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-2xl border border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.3)]">
+                        <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-2xl border border-indigo-500/30 shadow-lg">
                             <Brain />
                         </div>
                         <div>
@@ -152,7 +152,7 @@ const QuizModal = ({ isOpen, onClose, topic, topicId }) => {
                                                 else if (isSelected && !isCorrect) statusClass = "border-rose-500/50 bg-rose-500/10 text-rose-600 dark:text-rose-300 opacity-50";
                                                 else statusClass = "border-[var(--academic-border)] bg-foreground/[0.02] opacity-30";
                                             } else if (isSelected) {
-                                                statusClass = "border-indigo-500 bg-indigo-500/20 text-indigo-300 shadow-[0_0_15px_rgba(99,102,241,0.2)]";
+                                                statusClass = "border-indigo-500 bg-indigo-500/20 text-indigo-300 shadow-lg";
                                             }
 
                                             return (
@@ -195,7 +195,7 @@ const QuizModal = ({ isOpen, onClose, topic, topicId }) => {
                             <button
                                 onClick={handleSubmit}
                                 disabled={Object.keys(answers).length < quiz?.questions.length}
-                                className="px-10 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-widest rounded-2xl shadow-[0_0_20px_rgba(99,102,241,0.3)] hover:shadow-[0_0_40px_rgba(99,102,241,0.5)] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
+                                className="px-10 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-widest rounded-2xl shadow-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
                             >
                                 <Zap size={18} />
                                 Finalize Protocol
@@ -230,3 +230,4 @@ const QuizModal = ({ isOpen, onClose, topic, topicId }) => {
 };
 
 export default QuizModal;
+

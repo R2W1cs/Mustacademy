@@ -76,11 +76,11 @@ const Courses = () => {
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
-                    className={`relative studio-card p-24 text-center max-w-4xl w-full border glass-morphism overflow-hidden transition-all duration-700 ${isDark ? 'border-white/10' : 'border-indigo-500/5 shadow-[0_20px_50px_rgba(0,0,0,0.05)]'}`}
+                    className={`relative studio-card p-24 text-center max-w-4xl w-full border glass-morphism overflow-hidden transition-all duration-700 ${isDark ? 'border-white/10' : 'border-indigo-500/5 shadow-lg'}`}
                 >
                     <div className="absolute -top-20 -right-20 w-80 h-80 bg-magenta-500/5 blur-[100px]" />
                     <div className="relative z-10 flex flex-col items-center">
-                        <div className={`w-28 h-28 rounded-3xl border flex items-center justify-center mb-10 transition-all duration-700 ${isDark ? 'bg-white/5 border-white/10 text-cyan-400 shadow-[0_0_40px_rgba(0,242,255,0.2)]' : 'bg-white/50 border-white text-red-600 shadow-lg shadow-red-100 glass-morphism'}`}>
+                        <div className={`w-28 h-28 rounded-3xl border flex items-center justify-center mb-10 transition-all duration-700 ${isDark ? 'bg-white/5 border-white/10 text-cyan-400 shadow-lg' : 'bg-white/50 border-white text-red-600 shadow-lg shadow-red-100 glass-morphism'}`}>
                             <Shield size={56} className="animate-pulse" />
                         </div>
                         <h1 className={`text-7xl font-black tracking-tightest mb-8 uppercase leading-[0.85] ${isDark ? 'text-white' : 'text-slate-900'}`}>
@@ -92,7 +92,7 @@ const Courses = () => {
                         </p>
                         <button
                             onClick={() => navigate('/profile/setup')}
-                            className={`group relative px-14 py-6 overflow-hidden font-black text-[12px] uppercase tracking-[0.4em] rounded-[1.5rem] transition-all hover:scale-[1.05] active:scale-95 shadow-[0_20px_40px_rgba(0,0,0,0.4)] ${isDark ? 'bg-white text-black' : 'bg-slate-900 text-white'}`}
+                            className={`group relative px-14 py-6 overflow-hidden font-black text-[12px] uppercase tracking-[0.4em] rounded-[1.5rem] transition-all hover:scale-[1.05] active:scale-95 shadow-lg ${isDark ? 'bg-white text-black' : 'bg-slate-900 text-white'}`}
                         >
                             <div className={`absolute inset-0 translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-700 ${isDark ? 'bg-gradient-to-r from-cyan-400 via-violet-500 to-magenta-500' : 'bg-gradient-to-r from-red-600 via-red-700 to-slate-900'}`} />
                             <span className={`relative z-10 transition-colors ${isDark ? 'group-hover:text-white' : 'group-hover:text-black'}`}>Generate Identity Protocol</span>
@@ -122,7 +122,7 @@ const Courses = () => {
                             transition={{ duration: 1 }}
                             className="flex items-center gap-8 mb-16"
                         >
-                            <div className={`h-px w-24 bg-gradient-to-r to-transparent ${isDark ? 'from-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.3)]' : 'from-red-600'}`} />
+                            <div className={`h-px w-24 bg-gradient-to-r to-transparent ${isDark ? 'from-amber-500 shadow-lg' : 'from-red-600'}`} />
                             <span className={`text-[13px] font-bold uppercase tracking-[0.3em] ${isDark ? 'text-amber-500 opacity-80' : 'text-red-700 opacity-90'}`}>Curriculum Registry</span>
                         </motion.div>
 
@@ -298,3 +298,4 @@ const Courses = () => {
 };
 
 export default Courses;
+

@@ -223,7 +223,7 @@ export default function LandingPage() {
                         Your personalized journey from fundamentals to mastery. Learn smarter with structured paths, deep explanations, and AI guidance.
                     </p>
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20">
-                        <Link to="/dashboard" className="group relative px-8 py-3.5 rounded-xl bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white font-semibold text-[15px] hover:shadow-2xl hover:shadow-[#6366f1]/30 flex items-center gap-2 overflow-hidden transition-all">
+                        <Link to="/dashboard" className="group relative px-8 py-3.5 rounded-xl bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white font-semibold text-[15px] hover:shadow-2xl hover:shadow-lg/30 flex items-center gap-2 overflow-hidden transition-all">
                             <span className="relative z-10 flex items-center gap-2">Start Learning <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" /></span>
                             <span className="absolute inset-0 bg-gradient-to-r from-[#818cf8] to-[#a78bfa] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                         </Link>
@@ -315,7 +315,7 @@ export default function LandingPage() {
                                 </li>
                             ))}
                         </ul>
-                        <Link to="/register" className="inline-flex items-center gap-2 mt-10 px-7 py-3 rounded-xl bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white font-semibold text-[15px] hover:shadow-xl hover:shadow-[#6366f1]/25 transition-all">
+                        <Link to="/register" className="inline-flex items-center gap-2 mt-10 px-7 py-3 rounded-xl bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white font-semibold text-[15px] hover:shadow-xl hover:shadow-lg/25 transition-all">
                             Start Collaborating <ArrowRight className="w-4 h-4" />
                         </Link>
                     </div>
@@ -368,7 +368,7 @@ export default function LandingPage() {
                                 <div className="text-lg font-semibold text-white mb-1">Ready to pass your next interview?</div>
                                 <div className="text-sm text-gray-400">Start practicing today — free, no setup required.</div>
                             </div>
-                            <Link to="/register" className="flex-shrink-0 inline-flex items-center gap-2 px-7 py-3 rounded-xl bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white font-semibold text-[15px] hover:shadow-xl hover:shadow-[#6366f1]/25 transition-all">
+                            <Link to="/register" className="flex-shrink-0 inline-flex items-center gap-2 px-7 py-3 rounded-xl bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white font-semibold text-[15px] hover:shadow-xl hover:shadow-lg/25 transition-all">
                                 Start Practicing <ChevronRight className="w-4 h-4" />
                             </Link>
                         </div>
@@ -400,7 +400,7 @@ export default function LandingPage() {
                             return (
                                 <div
                                     key={s.step}
-                                    className={`rounded-2xl border transition-all duration-300 overflow-hidden ${isOpen ? "bg-white/[0.06] border-[#6366f1]/40 shadow-lg shadow-[#6366f1]/10" : "bg-white/[0.03] border-white/[0.07] hover:bg-white/[0.05] hover:border-white/[0.12]"}`}
+                                    className={`rounded-2xl border transition-all duration-300 overflow-hidden ${isOpen ? "bg-white/[0.06] border-[#6366f1]/40 shadow-lg shadow-lg/10" : "bg-white/[0.03] border-white/[0.07] hover:bg-white/[0.05] hover:border-white/[0.12]"}`}
                                 >
                                     {/* Header row — always visible, clickable */}
                                     <button
@@ -450,7 +450,7 @@ export default function LandingPage() {
                         <div className="relative p-14 lg:p-20 text-center space-y-6">
                             <h2 className="text-4xl lg:text-5xl font-bold tracking-tight">Ready to start your journey?</h2>
                             <p className="text-[17px] text-gray-400 max-w-xl mx-auto">Join thousands of learners mastering Computer Science with AI-powered guidance.</p>
-                            <Link to="/register" className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white font-semibold text-[15px] hover:shadow-2xl hover:shadow-[#6366f1]/30 transition-all">
+                            <Link to="/register" className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white font-semibold text-[15px] hover:shadow-2xl hover:shadow-lg/30 transition-all">
                                 Get Started Free <ArrowRight className="w-4 h-4" />
                             </Link>
                         </div>
@@ -495,3 +495,4 @@ function TechBadge({ t }) {
         </span>
     );
 }
+

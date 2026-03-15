@@ -588,7 +588,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                                         key={role.id}
                                         onClick={() => setSelectedRole(role)}
                                         className={`p-6 rounded-2xl border transition-all text-left group relative backdrop-blur-md overflow-hidden ${isDark
-                                            ? 'bg-slate-900/40 border-slate-800 hover:border-indigo-500/50 hover:bg-slate-900/60 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.5)]'
+                                            ? 'bg-slate-900/40 border-slate-800 hover:border-indigo-500/50 hover:bg-slate-900/60 shadow-lg'
                                             : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-indigo-50'} `}
                                     >
                                         <div className="flex flex-col h-full justify-between">
@@ -685,7 +685,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                             <div className="w-full flex justify-between items-start mb-6">
                                 <div className="flex flex-col gap-1.5">
                                     <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
+                                        <div className="w-2 h-2 rounded-full bg-red-500 shadow-lg" />
                                         <span className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-500">LIVE · SIM-01</span>
                                     </div>
                                     <p className="text-[11px] font-bold text-slate-600 uppercase tracking-[0.2em]">{selectedRole?.title}</p>
@@ -822,13 +822,13 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                         </div>
 
                         {/* Panoramic Chat Interface */}
-                        <div className={`flex-1 flex flex-col ${isDark ? 'bg-[#070b14]' : 'bg-white'} relative z-10 shadow-[-50px_0_100px_rgba(0,0,0,0.5)]`}>
+                        <div className={`flex-1 flex flex-col ${isDark ? 'bg-[#070b14]' : 'bg-white'} relative z-10 shadow-lg`}>
                             {scorecard ? (
                                 <div className="flex-1 p-24 overflow-y-auto custom-scrollbar flex flex-col items-center justify-center text-center">
                                     <motion.div
                                         initial={{ scale: 0, rotate: -20 }}
                                         animate={{ scale: 1, rotate: 0 }}
-                                        className="w-40 h-40 rounded-full bg-indigo-600/10 border-4 border-indigo-600 flex flex-col items-center justify-center mb-10 shadow-[0_0_50px_rgba(99,102,241,0.2)]"
+                                        className="w-40 h-40 rounded-full bg-indigo-600/10 border-4 border-indigo-600 flex flex-col items-center justify-center mb-10 shadow-lg"
                                     >
                                         <span className="text-sm font-black text-indigo-400 uppercase tracking-widest">Score</span>
                                         <span className="text-6xl font-black text-indigo-500">{scorecard.technical_score}</span>
@@ -912,10 +912,10 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                                         )}
                                     </div>
                                     <div className="p-12 bg-slate-950/40 border-t border-slate-900">
-                                        <div className="relative group flex items-center gap-4 bg-slate-950 p-4 rounded-[2.5rem] border border-slate-800 shadow-[0_0_50px_rgba(0,0,0,0.3)] transition-all focus-within:border-indigo-500/50 focus-within:shadow-[0_0_50px_rgba(99,102,241,0.1)]">
+                                        <div className="relative group flex items-center gap-4 bg-slate-950 p-4 rounded-[2.5rem] border border-slate-800 shadow-lg transition-all focus-within:border-indigo-500/50 focus-within:shadow-lg">
                                             <button
                                                 onClick={toggleListening}
-                                                className={`p-6 rounded-[1.5rem] transition-all duration-300 ${isListening ? 'bg-red-600 text-white shadow-[0_0_30px_rgba(220,38,38,0.4)]' : 'bg-slate-900 text-slate-500 hover:text-indigo-400 border border-slate-800'}`}
+                                                className={`p-6 rounded-[1.5rem] transition-all duration-300 ${isListening ? 'bg-red-600 text-white shadow-lg' : 'bg-slate-900 text-slate-500 hover:text-indigo-400 border border-slate-800'}`}
                                             >
                                                 {isListening ? <MicOff size={24} /> : <Mic size={24} />}
                                             </button>
@@ -946,3 +946,4 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
         </div>
     );
 }
+

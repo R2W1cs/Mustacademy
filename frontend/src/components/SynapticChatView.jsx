@@ -64,7 +64,7 @@ export default function SynapticChatView({ roomId, roomName, isDark }) {
                     {members.map(member => (
                         <div key={member.id} className="flex items-center gap-3 group">
                             <div className="relative">
-                                <div className={`w-8 h-8 rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center text-[10px] font-black border transition-all ${member.is_voice_active ? 'border-cyan-500 shadow-[0_0_10px_rgba(34,211,238,0.5)]' : 'border-white/5'}`}>
+                                <div className={`w-8 h-8 rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center text-[10px] font-black border transition-all ${member.is_voice_active ? 'border-cyan-500 shadow-lg' : 'border-white/5'}`}>
                                     {member.username?.[0] || "?"}
                                 </div>
                                 {member.is_voice_active && (
@@ -160,3 +160,4 @@ export default function SynapticChatView({ roomId, roomName, isDark }) {
         </div>
     );
 }
+

@@ -188,7 +188,7 @@ const Profile = () => {
         >
           <div>
             <div className="flex items-center gap-3 mb-3">
-              <div className={`w-2 h-2 rounded-full ${profile.status === 'online' ? 'bg-emerald-500 shadow-[0_0_10px_#10b981]' : 'bg-gray-500'}`} />
+              <div className={`w-2 h-2 rounded-full ${profile.status === 'online' ? 'bg-emerald-500 shadow-lg' : 'bg-gray-500'}`} />
               <span className={`text-[10px] font-mono tracking-widest uppercase ${isDark ? 'text-white/40' : 'text-slate-500'}`}>ID: {String(profile.id).substring(0, 8)}</span>
             </div>
             <h1 className={`text-4xl md:text-5xl font-black tracking-tighter ${isDark ? 'text-white' : 'text-slate-900'}`}>
@@ -356,7 +356,7 @@ const Profile = () => {
                     {/* Preview first 2 phases */}
                     {roadmap.roadmap_steps_json?.slice(0, 2).map((step, i) => (
                       <div key={i} className="relative z-10 flex gap-6">
-                        <div className={`w-12 h-12 shrink-0 border rounded-full flex items-center justify-center text-[#FFD700] text-xs font-black shadow-[0_0_15px_rgba(99,102,241,0.1)] ${isDark ? 'bg-[#0f1729] border-indigo-500/30' : 'bg-white border-indigo-100'}`}>
+                        <div className={`w-12 h-12 shrink-0 border rounded-full flex items-center justify-center text-[#FFD700] text-xs font-black shadow-lg ${isDark ? 'bg-[#0f1729] border-indigo-500/30' : 'bg-white border-indigo-100'}`}>
                           0{i + 1}
                         </div>
                         <div>
@@ -433,3 +433,4 @@ const Profile = () => {
 };
 
 export default Profile;
+

@@ -250,7 +250,7 @@ export default function ExamSession() {
             {/* Simulation Header */}
             <header className="h-[70px] bg-gray-950 border-b border-gray-800 px-6 flex items-center justify-between z-10">
                 <div className="flex items-center space-x-4">
-                    <div className="px-3 py-1 bg-red-600 text-white text-[10px] font-black uppercase rounded animate-pulse tracking-widest shadow-[0_0_15px_rgba(220,38,38,0.4)]">LIVE SESSION</div>
+                    <div className="px-3 py-1 bg-red-600 text-white text-[10px] font-black uppercase rounded animate-pulse tracking-widest shadow-lg">LIVE SESSION</div>
                     <div>
                         <h1 className="text-white font-black uppercase italic text-sm tracking-tighter leading-none">{exam.title}</h1>
                         <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">First Principles Protocol</p>
@@ -452,3 +452,4 @@ export default function ExamSession() {
         </div>
     );
 }
+

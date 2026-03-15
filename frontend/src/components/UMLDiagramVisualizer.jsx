@@ -142,8 +142,8 @@ const UMLDiagramVisualizer = ({ type = 'use case' }) => {
                                 <div className="w-0.5 h-full bg-blue-500/20 border-l border-dashed border-blue-500/40 mt-2" />
 
                                 {/* Activation bars */}
-                                {i === 1 && step >= 2 && <motion.div initial={{ height: 0 }} animate={{ height: 120 }} className="absolute top-[100px] w-3 bg-blue-400 border border-blue-300 rounded-sm shadow-[0_0_15px_rgba(96,165,250,0.5)] z-0" />}
-                                {i === 2 && step >= 2 && <motion.div initial={{ height: 0 }} animate={{ height: 60 }} className="absolute top-[130px] w-3 bg-emerald-400 border border-emerald-300 rounded-sm shadow-[0_0_15px_rgba(52,211,153,0.5)] z-0" />}
+                                {i === 1 && step >= 2 && <motion.div initial={{ height: 0 }} animate={{ height: 120 }} className="absolute top-[100px] w-3 bg-blue-400 border border-blue-300 rounded-sm shadow-lg z-0" />}
+                                {i === 2 && step >= 2 && <motion.div initial={{ height: 0 }} animate={{ height: 60 }} className="absolute top-[130px] w-3 bg-emerald-400 border border-emerald-300 rounded-sm shadow-lg z-0" />}
                             </motion.div>
                         ))}
 
@@ -426,7 +426,7 @@ const UMLDiagramVisualizer = ({ type = 'use case' }) => {
     const config = configs[normalizedType] || configs.usecase;
 
     return (
-        <div className="w-full bg-[#0a0a0c] border border-white/10 rounded-[2.5rem] overflow-hidden flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+        <div className="w-full bg-[#0a0a0c] border border-white/10 rounded-[2.5rem] overflow-hidden flex flex-col shadow-lg">
             <div className="p-8 border-b border-white/5 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 bg-gradient-to-b from-white/[0.03] to-transparent">
                 <div className="flex items-center gap-5">
                     <div 
@@ -507,3 +507,4 @@ const UMLDiagramVisualizer = ({ type = 'use case' }) => {
 };
 
 export default UMLDiagramVisualizer;
+

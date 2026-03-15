@@ -297,8 +297,8 @@ const UMLDiagramChallenge = ({ type = 'use case' }) => {
 
     if (!isStarted) {
         return (
-            <section className="mt-16 bg-[#0a0a0c] border border-white/10 rounded-[2.5rem] overflow-hidden flex flex-col items-center justify-center py-20 px-8 text-center shadow-[0_0_50px_rgba(0,0,0,0.5)]">
-                <div className="w-20 h-20 bg-indigo-500/20 rounded-3xl flex items-center justify-center border border-indigo-500/30 mb-8 shadow-[0_0_40px_rgba(99,102,241,0.2)]">
+            <section className="mt-16 bg-[#0a0a0c] border border-white/10 rounded-[2.5rem] overflow-hidden flex flex-col items-center justify-center py-20 px-8 text-center shadow-lg">
+                <div className="w-20 h-20 bg-indigo-500/20 rounded-3xl flex items-center justify-center border border-indigo-500/30 mb-8 shadow-lg">
                     <Zap size={40} className="text-indigo-400" />
                 </div>
                 <h2 className="text-3xl font-black uppercase tracking-tight text-white mb-4">Practical Challenge</h2>
@@ -307,7 +307,7 @@ const UMLDiagramChallenge = ({ type = 'use case' }) => {
                 </p>
                 <button
                     onClick={() => setIsStarted(true)}
-                    className="px-8 py-4 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500 rounded-2xl text-white font-black uppercase tracking-widest text-[11px] shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-all flex items-center gap-3"
+                    className="px-8 py-4 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500 rounded-2xl text-white font-black uppercase tracking-widest text-[11px] shadow-lg transition-all flex items-center gap-3"
                 >
                     <Play size={18} />
                     Start Practical Exercises
@@ -317,11 +317,11 @@ const UMLDiagramChallenge = ({ type = 'use case' }) => {
     }
 
     return (
-        <section className="mt-16 bg-[#0a0a0c] border border-white/10 rounded-[2.5rem] overflow-hidden flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+        <section className="mt-16 bg-[#0a0a0c] border border-white/10 rounded-[2.5rem] overflow-hidden flex flex-col shadow-lg">
             <div className="p-8 border-b border-white/5 bg-gradient-to-br from-indigo-500/10 to-transparent">
                 <div className="flex items-start justify-between gap-4 mb-4 flex-wrap">
                     <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 bg-indigo-500/20 rounded-2xl flex items-center justify-center border border-indigo-500/20 shadow-[0_0_20px_rgba(99,102,241,0.2)]">
+                        <div className="w-12 h-12 bg-indigo-500/20 rounded-2xl flex items-center justify-center border border-indigo-500/20 shadow-lg">
                             <Zap size={24} className="text-indigo-400" />
                         </div>
                         <div>
@@ -376,7 +376,7 @@ const UMLDiagramChallenge = ({ type = 'use case' }) => {
                         <button
                             onClick={() => setShowSolution(!showSolution)}
                             className={`w-full py-3 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2
-                                ${showSolution ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-300' : 'bg-indigo-600 hover:bg-indigo-500 border-indigo-500 text-white shadow-[0_0_20px_rgba(99,102,241,0.3)]'}
+                                ${showSolution ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-300' : 'bg-indigo-600 hover:bg-indigo-500 border-indigo-500 text-white shadow-lg'}
                             `}
                         >
                             {showSolution ? <><Eye size={14} /> Hide Solution</> : <><CheckCircle2 size={14} /> Show Solution</>}
@@ -401,7 +401,7 @@ const UMLDiagramChallenge = ({ type = 'use case' }) => {
                                 exit={{ opacity: 0 }}
                                 className="absolute inset-0 bg-black/60 z-50 flex flex-col pt-12"
                             >
-                                <div className="absolute top-6 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-indigo-500/20 border border-indigo-500/40 rounded-full text-[9px] font-black uppercase tracking-widest text-indigo-300 z-10 shadow-[0_0_20px_rgba(99,102,241,0.3)]">
+                                <div className="absolute top-6 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-indigo-500/20 border border-indigo-500/40 rounded-full text-[9px] font-black uppercase tracking-widest text-indigo-300 z-10 shadow-lg">
                                     Solution Reference
                                 </div>
                                 {challenge.solution}
@@ -436,3 +436,4 @@ const UMLDiagramChallenge = ({ type = 'use case' }) => {
 };
 
 export default UMLDiagramChallenge;
+

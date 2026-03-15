@@ -28,7 +28,7 @@ const CollapsibleSection = ({ title, children, defaultOpen = false }) => {
                 className="w-full px-8 py-6 flex items-center justify-between text-left group transition-all"
             >
                 <div className="flex items-center gap-4">
-                    <div className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${isOpen ? (isDark ? 'bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]' : 'bg-emerald-600 shadow-[0_0_10px_rgba(5,150,105,0.3)]') : 'bg-white/20'}`} />
+                    <div className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${isOpen ? (isDark ? 'bg-indigo-500 shadow-lg' : 'bg-emerald-600 shadow-lg') : 'bg-white/20'}`} />
                     <span className={`text-[13px] font-black uppercase tracking-widest transition-colors ${isOpen ? accentClass : 'text-foreground/60 group-hover:text-foreground'}`}>
                         {title}
                     </span>
@@ -57,7 +57,7 @@ const StaffNote = ({ children }) => {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
     return (
-        <div className={`my-20 p-12 rounded-[2.5rem] glass-morphism border-indigo-500/5 font-sans relative overflow-hidden group shadow-[0_20px_60px_rgba(99,102,241,0.05)] ${isDark ? '' : 'bg-emerald-50/30 border-emerald-100'}`}>
+        <div className={`my-20 p-12 rounded-[2.5rem] glass-morphism border-indigo-500/5 font-sans relative overflow-hidden group shadow-lg ${isDark ? '' : 'bg-emerald-50/30 border-emerald-100'}`}>
             <div className={`absolute top-0 right-0 p-32 ${isDark ? 'bg-indigo-500/5' : 'bg-emerald-500/5'} blur-[100px] rounded-full pointer-events-none group-hover:opacity-60 transition-colors duration-1000`} />
             <div className="absolute top-6 left-10 flex items-center gap-3">
                 <div className={`p-2 rounded-xl ${isDark ? 'bg-indigo-400/10 text-indigo-400 border-indigo-400/20' : 'bg-emerald-100 text-emerald-700 border-emerald-200'} border`}>
@@ -172,7 +172,7 @@ const TopicExercises = ({ topicId, topicTitle }) => {
                 <div className={`absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-transparent to-purple-500/5 ${isDark ? 'opacity-50' : 'opacity-80'}`} />
 
                 <div className="relative z-10 flex flex-col items-center text-center">
-                    <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mb-8 border shadow-sm ${isDark ? 'bg-indigo-500/10 border-indigo-500/20 shadow-[0_0_40px_rgba(99,102,241,0.1)]' : 'bg-indigo-50 border-indigo-200'}`}>
+                    <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mb-8 border shadow-sm ${isDark ? 'bg-indigo-500/10 border-indigo-500/20 shadow-lg' : 'bg-indigo-50 border-indigo-200'}`}>
                         <Zap size={32} className="text-indigo-500" />
                     </div>
 
@@ -216,7 +216,7 @@ const TopicExercises = ({ topicId, topicTitle }) => {
 
                     <button
                         onClick={fetchExercises}
-                        className={`group relative px-12 py-5 font-black uppercase tracking-widest text-xs rounded-2xl transition-all hover:scale-105 active:scale-95 overflow-hidden ${isDark ? 'bg-indigo-500 text-white shadow-[0_20px_50px_rgba(99,102,241,0.2)]' : 'bg-indigo-600 text-white shadow-xl shadow-indigo-500/30'}`}
+                        className={`group relative px-12 py-5 font-black uppercase tracking-widest text-xs rounded-2xl transition-all hover:scale-105 active:scale-95 overflow-hidden ${isDark ? 'bg-indigo-500 text-white shadow-lg' : 'bg-indigo-600 text-white shadow-xl shadow-indigo-500/30'}`}
                     >
                         <span className="relative z-10 flex items-center gap-3">
                             Initialize Matrix Sync
@@ -293,7 +293,7 @@ const TopicExercises = ({ topicId, topicTitle }) => {
                                                         ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500'
                                                         : isSelected ? 'bg-rose-500/10 border-rose-500/30 text-rose-500' : 'bg-foreground/[0.01] border-foreground/5 opacity-30 shadow-none'
                                                     : isSelected
-                                                        ? 'bg-indigo-500/15 border-indigo-500/40 text-indigo-500 shadow-[0_0_30px_rgba(99,102,241,0.15)] ring-1 ring-indigo-500/20'
+                                                        ? 'bg-indigo-500/15 border-indigo-500/40 text-indigo-500 shadow-lg ring-1 ring-indigo-500/20'
                                                         : 'bg-foreground/[0.02] border-foreground/10 hover:border-foreground/20 hover:bg-foreground/[0.04]'
                                                     }`}
                                             >
@@ -483,10 +483,10 @@ const TopicContent = ({ topic, mode = 'easy' }) => {
             <div className="text-foreground max-w-5xl mx-auto">
                 {/* 1. LECTURE HERO */}
                 <section className="py-20 animate-article-scroll relative">
-                    <div className="absolute top-0 -left-20 w-px h-full bg-gradient-to-b from-indigo-500/50 via-indigo-500/5 to-transparent shadow-[0_0_15px_rgba(99,102,241,0.3)] hidden lg:block" />
+                    <div className="absolute top-0 -left-20 w-px h-full bg-gradient-to-b from-indigo-500/50 via-indigo-500/5 to-transparent shadow-lg hidden lg:block" />
 
                     <div className="flex items-center gap-4 mb-20">
-                        <div className="p-4 rounded-3xl bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 shadow-[0_0_30px_rgba(99,102,241,0.1)]">
+                        <div className="p-4 rounded-3xl bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 shadow-lg">
                             <BookOpen size={28} />
                         </div>
                         <div className="flex flex-col">
@@ -544,7 +544,7 @@ const TopicContent = ({ topic, mode = 'easy' }) => {
                                     li: {
                                         component: ({ children }) => (
                                             <li className="flex gap-6 text-lg lg:text-xl font-medium text-foreground/70 group">
-                                                <div className="w-2 h-2 rounded-full bg-indigo-500 mt-2.5 shrink-0 group-hover:scale-150 transition-transform shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
+                                                <div className="w-2 h-2 rounded-full bg-indigo-500 mt-2.5 shrink-0 group-hover:scale-150 transition-transform shadow-lg" />
                                                 <span className="leading-relaxed">{children}</span>
                                             </li>
                                         )
@@ -560,7 +560,7 @@ const TopicContent = ({ topic, mode = 'easy' }) => {
                                     },
                                     th: { props: { className: "bg-white/5 p-6 text-left text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 border-b border-white/5" } },
                                     td: { props: { className: "p-6 border-b border-white/5 text-foreground/70 text-sm font-medium leading-relaxed" } },
-                                    hr: { component: () => <hr className="my-24 border-none h-px bg-gradient-to-r from-transparent via-white/10 to-transparent shadow-[0_0_10px_rgba(255,255,255,0.05)]" /> },
+                                    hr: { component: () => <hr className="my-24 border-none h-px bg-gradient-to-r from-transparent via-white/10 to-transparent shadow-lg" /> },
                                     blockquote: {
                                         component: ({ children }) => (
                                             <div className="my-16 p-10 rounded-[2.5rem] bg-indigo-500/[0.03] border-l-4 border-indigo-500/40 relative overflow-hidden group">
@@ -573,7 +573,7 @@ const TopicContent = ({ topic, mode = 'easy' }) => {
                                             </div>
                                         )
                                     },
-                                    strong: { props: { className: "font-black text-foreground shadow-[inset_0_-1px_0_0_rgba(99,102,241,0.3)]" } },
+                                    strong: { props: { className: "font-black text-foreground shadow-lg" } },
                                     code: {
                                         component: ({ children, className }) => {
                                             if (className === "lang-mermaid") {
@@ -627,7 +627,7 @@ const TopicContent = ({ topic, mode = 'easy' }) => {
         <div id="crucible" className="text-foreground max-w-4xl mx-auto py-20">
             <div className="relative p-16 rounded-[4rem] bg-indigo-500/[0.02] border border-indigo-500/10 overflow-hidden text-center backdrop-blur-sm">
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent animate-shimmer" />
-                <div className="w-20 h-20 bg-indigo-500/10 rounded-full flex items-center justify-center mx-auto mb-10 text-indigo-500 border border-indigo-500/20 shadow-[0_0_40px_rgba(99,102,241,0.1)]">
+                <div className="w-20 h-20 bg-indigo-500/10 rounded-full flex items-center justify-center mx-auto mb-10 text-indigo-500 border border-indigo-500/20 shadow-lg">
                     <Loader2 size={32} className="animate-spin" />
                 </div>
                 <h3 className="text-2xl font-black uppercase tracking-[0.3em] text-white mb-6">Neural Link Synchronizing</h3>
@@ -645,3 +645,4 @@ const TopicContent = ({ topic, mode = 'easy' }) => {
 };
 
 export default TopicContent;
+

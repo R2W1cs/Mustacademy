@@ -57,11 +57,11 @@ const ComplexityVisualizer = () => {
     }, [nValue, customFunc]);
 
     return (
-        <div className="w-full bg-[#0a0a0c] border border-white/10 rounded-[2.5rem] overflow-hidden flex flex-col min-h-[750px] shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+        <div className="w-full bg-[#0a0a0c] border border-white/10 rounded-[2.5rem] overflow-hidden flex flex-col min-h-[750px] shadow-lg">
             {/* Header - Downscaled Typography */}
             <div className="p-8 border-b border-white/5 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 bg-gradient-to-b from-white/[0.03] to-transparent">
                 <div className="flex items-center gap-5">
-                    <div className="w-12 h-12 bg-blue-500/20 rounded-2xl flex items-center justify-center border border-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.2)]">
+                    <div className="w-12 h-12 bg-blue-500/20 rounded-2xl flex items-center justify-center border border-blue-500/20 shadow-lg">
                         <TrendingUp size={24} className="text-blue-400" />
                     </div>
                     <div>
@@ -263,3 +263,4 @@ const ComplexityVisualizer = () => {
 };
 
 export default ComplexityVisualizer;
+

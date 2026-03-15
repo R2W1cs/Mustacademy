@@ -106,7 +106,7 @@ export default function ThreadDetails() {
                         <div className="flex flex-col items-center gap-4">
                             <button
                                 onClick={() => handleUpvote(thread.id)}
-                                className={`p-4 rounded-2xl transition-all ${thread.user_has_upvoted ? 'bg-cyan-500 text-black shadow-[0_0_20px_rgba(34,211,238,0.4)]' : (isDark ? 'bg-white/5 text-white/20 hover:text-cyan-400' : 'bg-slate-50 text-slate-300')}`}
+                                className={`p-4 rounded-2xl transition-all ${thread.user_has_upvoted ? 'bg-cyan-500 text-black shadow-lg' : (isDark ? 'bg-white/5 text-white/20 hover:text-cyan-400' : 'bg-slate-50 text-slate-300')}`}
                             >
                                 <ArrowUp size={24} />
                             </button>
@@ -231,3 +231,4 @@ function CommentNode({ comment, onReply, onUpvote, isDark, depth = 0 }) {
         </div>
     );
 }
+

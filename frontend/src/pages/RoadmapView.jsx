@@ -492,7 +492,7 @@ const RoadmapView = () => {
                                 </div>
 
                                 {/* Center Node */}
-                                <div className={`relative z-10 hidden md:flex items-center justify-center w-16 h-16 border-2 rounded-full shadow-[0_0_30px_rgba(99,102,241,0.3)] group ${isDark ? 'bg-[#0a0e1a] border-indigo-500' : 'bg-white border-indigo-500'}`}>
+                                <div className={`relative z-10 hidden md:flex items-center justify-center w-16 h-16 border-2 rounded-full shadow-lg group ${isDark ? 'bg-[#0a0e1a] border-indigo-500' : 'bg-white border-indigo-500'}`}>
                                     <span className="text-white font-black text-lg">{i + 1}</span>
                                     {/* Pulse Effect */}
                                     <div className="absolute inset-0 bg-indigo-500 rounded-full animate-ping opacity-20" />
@@ -603,3 +603,4 @@ const COURSE_CONTEXT = {
 };
 
 export default RoadmapView;
+

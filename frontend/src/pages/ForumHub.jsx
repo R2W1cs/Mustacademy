@@ -13,7 +13,7 @@ export default function ForumHub() {
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-10">
                 <div className="max-w-4xl">
                     <div className="flex items-center gap-4 mb-6">
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-[0_0_20px_rgba(34,211,238,0.15)] border transition-all ${isDark ? 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400' : 'bg-cyan-50 border-cyan-200 text-cyan-600'}`}>
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg border transition-all ${isDark ? 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400' : 'bg-cyan-50 border-cyan-200 text-cyan-600'}`}>
                             <Users size={28} />
                         </div>
                         <div className={`h-12 w-[1px] ${isDark ? 'bg-white/5' : 'bg-slate-200'}`} />
@@ -37,3 +37,4 @@ export default function ForumHub() {
         </div>
     );
 }
+

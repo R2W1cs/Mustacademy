@@ -166,7 +166,7 @@ const MultiplayerQuizModal = ({ onClose, topic, action, joinCode }) => {
             <motion.div
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                className="bg-[#0f1126] rounded-[3rem] w-full max-w-5xl h-[90vh] flex flex-col shadow-[0_0_100px_rgba(99,102,241,0.2)] border border-white/10 relative overflow-hidden"
+                className="bg-[#0f1126] rounded-[3rem] w-full max-w-5xl h-[90vh] flex flex-col shadow-lg border border-white/10 relative overflow-hidden"
             >
                 {/* Visual Flair */}
                 <div className="absolute -top-24 -right-24 w-96 h-96 bg-indigo-600/20 rounded-full blur-[120px] pointer-events-none" />
@@ -333,7 +333,7 @@ const MultiplayerQuizModal = ({ onClose, topic, action, joinCode }) => {
                                             onClick={handleStart}
                                             // Admin is always ready. Check if all OTHER players (guests) are ready.
                                             disabled={players.length > 1 && !players.slice(1).every(p => p.isReady)}
-                                            className="group relative px-16 py-6 bg-gradient-to-r from-indigo-600 to-fuchsia-600 rounded-[2rem] shadow-[0_0_50px_rgba(99,102,241,0.4)] hover:shadow-[0_0_80px_rgba(99,102,241,0.6)] disabled:opacity-50 disabled:shadow-none transition-all overflow-hidden"
+                                            className="group relative px-16 py-6 bg-gradient-to-r from-indigo-600 to-fuchsia-600 rounded-[2rem] shadow-lg hover:shadow-lg disabled:opacity-50 disabled:shadow-none transition-all overflow-hidden"
                                         >
                                             <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
                                             <span className="relative flex items-center gap-4 text-white text-2xl font-black uppercase tracking-widest">
@@ -345,7 +345,7 @@ const MultiplayerQuizModal = ({ onClose, topic, action, joinCode }) => {
                                             onClick={() => socket.emit("toggle_ready", { roomId: room, userId })}
                                             className={`group relative px-16 py-6 rounded-[2rem] transition-all overflow-hidden border-2 ${players.find(p => p.id === userId)?.isReady
                                                 ? 'bg-emerald-600/20 border-emerald-500 text-emerald-400'
-                                                : 'bg-indigo-600 border-indigo-500 text-white shadow-[0_0_50px_rgba(99,102,241,0.4)]'
+                                                : 'bg-indigo-600 border-indigo-500 text-white shadow-lg'
                                                 }`}
                                         >
                                             <span className="relative flex items-center gap-4 text-xl font-black uppercase tracking-widest">
@@ -397,7 +397,7 @@ const MultiplayerQuizModal = ({ onClose, topic, action, joinCode }) => {
                                             disabled={selectedAnswer !== null}
                                             onClick={() => handleSubmitAnswer(i)}
                                             className={`group relative p-8 rounded-[2rem] border-2 transition-all duration-300 text-left overflow-hidden ${selectedAnswer === i
-                                                ? 'bg-indigo-600 border-indigo-400 shadow-[0_0_30px_rgba(99,102,241,0.4)]'
+                                                ? 'bg-indigo-600 border-indigo-400 shadow-lg'
                                                 : 'bg-white/5 border-white/5 hover:border-indigo-500/50 hover:bg-white/10'
                                                 } ${selectedAnswer !== null && selectedAnswer !== i ? 'opacity-40 grayscale-[0.5]' : ''}`}
                                         >
@@ -569,3 +569,4 @@ const MultiplayerQuizModal = ({ onClose, topic, action, joinCode }) => {
 };
 
 export default MultiplayerQuizModal;
+

@@ -517,7 +517,7 @@ export default function CreatorCorner() {
                             initial={{ scale: 0.9, opacity: 0, y: 30 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.9, opacity: 0, y: 30 }}
-                            className={`relative w-full max-w-3xl rounded-[3rem] p-12 border shadow-[0_0_100px_rgba(168,85,247,0.1)] ${isDark ? 'bg-[#0a0c10] border-white/10' : 'bg-white border-slate-200'
+                            className={`relative w-full max-w-3xl rounded-[3rem] p-12 border shadow-lg ${isDark ? 'bg-[#0a0c10] border-white/10' : 'bg-white border-slate-200'
                                 }`}
                         >
                             <div className="flex items-center gap-4 mb-10">
@@ -949,3 +949,4 @@ export default function CreatorCorner() {
         </div>
     );
 }
+

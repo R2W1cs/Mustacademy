@@ -46,7 +46,7 @@ export default function TodayBlueprint({ isDark, onPlanBuild }) {
         return (
             <section className="mb-16 animate-fade-in px-4">
                 <div className={`group relative rounded-[3rem] p-12 overflow-hidden transition-all duration-700 border ${isDark
-                    ? 'bg-[#0a0e1a]/80 border-indigo-500/20 shadow-[0_0_80px_-20px_rgba(79,70,229,0.3)]'
+                    ? 'bg-[#0a0e1a]/80 border-indigo-500/20 shadow-lg'
                     : 'bg-gradient-to-br from-indigo-50 via-white to-indigo-50/30 border-indigo-100 shadow-2xl shadow-indigo-200/40'}`}>
 
                     {/* Background Decorative Elements */}
@@ -73,7 +73,7 @@ export default function TodayBlueprint({ isDark, onPlanBuild }) {
                         <button
                             onClick={onPlanBuild}
                             className={`group relative flex items-center gap-4 px-12 py-5 rounded-2xl font-black text-xs tracking-[0.3em] uppercase transition-all hover:scale-105 active:scale-95 ${isDark
-                                ? 'bg-indigo-600 text-white shadow-[0_20px_50px_-10px_rgba(79,70,229,0.5)] hover:bg-indigo-500'
+                                ? 'bg-indigo-600 text-white shadow-lg hover:bg-indigo-500'
                                 : 'bg-slate-900 text-white shadow-2xl shadow-slate-900/20 hover:bg-slate-800'}`}
                         >
                             <Zap size={18} fill="currentColor" className="group-hover:rotate-12 transition-transform" />
@@ -98,7 +98,7 @@ export default function TodayBlueprint({ isDark, onPlanBuild }) {
                     </div>
                     <div>
                         <div className="flex items-center gap-3 mb-1">
-                            <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.6)] animate-pulse" />
+                            <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-lg animate-pulse" />
                             <span className={`text-[11px] font-black uppercase tracking-[0.4em] ${isDark ? 'text-indigo-400/80' : 'text-indigo-600/80'}`}>
                                 Neural Momentum Active
                             </span>
@@ -188,8 +188,8 @@ export default function TodayBlueprint({ isDark, onPlanBuild }) {
                         {/* Active Session Column (Command Deck) */}
                         <div className="lg:col-span-9">
                             <div className={`group relative h-full rounded-[3.5rem] border p-12 overflow-hidden transition-all duration-1000 ${isDark
-                                ? 'bg-[#0a0e1a]/95 border-indigo-500/20 shadow-[0_0_100px_-30px_rgba(79,70,229,0.4)]'
-                                : 'bg-white border-indigo-100 shadow-[0_40px_80px_-20px_rgba(99,102,241,0.15)]'}`}>
+                                ? 'bg-[#0a0e1a]/95 border-indigo-500/20 shadow-lg'
+                                : 'bg-white border-indigo-100 shadow-lg'}`}>
 
                                 {/* Inner Glow / Glass Effect */}
                                 <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/[0.02] via-transparent to-cyan-500/[0.02]" />
@@ -238,7 +238,7 @@ export default function TodayBlueprint({ isDark, onPlanBuild }) {
                                                                             }`}
                                                                     >
                                                                         <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all duration-500 ${isCompleted
-                                                                            ? 'bg-emerald-500 border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]'
+                                                                            ? 'bg-emerald-500 border-emerald-500 shadow-lg'
                                                                             : (isDark ? 'border-white/10 bg-white/5 group-hover/task:border-indigo-500' : 'border-slate-200 bg-white group-hover/task:border-indigo-400')}`}>
                                                                             {isCompleted && <CheckCircle2 size={12} strokeWidth={3} className="text-white" />}
                                                                         </div>
@@ -292,7 +292,7 @@ export default function TodayBlueprint({ isDark, onPlanBuild }) {
 
                                         {/* Holographic Timer Interface */}
                                         <div className={`flex flex-col items-center justify-center p-10 rounded-[3rem] min-w-[320px] transition-all duration-700 relative group/timer ${isRunning
-                                            ? (isDark ? 'bg-indigo-600/10 border border-indigo-500/50 shadow-[0_0_60px_-10px_rgba(79,70,229,0.3)] scale-[1.02]' : 'bg-indigo-50 border border-indigo-200 shadow-xl scale-[1.02]')
+                                            ? (isDark ? 'bg-indigo-600/10 border border-indigo-500/50 shadow-lg scale-[1.02]' : 'bg-indigo-50 border border-indigo-200 shadow-xl scale-[1.02]')
                                             : (isDark ? 'bg-white/5 border border-white/10' : 'bg-slate-50 border border-slate-200')}`}>
 
                                             {/* Timer pulse rings */}
@@ -400,9 +400,9 @@ export default function TodayBlueprint({ isDark, onPlanBuild }) {
                                                     </div>
                                                 )}
                                                 <div className={`w-5 h-5 rounded-lg z-10 flex items-center justify-center shrink-0 transition-all duration-700 ${block.completed_at
-                                                    ? 'bg-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.5)]'
+                                                    ? 'bg-emerald-500 shadow-lg'
                                                     : realIndex === (activeBlockIndex || 0)
-                                                        ? 'bg-indigo-500 ring-8 ring-indigo-500/10 shadow-[0_0_25px_rgba(79,70,229,0.6)]'
+                                                        ? 'bg-indigo-500 ring-8 ring-indigo-500/10 shadow-lg'
                                                         : (isDark ? 'bg-[#1a1f2e] border border-white/10' : 'bg-white border-2 border-slate-100 shadow-sm')
                                                     }`}
                                                 >
@@ -436,3 +436,4 @@ export default function TodayBlueprint({ isDark, onPlanBuild }) {
         </section >
     );
 }
+

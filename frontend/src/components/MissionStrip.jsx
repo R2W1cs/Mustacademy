@@ -149,8 +149,8 @@ export default function MissionStrip({ isDark }) {
                         animate={{ opacity: 1, height: 'auto', scale: 1 }}
                         exit={{ opacity: 0, height: 0, scale: 0.98 }}
                         className={`overflow-hidden rounded-[2rem] border shadow-2xl backdrop-blur-xl ${isDark
-                            ? 'bg-[#0f1729]/95 border-indigo-500/20 shadow-[0_30px_60px_-15px_rgba(79,70,229,0.3)]'
-                            : 'bg-white border-indigo-100 shadow-[0_30px_60px_-15px_rgba(79,70,229,0.15)]'
+                            ? 'bg-[#0f1729]/95 border-indigo-500/20 shadow-lg'
+                            : 'bg-white border-indigo-100 shadow-lg'
                             }`}
                     >
                         {/* Top Header Row */}
@@ -238,7 +238,7 @@ export default function MissionStrip({ isDark }) {
                                         return (
                                             <div key={i} className={`relative pl-10 transition-opacity ${isCompleted ? 'opacity-40' : isActive ? 'opacity-100 scale-[1.02]' : 'opacity-60 grayscale'}`}>
                                                 {/* Node */}
-                                                <div className={`absolute left-[9px] top-3 w-3 h-3 rounded-full flex items-center justify-center ring-4 ${isDark ? 'ring-[#0f1729]' : 'ring-white'} ${isCompleted ? 'bg-emerald-500' : isActive ? 'bg-indigo-500 shadow-[0_0_15px_rgba(79,70,229,0.8)]' : (isDark ? 'bg-slate-700' : 'bg-slate-300')
+                                                <div className={`absolute left-[9px] top-3 w-3 h-3 rounded-full flex items-center justify-center ring-4 ${isDark ? 'ring-[#0f1729]' : 'ring-white'} ${isCompleted ? 'bg-emerald-500' : isActive ? 'bg-indigo-500 shadow-lg' : (isDark ? 'bg-slate-700' : 'bg-slate-300')
                                                     }`}>
                                                     {isActive && <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />}
                                                 </div>
@@ -274,3 +274,4 @@ export default function MissionStrip({ isDark }) {
         </div>
     );
 }
+

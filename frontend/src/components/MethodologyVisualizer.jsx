@@ -74,7 +74,7 @@ const MethodologyVisualizer = ({ type = 'waterfall' }) => {
                 <div className="flex flex-col items-center justify-center h-full w-full py-10 relative">
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-[80%] max-w-sm flex flex-col justify-between z-0 pointer-events-none opacity-20">
                         {/* Connecting Lines */}
-                        <div className="w-1 bg-gradient-to-b from-blue-500/50 to-blue-500/10 h-full mx-auto shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
+                        <div className="w-1 bg-gradient-to-b from-blue-500/50 to-blue-500/10 h-full mx-auto shadow-lg" />
                     </div>
 
                     <div className="flex flex-col gap-4 w-full max-w-lg z-10 relative">
@@ -89,7 +89,7 @@ const MethodologyVisualizer = ({ type = 'waterfall' }) => {
                                     animate={{ opacity: isPending ? 0.3 : 1, x: i * 20, scale: isActive ? 1.05 : 1 }}
                                     transition={{ duration: 0.5, delay: i * 0.1 }}
                                     className={`relative p-5 rounded-2xl border backdrop-blur-md flex items-center gap-4 transition-all duration-500
-                                        ${isActive ? 'bg-blue-500/20 border-blue-400 shadow-[0_0_30px_rgba(59,130,246,0.3)] z-20'
+                                        ${isActive ? 'bg-blue-500/20 border-blue-400 shadow-lg z-20'
                                             : isDone ? 'bg-blue-900/40 border-blue-500/30 text-white/70'
                                                 : 'bg-white/[0.02] border-white/5 grayscale'}
                                     `}
@@ -119,7 +119,7 @@ const MethodologyVisualizer = ({ type = 'waterfall' }) => {
                                 <motion.div
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    className="absolute -right-20 top-1/4 max-w-[120px] p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-[9px] text-red-400 uppercase font-black tracking-widest text-center shadow-[0_0_20px_rgba(239,68,68,0.2)]"
+                                    className="absolute -right-20 top-1/4 max-w-[120px] p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-[9px] text-red-400 uppercase font-black tracking-widest text-center shadow-lg"
                                 >
                                     <Activity size={14} className="mx-auto mb-1 animate-pulse" />
                                     Cannot return to previous phases!
@@ -167,7 +167,7 @@ const MethodologyVisualizer = ({ type = 'waterfall' }) => {
                             ))}
 
                             {/* Center Origin Node */}
-                            <div className="w-4 h-4 rounded-full bg-rose-500 z-10 shadow-[0_0_15px_rgba(244,63,94,1)] absolute" />
+                            <div className="w-4 h-4 rounded-full bg-rose-500 z-10 shadow-lg absolute" />
 
                             {/* Active Loop Pointer */}
                             {step >= 0 && (
@@ -177,7 +177,7 @@ const MethodologyVisualizer = ({ type = 'waterfall' }) => {
                                     className="absolute w-full h-full flex items-center justify-center z-20 pointer-events-none"
                                 >
                                     <div
-                                        className="absolute bg-white rounded-full shadow-[0_0_15px_white]"
+                                        className="absolute bg-white rounded-full shadow-lg"
                                         style={{ width: 10, height: 10, transform: `translateY(-${loopSizes[step] / 2}px)` }}
                                     />
                                 </motion.div>
@@ -246,7 +246,7 @@ const MethodologyVisualizer = ({ type = 'waterfall' }) => {
                         <ArrowRight size={20} className={`${step >= 1 ? 'text-emerald-500' : 'text-white/10'}`} />
 
                         {/* Sprint Box */}
-                        <div className={`relative w-64 h-64 border-2 rounded-[2rem] flex flex-col items-center justify-center p-6 transition-all ${step === 2 ? 'border-emerald-400 bg-emerald-500/10 shadow-[0_0_40px_rgba(16,185,129,0.2)]' : 'border-emerald-500/20 bg-white/5'}`}>
+                        <div className={`relative w-64 h-64 border-2 rounded-[2rem] flex flex-col items-center justify-center p-6 transition-all ${step === 2 ? 'border-emerald-400 bg-emerald-500/10 shadow-lg' : 'border-emerald-500/20 bg-white/5'}`}>
                             <h4 className="absolute top-4 text-[10px] font-black uppercase text-white tracking-widest text-center">Sprint (2 Weeks)</h4>
 
                             <AnimatePresence mode="wait">
@@ -278,7 +278,7 @@ const MethodologyVisualizer = ({ type = 'waterfall' }) => {
                         <ArrowRight size={20} className={`${step >= 3 ? 'text-emerald-500' : 'text-white/10'}`} />
 
                         {/* Increment */}
-                        <div className={`w-32 h-32 border-2 rounded-2xl flex flex-col items-center justify-center transition-all ${step === 3 ? 'border-emerald-400 bg-emerald-500/20 shadow-[0_0_30px_rgba(16,185,129,0.4)]' : 'border-white/10 bg-white/5 grayscale'}`}>
+                        <div className={`w-32 h-32 border-2 rounded-2xl flex flex-col items-center justify-center transition-all ${step === 3 ? 'border-emerald-400 bg-emerald-500/20 shadow-lg' : 'border-white/10 bg-white/5 grayscale'}`}>
                             <Database size={32} className="text-emerald-400 mb-2" />
                             <span className="text-[10px] font-black uppercase text-center text-white">Working<br />Increment</span>
                         </div>
@@ -399,7 +399,7 @@ const MethodologyVisualizer = ({ type = 'waterfall' }) => {
                     <div className="w-full max-w-3xl flex gap-8 items-center justify-center h-64">
 
                         {/* Pair Programming Node */}
-                        <div className={`flex flex-col items-center justify-center w-48 h-48 rounded-full border-[3px] transition-all duration-500 ${step === 0 ? 'border-purple-400 bg-purple-500/10 shadow-[0_0_40px_rgba(168,85,247,0.3)]' : 'border-white/10 bg-white/5 grayscale opacity-50'}`}>
+                        <div className={`flex flex-col items-center justify-center w-48 h-48 rounded-full border-[3px] transition-all duration-500 ${step === 0 ? 'border-purple-400 bg-purple-500/10 shadow-lg' : 'border-white/10 bg-white/5 grayscale opacity-50'}`}>
                             <div className="flex gap-2 mb-4 text-purple-400">
                                 <Activity size={32} /> <Activity size={32} />
                             </div>
@@ -412,21 +412,21 @@ const MethodologyVisualizer = ({ type = 'waterfall' }) => {
 
                             <motion.div
                                 animate={{ scale: step === 1 ? 1.2 : 1, opacity: step >= 1 ? 1 : 0 }}
-                                className="absolute -top-4 left-1/2 -translate-x-1/2 p-3 bg-red-500 rounded-xl text-white shadow-[0_0_20px_rgba(239,68,68,0.5)] border border-white/20"
+                                className="absolute -top-4 left-1/2 -translate-x-1/2 p-3 bg-red-500 rounded-xl text-white shadow-lg border border-white/20"
                             >
                                 <span className="text-[8px] font-black uppercase tracking-widest">1. Write Test (FAILS)</span>
                             </motion.div>
 
                             <motion.div
                                 animate={{ scale: step === 2 ? 1.2 : 1, opacity: step >= 2 ? 1 : 0 }}
-                                className="absolute -bottom-4 right-0 p-3 bg-emerald-500 rounded-xl text-white shadow-[0_0_20px_rgba(16,185,129,0.5)] border border-white/20"
+                                className="absolute -bottom-4 right-0 p-3 bg-emerald-500 rounded-xl text-white shadow-lg border border-white/20"
                             >
                                 <span className="text-[8px] font-black uppercase tracking-widest">2. Code (PASS)</span>
                             </motion.div>
 
                             <motion.div
                                 animate={{ scale: step === 3 ? 1.2 : 1, opacity: step >= 3 ? 1 : 0 }}
-                                className="absolute -bottom-4 left-0 p-3 bg-blue-500 rounded-xl text-white shadow-[0_0_20px_rgba(59,130,246,0.5)] border border-white/20"
+                                className="absolute -bottom-4 left-0 p-3 bg-blue-500 rounded-xl text-white shadow-lg border border-white/20"
                             >
                                 <span className="text-[8px] font-black uppercase tracking-widest">3. Refactor</span>
                             </motion.div>
@@ -446,7 +446,7 @@ const MethodologyVisualizer = ({ type = 'waterfall' }) => {
     const config = configs[normalizedType] || configs.waterfall;
 
     return (
-        <div className="w-full bg-[#0a0a0c] border border-white/10 rounded-[2.5rem] overflow-hidden flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+        <div className="w-full bg-[#0a0a0c] border border-white/10 rounded-[2.5rem] overflow-hidden flex flex-col shadow-lg">
             {/* Header */}
             <div className="p-8 border-b border-white/5 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 bg-gradient-to-b from-white/[0.03] to-transparent">
                 <div className="flex items-center gap-5">
@@ -544,3 +544,4 @@ const MethodologyVisualizer = ({ type = 'waterfall' }) => {
 };
 
 export default MethodologyVisualizer;
+

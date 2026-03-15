@@ -34,8 +34,8 @@ export default function PresentationCard({ scene, isDark }) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 1.1, y: -30 }}
             className={`relative w-full h-full max-w-4xl mx-auto rounded-[2rem] overflow-hidden border p-12 flex flex-col justify-center gap-8 ${isDark
-                ? 'bg-slate-900/40 border-slate-800 shadow-[0_40px_100px_rgba(0,0,0,0.5)]'
-                : 'bg-white border-slate-200 shadow-[0_20px_50px_rgba(0,0,0,0.1)]'
+                ? 'bg-slate-900/40 border-slate-800 shadow-lg'
+                : 'bg-white border-slate-200 shadow-lg'
                 }`}
         >
             {/* Dynamic Background Pattern */}
@@ -103,3 +103,4 @@ export default function PresentationCard({ scene, isDark }) {
         </motion.div>
     );
 }
+

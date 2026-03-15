@@ -130,7 +130,7 @@ const CourseDetails = () => {
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${progressPercent}%` }}
-                  className="h-full bg-indigo-500 rounded-full shadow-[0_0_15px_rgba(99,102,241,0.5)]"
+                  className="h-full bg-indigo-500 rounded-full shadow-lg"
                 />
               </div>
             </div>
@@ -172,7 +172,7 @@ const CourseDetails = () => {
                           Tier: {topic.importance_level}
                         </span>
                         {topic.completed ? (
-                          <span className="text-[8px] font-black px-2 py-1 rounded bg-emerald-500/10 text-emerald-400 uppercase tracking-widest border border-emerald-500/20 shadow-[0_0_8px_rgba(16,185,129,0.3)]">
+                          <span className="text-[8px] font-black px-2 py-1 rounded bg-emerald-500/10 text-emerald-400 uppercase tracking-widest border border-emerald-500/20 shadow-lg">
                             Synthesized
                           </span>
                         ) : (
@@ -191,7 +191,7 @@ const CourseDetails = () => {
                         </Link>
                         <button
                           onClick={() => toggleTopic(topic.id)}
-                          className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${topic.completed ? 'bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)]' : (isDark ? 'bg-white/5 text-slate-500 hover:text-white hover:bg-white/10' : 'bg-slate-100 text-slate-400 hover:text-slate-600 hover:bg-slate-200')}`}
+                          className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${topic.completed ? 'bg-emerald-500 text-white shadow-lg' : (isDark ? 'bg-white/5 text-slate-500 hover:text-white hover:bg-white/10' : 'bg-slate-100 text-slate-400 hover:text-slate-600 hover:bg-slate-200')}`}
                         >
                           {topic.completed ? '✓' : '○'}
                         </button>
@@ -225,3 +225,4 @@ const CourseDetails = () => {
 };
 
 export default CourseDetails;
+

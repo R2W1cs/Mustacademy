@@ -46,7 +46,7 @@ export default function StreakWidget({ streak = 0, lastActive, weeklyProgress = 
 
     // Colour intensity scale
     const cellColor = (hours, isToday) => {
-        if (isToday && activeToday) return "bg-gradient-to-br from-[#f59e0b] to-[#f97316] shadow-sm shadow-[#f59e0b]/40 ring-1 ring-[#f59e0b]/50";
+        if (isToday && activeToday) return "bg-gradient-to-br from-[#f59e0b] to-[#f97316] shadow-sm shadow-lg/40 ring-1 ring-[#f59e0b]/50";
         if (isToday) return isDark ? "bg-white/10 ring-1 ring-[#f59e0b]/30" : "bg-black/10 ring-1 ring-[#f59e0b]/30";
         if (hours >= 3) return "bg-gradient-to-br from-[#f59e0b] to-[#f97316] opacity-95";
         if (hours >= 1.5) return "bg-[#f59e0b]/70";
@@ -70,7 +70,7 @@ export default function StreakWidget({ streak = 0, lastActive, weeklyProgress = 
 
     return (
         <div className={`rounded-2xl border p-6 flex flex-col gap-5 transition-all transform hover:-translate-y-1 ${className} ${isDark
-            ? "bg-gradient-to-br from-[#f59e0b]/[0.07] via-[#f97316]/[0.04] to-transparent border-[#f59e0b]/20 ring-1 ring-inset ring-white/10 shadow-[0_0_50px_rgba(0,0,0,0.3)]"
+            ? "bg-gradient-to-br from-[#f59e0b]/[0.07] via-[#f97316]/[0.04] to-transparent border-[#f59e0b]/20 ring-1 ring-inset ring-white/10 shadow-lg"
             : "bg-gradient-to-br from-amber-50 via-orange-50 to-white border-amber-200 ring-1 ring-inset ring-white shadow-xl shadow-indigo-100/20"
             }`}>
 
@@ -187,3 +187,4 @@ export default function StreakWidget({ streak = 0, lastActive, weeklyProgress = 
         </div>
     );
 }
+

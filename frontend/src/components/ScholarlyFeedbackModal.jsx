@@ -173,7 +173,7 @@ const ScholarlyFeedbackModal = ({ videoData, isOwner, onUpdate, onClose }) => {
                             <button
                                 type="submit"
                                 disabled={submitLoading || (!feedbackText.trim() && !isOwner)}
-                                className={`${isOwner ? 'flex-[1.5]' : 'w-full'} bg-indigo-500 hover:bg-indigo-400 text-white font-bold py-3 px-4 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2 group text-sm shadow-[0_0_15px_rgba(99,102,241,0.3)] hover:shadow-[0_0_20px_rgba(99,102,241,0.5)]`}
+                                className={`${isOwner ? 'flex-[1.5]' : 'w-full'} bg-indigo-500 hover:bg-indigo-400 text-white font-bold py-3 px-4 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2 group text-sm shadow-lg hover:shadow-lg`}
                             >
                                 {submitLoading ? <Loader2 size={18} className="animate-spin" /> : (
                                     <>
@@ -224,3 +224,4 @@ const ScholarlyFeedbackModal = ({ videoData, isOwner, onUpdate, onClose }) => {
 };
 
 export default ScholarlyFeedbackModal;
+

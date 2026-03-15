@@ -97,11 +97,11 @@ const RecurrenceVisualizer = () => {
     };
 
     return (
-        <div className="w-full bg-[#0a0a0c] border border-white/10 rounded-[3rem] overflow-hidden flex flex-col min-h-[750px] shadow-[0_0_50px_rgba(0,0,0,0.5)] transition-all duration-700">
+        <div className="w-full bg-[#0a0a0c] border border-white/10 rounded-[3rem] overflow-hidden flex flex-col min-h-[750px] shadow-lg transition-all duration-700">
             {/* Glossy Header */}
             <div className="p-10 border-b border-white/5 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 bg-gradient-to-b from-white/[0.03] to-transparent">
                 <div className="flex items-center gap-6">
-                    <div className="w-16 h-16 bg-indigo-500/20 rounded-3xl flex items-center justify-center border border-indigo-500/20 shadow-[0_0_30px_rgba(99,102,241,0.2)]">
+                    <div className="w-16 h-16 bg-indigo-500/20 rounded-3xl flex items-center justify-center border border-indigo-500/20 shadow-lg">
                         <Calculator size={32} className="text-indigo-400" />
                     </div>
                     <div>
@@ -113,19 +113,19 @@ const RecurrenceVisualizer = () => {
                 <div className="flex flex-wrap items-center gap-4 p-1.5 bg-white/[0.03] rounded-[2rem] border border-white/5 backdrop-blur-3xl">
                     <button
                         onClick={() => setExpansionMode('substitution')}
-                        className={`px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${expansionMode === 'substitution' ? 'bg-indigo-600 text-white shadow-[0_0_20px_rgba(99,102,241,0.4)]' : 'text-white/40 hover:text-white'}`}
+                        className={`px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${expansionMode === 'substitution' ? 'bg-indigo-600 text-white shadow-lg' : 'text-white/40 hover:text-white'}`}
                     >
                         Substitution
                     </button>
                     <button
                         onClick={() => setExpansionMode('tree')}
-                        className={`px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${expansionMode === 'tree' ? 'bg-indigo-600 text-white shadow-[0_0_20px_rgba(99,102,241,0.4)]' : 'text-white/40 hover:text-white'}`}
+                        className={`px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${expansionMode === 'tree' ? 'bg-indigo-600 text-white shadow-lg' : 'text-white/40 hover:text-white'}`}
                     >
                         Recursion Tree
                     </button>
                     <button
                         onClick={() => setExpansionMode('how-to')}
-                        className={`px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${expansionMode === 'how-to' ? 'bg-emerald-600 text-white shadow-[0_0_20px_rgba(16,185,129,0.4)]' : 'text-white/40 hover:text-white'}`}
+                        className={`px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${expansionMode === 'how-to' ? 'bg-emerald-600 text-white shadow-lg' : 'text-white/40 hover:text-white'}`}
                     >
                         How-To Guide
                     </button>
@@ -162,7 +162,7 @@ const RecurrenceVisualizer = () => {
                                         key={idx}
                                         initial={{ opacity: 0, scale: 0.9 }}
                                         animate={{ opacity: 1, scale: 1 }}
-                                        className={`group relative p-10 rounded-[3rem] border transition-all duration-700 ${idx === step ? 'bg-indigo-500/10 border-indigo-500/40 shadow-[0_0_60px_rgba(99,102,241,0.15)] ring-1 ring-white/10 scale-105 z-10' : 'bg-white/[0.02] border-white/5 opacity-40 blur-[1px]'}`}
+                                        className={`group relative p-10 rounded-[3rem] border transition-all duration-700 ${idx === step ? 'bg-indigo-500/10 border-indigo-500/40 shadow-lg ring-1 ring-white/10 scale-105 z-10' : 'bg-white/[0.02] border-white/5 opacity-40 blur-[1px]'}`}
                                     >
                                         <div className="absolute -top-4 -left-4 w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-2xl group-hover:rotate-12 transition-transform">{idx + 1}</div>
 
@@ -219,7 +219,7 @@ const RecurrenceVisualizer = () => {
                                                 <div className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-[9px] font-black text-white/20 bg-white/5">L{idx}</div>
                                                 <span className="text-[10px] font-black uppercase tracking-widest text-white/40">{lvl.label}</span>
                                             </div>
-                                            <div className="p-4 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 shadow-[0_0_20px_rgba(99,102,241,0.1)]">
+                                            <div className="p-4 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 shadow-lg">
                                                 <span className="text-[10px] font-black text-indigo-300 uppercase italic">Level Work: </span>
                                                 <span className="text-lg font-black text-white ml-2">{lvl.work}</span>
                                             </div>
@@ -228,7 +228,7 @@ const RecurrenceVisualizer = () => {
                                         {/* Tree Nodes */}
                                         <div className="flex justify-center gap-8 w-full">
                                             {idx === 0 ? (
-                                                <div className="w-24 h-24 rounded-[2rem] bg-indigo-600 border-2 border-indigo-400 shadow-[0_0_40px_rgba(99,102,241,0.4)] flex items-center justify-center text-white font-black text-3xl italic animate-pulse">{lvl.size}</div>
+                                                <div className="w-24 h-24 rounded-[2rem] bg-indigo-600 border-2 border-indigo-400 shadow-lg flex items-center justify-center text-white font-black text-3xl italic animate-pulse">{lvl.size}</div>
                                             ) : idx === current.treeLevels.length - 1 ? (
                                                 <div className="flex gap-4">
                                                     {[...Array(8)].map((_, i) => (
@@ -346,3 +346,4 @@ const RecurrenceVisualizer = () => {
 };
 
 export default RecurrenceVisualizer;
+
