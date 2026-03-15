@@ -98,6 +98,10 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
+app.get('/api', (req, res) => {
+  res.json({ message: 'MustAcademy API - v16.0 AXIOMATIC_CORE Active 🚀' });
+});
+
 app.get('/', (req, res) => {
   res.json({ message: 'Backend running successfully 🚀' });
 });
