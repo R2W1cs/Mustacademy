@@ -4,5 +4,8 @@
   "scripts": {
     "build": "cd frontend && npm install && npm run build",
     "install-all": "cd frontend && npm install && cd ../server && npm install"
+  },
+  "dependencies": {
+    "@vercel/analytics": "^2.0.1"
   }
 }
