@@ -466,23 +466,40 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
 
                 // Wait for duration availability
                 const duration = audio.duration || cleanText.length / 15; // fallback
-                // v18.0: Extreme slowdown (3.0x) to ensure text never precedes neural cadence
-                const tickRate = Math.max(160, (duration * 1000) / (words.length || 1)) * 3.0; 
+                // v19.0: God-Mode Slowdown (3.5x) + Extreme Hardening
+                const tickRate = Math.max(180, (duration * 1000) / (words.length || 1)) * 3.5; 
+
+                console.log(`%c[GOD-MODE] Sync Initialized. Words: ${words.length} | Tick: ${tickRate}ms | Duration: ${duration}s`, "color: #10b981; font-weight: bold;");
 
                 textIntervalRef.current = setInterval(() => {
-                    // Safety Guard: Check indices and references explicitly for minified runtime
-                    if (words && Array.isArray(words) && currentWord < words.length) {
-                        const word = words[currentWord];
-                        if (word && typeof word === 'string') {
-                            setRevealedLength(prev => prev + word.length + 1);
-                        }
-                        setVoiceIntensity(0.8 + Math.random() * 0.4);
-                        currentWord++;
-                    } else {
-                        if (textIntervalRef.current) {
+                    try {
+                        // v19.0: Unbreakable Word Guard
+                        if (!words || !Array.isArray(words)) {
+                            console.error("[GOD-MODE] WORDS ARRAY LOST");
                             clearInterval(textIntervalRef.current);
-                            textIntervalRef.current = null;
+                            return;
                         }
+
+                        if (currentWord < words.length) {
+                            const word = words[currentWord];
+                            if (word !== undefined && word !== null) {
+                                const wordLen = typeof word === 'string' ? word.length : String(word).length;
+                                setRevealedLength(prev => prev + wordLen + 1);
+                            } else {
+                                console.warn(`[GOD-MODE] Undefined word at index ${currentWord}`);
+                            }
+                            setVoiceIntensity(0.8 + Math.random() * 0.4);
+                            currentWord++;
+                        } else {
+                            if (textIntervalRef.current) {
+                                clearInterval(textIntervalRef.current);
+                                textIntervalRef.current = null;
+                            }
+                            console.log("[GOD-MODE] Sync Completed Successfully.");
+                        }
+                    } catch (err) {
+                        console.error("[GOD-MODE] INTERVAL CRASH PREVENTED:", err);
+                        clearInterval(textIntervalRef.current);
                     }
                 }, tickRate); 
             };
