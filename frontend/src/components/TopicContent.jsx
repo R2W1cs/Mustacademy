@@ -10,6 +10,7 @@ import api from "../api/axios";
 import { useTheme } from "../auth/ThemeContext";
 import 'katex/dist/katex.min.css';
 import { InlineMath, BlockMath } from 'react-katex';
+import mermaid from "mermaid";
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
@@ -73,6 +74,42 @@ const StaffNote = ({ children }) => {
 
 const MathComponent = ({ math, block }) => {
     return block ? <BlockMath math={math} /> : <InlineMath math={math} />;
+};
+
+const MermaidDiagram = ({ chart }) => {
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
+    const [svg, setSvg] = useState("");
+    const id = useMemo(() => `mermaid-${Math.random().toString(36).substr(2, 9)}`, []);
+
+    useEffect(() => {
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: isDark ? "dark" : "default",
+            securityLevel: "loose",
+            fontFamily: "Inter, sans-serif",
+        });
+
+        const renderChart = async () => {
+            try {
+                const { svg } = await mermaid.render(id, chart);
+                setSvg(svg);
+            } catch (err) {
+                console.error("Mermaid error:", err);
+            }
+        };
+
+        if (chart) {
+            renderChart();
+        }
+    }, [chart, id, isDark]);
+
+    return (
+        <div 
+            className="my-12 p-8 rounded-[2rem] glass-morphism border border-indigo-500/10 flex justify-center overflow-hidden"
+            dangerouslySetInnerHTML={{ __html: svg }} 
+        />
+    );
 };
 
 // ─── Exercises Engine ────────────────────────────────────────────────────────
@@ -537,6 +574,25 @@ const TopicContent = ({ topic, mode = 'easy' }) => {
                                         )
                                     },
                                     strong: { props: { className: "font-black text-foreground shadow-[inset_0_-1px_0_0_rgba(99,102,241,0.3)]" } },
+                                    code: {
+                                        component: ({ children, className }) => {
+                                            if (className === "lang-mermaid") {
+                                                return <MermaidDiagram chart={children} />;
+                                            }
+                                            return (
+                                                <code className={`px-2 py-0.5 rounded-md bg-foreground/5 font-mono text-sm ${className}`}>
+                                                    {children}
+                                                </code>
+                                            );
+                                        }
+                                    },
+                                    pre: {
+                                        component: ({ children }) => (
+                                            <div className="my-10 rounded-3xl overflow-hidden border border-white/5 shadow-2xl">
+                                                {children}
+                                            </div>
+                                        )
+                                    },
                                     Math: { component: MathComponent }
                                 }
                             }}>
