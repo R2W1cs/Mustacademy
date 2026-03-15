@@ -1260,8 +1260,8 @@ export const generatePodcastSpeech = async (req, res) => {
         return res.send(cached);
     }
 
-    const voiceName = speaker === "host" ? "en-US-AriaNeural" : "en-US-ChristopherNeural";
-    const fallbackVoice = speaker === "host" ? "en-US-AvaNeural" : "en-US-EricNeural";
+    const voiceName = speaker === "host" ? "en-US-SoniaNeural" : "en-US-ChristopherNeural";
+    const fallbackVoice = speaker === "host" ? "en-US-AriaNeural" : "en-US-EricNeural";
     console.log(`[Neural-TTS] Synthesizing with ${voiceName} for speaker="${speaker}"...`);
 
     const synthesize = async (voice) => {
