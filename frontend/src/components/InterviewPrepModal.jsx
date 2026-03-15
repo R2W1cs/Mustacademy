@@ -888,10 +888,18 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                                                     className={`flex flex-col ${m.sender === 'user' ? 'items-end' : 'items-start'}`}
                                                 >
                                                     <div className={`max-w-[80%] p-8 rounded-[2rem] text-[15px] font-medium leading-[1.8] ${bubbleStyles} border backdrop-blur-sm shadow-xl`}>
-                                                        {isLastAI && isSpeaking
-                                                            ? String(m.text || "").replace(/\[PAUSE\]|\[SPEED:[\d.]+\]/g, "").substring(0, revealedLength)
-                                                            : String(m.text || "").replace(/\[PAUSE\]|\[SPEED:[\d.]+\]/g, "")
-                                                        }
+                                                        {(() => {
+                                                            const cleanText = String(m.text || "").replace(/\[PAUSE\]|\[SPEED:[\d.]+\]/g, "");
+                                                            if (isLastAI && isSpeaking) {
+                                                                return (
+                                                                    <>
+                                                                        <span>{cleanText.substring(0, revealedLength)}</span>
+                                                                        <span className="opacity-30 transition-opacity duration-150">{cleanText.substring(revealedLength)}</span>
+                                                                    </>
+                                                                );
+                                                            }
+                                                            return cleanText;
+                                                        })()}
                                                         {showCursor && <span className="inline-block w-2 h-5 ml-2 bg-indigo-500 animate-pulse align-middle" />}
                                                     </div>
                                                     <span className="mt-3 text-[8px] font-black text-slate-600 uppercase tracking-widest px-4">{isAI ? 'MARCUS STERLING' : 'CANDIDATE UPLINK'}</span>
