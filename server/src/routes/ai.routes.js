@@ -7,7 +7,8 @@ import {
     generateDailyPlan, getDailyPlan, deleteDailyPlan, completeSession,
     startInterview, chatWithInterviewer, generateFiller, generateLibraryLecture, verifyLibraryAnswer, interactWithProfessor,
     synthesizeTopic, createMission, generateTopicExercises,
-    generateTopicPodcast, askPodcastQuestion, generatePodcastSpeech
+    generateTopicPodcast, askPodcastQuestion, generatePodcastSpeech,
+    getMasterclassEpisodes, getMasterclassEpisode
 } from "../controllers/ai.controller.js";
 
 
@@ -41,6 +42,8 @@ router.post("/topics/exercises", protect, generateTopicExercises);
 router.post("/topics/podcast", protect, generateTopicPodcast);
 router.post("/topics/podcast/question", protect, askPodcastQuestion);
 router.post("/podcast/speech", protect, generatePodcastSpeech);
+router.get("/masterclass/all", protect, getMasterclassEpisodes);
+router.get("/masterclass/:id", protect, getMasterclassEpisode);
 router.post("/create-mission", protect, createMission);
 
 

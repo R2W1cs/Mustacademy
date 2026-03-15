@@ -395,6 +395,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
 
 
     const audioRef = useRef(null);
+    const textIntervalRef = useRef(null);
 
     const speak = async (text) => {
         if (!text || typeof text !== 'string') return;
@@ -411,6 +412,12 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
             setIsSpeaking(true);
             setRevealedLength(0);
             if (recognitionRef.current) try { recognitionRef.current.stop(); } catch (e) { }
+
+            // Clear any lingering intervals
+            if (textIntervalRef.current) {
+                clearInterval(textIntervalRef.current);
+                textIntervalRef.current = null;
+            }
 
             // Fetch Neural TTS from Backend explicitly for Marcus (Male Premium)
             const response = await api.post("/tts", 
@@ -429,17 +436,29 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
 
             audio.onplay = () => {
                 // Approximate word revealing since we lost onboundary
-                const words = cleanText.split(' ');
+                const words = cleanText.split(' ').filter(w => w.trim().length > 0);
                 let currentWord = 0;
-                const interval = setInterval(() => {
+                
+                // Safety: Clear previous if triggered twice
+                if (textIntervalRef.current) clearInterval(textIntervalRef.current);
+
+                // Wait for duration availability
+                const duration = audio.duration || cleanText.length / 15; // fallback
+                const tickRate = Math.max(100, (duration * 1000) / (words.length || 1)) * 1.35;
+
+                textIntervalRef.current = setInterval(() => {
                     if (currentWord < words.length) {
-                        setRevealedLength(prev => prev + words[currentWord].length + 1);
+                        const word = words[currentWord];
+                        if (word) {
+                            setRevealedLength(prev => prev + word.length + 1);
+                        }
                         setVoiceIntensity(0.8 + Math.random() * 0.4);
                         currentWord++;
                     } else {
-                        clearInterval(interval);
+                        clearInterval(textIntervalRef.current);
+                        textIntervalRef.current = null;
                     }
-                }, ((audio.duration * 1000) / words.length) * 1.2 || 250); // Added 20% buffer to slow down text reveal
+                }, tickRate); 
             };
 
             audio.onended = () => {
