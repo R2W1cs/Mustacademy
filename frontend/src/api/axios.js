@@ -7,8 +7,7 @@ const baseURL = import.meta.env.VITE_API_URL || (isProduction ? productionApiUrl
 const api = axios.create({
   baseURL,
   headers: {
-    "Content-Type": "application/json",
-    "X-Sync-ID": SYNC_ID
+    "Content-Type": "application/json"
   },
 });
 
