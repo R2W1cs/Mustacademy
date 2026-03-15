@@ -57,6 +57,13 @@
           console.log("%c[FIREWALL] Cache Purge Successful. Executing Forced Reload...", "color: #10b981; font-weight: bold;");
           setTimeout(() => { window.location.reload(true); }, 500);
         }
+        // 3. Global Error Recovery
+        window.onerror = function(msg, url) {
+          if (url && (url.includes('InterviewPrepModal') || url.includes('index-'))) {
+            console.error("[GOD-MODE] CRASH DETECTED. FORCING RECOVERY RELOAD.");
+            setTimeout(() => { window.location.reload(true); }, 1000);
+          }
+        };
       })();
     </script>
   </head>
