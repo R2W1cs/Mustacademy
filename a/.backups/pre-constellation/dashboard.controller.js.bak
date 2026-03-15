@@ -1,0 +1,155 @@
+import pool from "../config/db.js";
+import { validateStreak } from "../services/streak.service.js";
+import { calculatePetHealth } from "../services/pet.service.js";
+import { PETS } from "../utils/petRules.js";
+
+export const getDashboardStats = async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    // 1. Update heartbeat for Online Status
+    await pool.query("UPDATE users SET last_active_at = NOW() WHERE id = $1", [userId]);
+
+    // 2. Fetch parallel data
+    const [streak, petHealth, coursesRes, topicsRes, userRes, activityRes, onlineRes, contribStatsRes, cohortPercentileRes] = await Promise.all([
+      validateStreak(userId).catch(e => { console.error("Streak validation failed:", e.message); return 0; }),
+      calculatePetHealth(userId).catch(e => { console.error("Pet health calculation failed:", e.message); return 100; }),
+      pool.query(`SELECT
+            COUNT(*) FILTER (WHERE status = 'planned') AS planned,
+            COUNT(*) FILTER (WHERE status = 'in_progress') AS in_progress,
+            COUNT(*) FILTER (WHERE status = 'completed') AS completed,
+            COUNT(*) AS total
+           FROM user_courses
+           WHERE user_id = $1`, [userId]).catch(e => { console.error("CoursesRes failed:", e.message); return { rows: [{ planned: 0, in_progress: 0, completed: 0, total: 0 }] }; }),
+      pool.query(`SELECT
+            COUNT(*) FILTER (WHERE completed = true) AS completed_topics,
+            COUNT(*) AS total_topics
+           FROM user_topic_progress
+           WHERE user_id = $1`, [userId]).catch(e => { console.error("TopicsRes failed:", e.message); return { rows: [{ completed_topics: 0, total_topics: 0 }] }; }),
+      pool.query("SELECT selected_pet, pet_name, streak_last_active_date, name, year, semester FROM users WHERE id = $1", [userId]).catch(e => { console.error("UserRes failed:", e.message); return { rows: [{ selected_pet: null, pet_name: null, streak_last_active_date: null, name: null, year: null, semester: null }] }; }),
+      pool.query(`WITH last_7_days AS (
+              SELECT generate_series(current_date - INTERVAL '6 days', current_date, '1 day'::interval)::date AS day
+          )
+          SELECT to_char(d.day, 'Dy') as day_label, COALESCE(SUM(uc.points), 0) as activity_count
+          FROM last_7_days d
+          LEFT JOIN user_contributions uc ON d.day = date_trunc('day', uc.created_at) AND uc.user_id = $1
+          GROUP BY d.day ORDER BY d.day`, [userId]).catch(e => { console.error("ActivityRes failed:", e.message); return { rows: [] }; }),
+      pool.query(`
+          SELECT id, name, avatar_url, year 
+          FROM users 
+          WHERE last_active_at > NOW() - INTERVAL '15 minutes' 
+          AND id != $1
+          LIMIT 10
+      `, [userId]).catch(e => { console.error("OnlineRes failed:", e.message); return { rows: [] }; }),
+      pool.query(`
+          SELECT 
+            COUNT(*) FILTER (WHERE asset_type = 'summary') AS summaries,
+            COUNT(*) FILTER (WHERE asset_type = 'cheatsheet') AS cheatsheets,
+            (SELECT COUNT(*) FROM asset_reviews WHERE user_id = $1) AS reviews
+          FROM scholarly_assets
+          WHERE user_id = $1
+      `, [userId]).catch(e => { console.error("ContribStatsRes failed:", e.message); return { rows: [{ summaries: 0, cheatsheets: 0, reviews: 0 }] }; }),
+      pool.query(`
+        WITH user_stats AS (
+            SELECT
+                u.id,
+                COALESCE(COUNT(utp.topic_id) FILTER (WHERE utp.completed = true), 0) as completed,
+                COALESCE(COUNT(utp.topic_id), 0) as total
+            FROM users u
+            LEFT JOIN user_topic_progress utp ON u.id = utp.user_id
+            WHERE u.year = (SELECT year FROM users WHERE id = $1)
+            GROUP BY u.id
+        ),
+        user_percentages AS (
+            SELECT
+                id,
+                CASE WHEN total = 0 THEN 0 ELSE (completed::float / total) * 100 END as pct
+            FROM user_stats
+        ),
+        my_pct AS (
+            SELECT pct FROM user_percentages WHERE id = $1
+        ),
+        summary AS (
+            SELECT
+                COUNT(*) as total_count,
+                COUNT(*) FILTER (WHERE pct < (SELECT pct FROM my_pct)) as lower_count
+            FROM user_percentages
+        )
+        SELECT
+             CASE
+                WHEN total_count <= 1 THEN 0
+                ELSE (lower_count::float / (total_count - 1)) * 100
+             END as percentile
+        FROM summary
+      `, [userId]).catch(e => { console.error("CohortPercentileRes failed:", e.message); return { rows: [{ percentile: 0 }] }; })
+    ]);
+
+    // Process results
+    const courses = coursesRes.rows[0];
+    const topics = topicsRes.rows[0];
+    const { selected_pet, pet_name, streak_last_active_date, name, year, semester } = userRes.rows[0] || {};
+    const contribStats = contribStatsRes.rows[0] || { summaries: 0, cheatsheets: 0, reviews: 0 };
+    const cohortPercentile = Math.round(cohortPercentileRes.rows[0]?.percentile || 0);
+
+    const companion = selected_pet ? { ...PETS[selected_pet], custom_name: pet_name } : null;
+
+    // Process Activity Data
+    const weeklyData = activityRes.rows;
+    const weekDays = weeklyData.map(d => d.day_label);
+    const weeklyActivity = weeklyData.map(d => parseInt(d.activity_count));
+
+    const progressPercent =
+      topics.total_topics > 0
+        ? Math.round((topics.completed_topics / topics.total_topics) * 100)
+        : 0;
+
+    res.json({
+      user: { id: userId, name, year, semester },
+      courses,
+      topics,
+      progressPercent,
+      streak,
+      lastActive: streak_last_active_date,
+      companion,
+      petHealth,
+      weekDays,
+      weeklyActivity,
+      onlinePeers: onlineRes.rows,
+      cohortPercentile,
+      stats: {
+        summaries: parseInt(contribStats.summaries) || 0,
+        cheatsheets: parseInt(contribStats.cheatsheets) || 0,
+        reviews: parseInt(contribStats.reviews) || 0
+      }
+    });
+  } catch (error) {
+    console.error("Dashboard stats error:", error);
+    res.status(500).json({ message: "Failed to load dashboard stats" });
+  }
+};
+
+export const getKnowledgeMap = async (req, res) => {
+  const userId = req.user.id;
+  try {
+    const resMap = await pool.query(`
+      SELECT 
+        c.id as course_id, 
+        c.name as course_name,
+        t.id as topic_id,
+        t.name as topic_name,
+        COALESCE(utp.quiz_score, 0) as score,
+        COALESCE(utp.completed, false) as completed
+      FROM user_courses uc
+      JOIN courses c ON uc.course_id = c.id
+      JOIN topics t ON c.id = t.course_id
+      LEFT JOIN user_topic_progress utp ON t.id = utp.topic_id AND utp.user_id = $1
+      WHERE uc.user_id = $1
+      ORDER BY c.id, t.id
+    `, [userId]);
+
+    res.json(resMap.rows);
+  } catch (err) {
+    console.error("Knowledge map error:", err);
+    res.status(500).json({ message: "Neural map extraction failed." });
+  }
+};

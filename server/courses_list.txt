@@ -1,0 +1,32 @@
+161: MATH 111: Math I
+162: CS 121: Programming I
+163: CS 161: Introduction to computer systems
+164: CSE 123: Introduction to Digital Systems
+165: ENG 101: Academic English
+166: ISS 166: Freshman Seminar
+167: MATH 112: Math II
+168: CS 141: Data structures & algorithms
+169: CS 203: Introduction to operating systems
+170: CS 231: Introduction to databases
+171: ENG 121: English composition
+172: COM 131: Public Speaking Seminar
+173: MATH 270: Probability & statistics
+174: CS 342: Algorithms & Complexity
+175: CS 328: OO Software design & construction
+176: CS 411: Computer Networks
+177: COM 225: Business & Technical Communication
+178: CS 321: Principles of software engineering
+179: CS 336: Data warehousing & management
+180: CS 425: Web application development
+181: CS 428: Software Testing & quality assurance
+182: CS 481: Artificial intelligence
+183: PHIL 222: Contemporary Issues in Data Ethics
+184: CS 370: Human Computer Interaction
+185: CS 455: Cloud computing
+186: CS 426: Mobile application development
+187: CS 412: Computer security
+188: CS 423: Software architecture & design patterns
+189: CS 488: Applied AI for Software Engineers
+190: MGMT 322: Project management
+199: Elite Compiler Engineering & Language Design
+202: Advanced Data Warehousing & BI

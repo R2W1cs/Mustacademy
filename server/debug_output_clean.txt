@@ -1,0 +1,16 @@
+Found 1 courses:
+[ID: 183] PHIL 222: Contemporary Issues in Data Ethics (SemID: 9)
+   -> Topics: 12
+      - [453] Introduction to Moral Philosophy
+      - [454] Relativism and Religion in Ethics
+      - [455] The Social Contract
+      - [456] Utilitarianism & Kantianism
+      - [457] The Ethics of Virtue
+      - [458] The FAT Framework in Data Science
+      - [459] Ethical Data Gathering
+      - [460] Ethical Data Preprocessing
+      - [461] Ethical Modelling
+      - [462] Ethical Model Evaluation
+      - [463] Ethical Model Deployment
+      - [464] Ethical Data Sharing
+

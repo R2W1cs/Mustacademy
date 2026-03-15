@@ -1,0 +1,131 @@
+--- user_courses Audit ---
+[
+  {
+    "id": 5,
+    "user_id": 1,
+    "course_id": 182,
+    "status": "planned",
+    "started_at": null,
+    "completed_at": null
+  },
+  {
+    "id": 6,
+    "user_id": 1,
+    "course_id": 179,
+    "status": "planned",
+    "started_at": null,
+    "completed_at": null
+  },
+  {
+    "id": 7,
+    "user_id": 1,
+    "course_id": 184,
+    "status": "planned",
+    "started_at": null,
+    "completed_at": null
+  },
+  {
+    "id": 10,
+    "user_id": 1,
+    "course_id": 183,
+    "status": "planned",
+    "started_at": null,
+    "completed_at": null
+  },
+  {
+    "id": 8,
+    "user_id": 1,
+    "course_id": 180,
+    "status": "in_progress",
+    "started_at": null,
+    "completed_at": null
+  },
+  {
+    "id": 9,
+    "user_id": 1,
+    "course_id": 181,
+    "status": "completed",
+    "started_at": null,
+    "completed_at": null
+  },
+  {
+    "id": 11,
+    "user_id": 2,
+    "course_id": 168,
+    "status": "planned",
+    "started_at": null,
+    "completed_at": null
+  },
+  {
+    "id": 12,
+    "user_id": 2,
+    "course_id": 169,
+    "status": "planned",
+    "started_at": null,
+    "completed_at": null
+  },
+  {
+    "id": 13,
+    "user_id": 2,
+    "course_id": 170,
+    "status": "planned",
+    "started_at": null,
+    "completed_at": null
+  },
+  {
+    "id": 14,
+    "user_id": 3,
+    "course_id": 163,
+    "status": "in_progress",
+    "started_at": null,
+    "completed_at": null
+  },
+  {
+    "id": 15,
+    "user_id": 3,
+    "course_id": 163,
+    "status": "in_progress",
+    "started_at": null,
+    "completed_at": null
+  },
+  {
+    "id": 16,
+    "user_id": 3,
+    "course_id": 184,
+    "status": "in_progress",
+    "started_at": null,
+    "completed_at": null
+  },
+  {
+    "id": 17,
+    "user_id": 3,
+    "course_id": 181,
+    "status": "in_progress",
+    "started_at": null,
+    "completed_at": null
+  },
+  {
+    "id": 18,
+    "user_id": 3,
+    "course_id": 181,
+    "status": "in_progress",
+    "started_at": null,
+    "completed_at": null
+  },
+  {
+    "id": 19,
+    "user_id": 3,
+    "course_id": 179,
+    "status": "in_progress",
+    "started_at": null,
+    "completed_at": null
+  },
+  {
+    "id": 20,
+    "user_id": 3,
+    "course_id": 179,
+    "status": "in_progress",
+    "started_at": null,
+    "completed_at": null
+  }
+]
