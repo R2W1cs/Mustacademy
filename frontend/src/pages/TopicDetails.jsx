@@ -397,13 +397,13 @@ const TopicDetails = () => {
                             <div className={`flex items-center ${isDark ? 'bg-indigo-500/5 border-indigo-500/10' : 'bg-white border-indigo-100 shadow-sm'} p-1 rounded-xl border`}>
                                 <button
                                     onClick={() => setViewMode('easy')}
-                                    className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'easy' ? (isDark ? 'bg-indigo-500 text-white shadow-lg' : 'bg-slate-900 text-white shadow-md') : 'text-foreground/40 hover:text-foreground/60'}`}
+                                    className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'easy' ? (isDark ? 'bg-indigo-500 text-white shadow-lg' : 'bg-slate-900 text-slate-50 shadow-md') : 'text-foreground/40 hover:text-foreground/60'}`}
                                 >
                                     Normal
                                 </button>
                                 <button
                                     onClick={() => setViewMode('deep')}
-                                    className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'deep' ? (isDark ? 'bg-indigo-500 text-white shadow-lg' : 'bg-slate-900 text-white shadow-md') : 'text-foreground/40 hover:text-foreground/60'}`}
+                                    className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'deep' ? (isDark ? 'bg-indigo-500 text-white shadow-lg' : 'bg-slate-900 text-slate-50 shadow-md') : 'text-foreground/40 hover:text-foreground/60'}`}
                                 >
                                     Deep Dive
                                 </button>
@@ -483,7 +483,7 @@ const TopicDetails = () => {
                         <button
                             onClick={handleToggle}
                             className={`flex items-center gap-2 px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${topic.completed
-                                ? (isDark ? 'bg-gradient-gold text-white shadow-gold pulse-ring' : 'bg-slate-900 text-white shadow-[0_10px_25px_rgba(15,23,42,0.3)] border border-slate-800')
+                                ? (isDark ? 'bg-gradient-gold text-white shadow-gold pulse-ring' : 'bg-slate-900 text-slate-50 shadow-[0_10px_25px_rgba(15,23,42,0.3)] border border-slate-800')
                                 : (isDark ? 'bg-indigo-500/5 text-foreground/40 border border-indigo-500/10 hover:bg-indigo-500/10' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 shadow-sm')
                                 }`}
                         >

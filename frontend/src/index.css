@@ -613,6 +613,20 @@ body {
   /* Dark grey for text that was previously white */
 }
 
+/* FIX: Protect buttons and explicitly dark backgrounds from the override above */
+.light button.text-white,
+.light a.text-white,
+.light [class*="bg-indigo-"].text-white,
+.light [class*="bg-slate-9"].text-white,
+.light [class*="bg-slate-8"].text-white,
+.light [class*="bg-purple-"].text-white,
+.light [class*="bg-blue-"].text-white,
+.light [class*="bg-[#"].text-white,
+.light [class*="bg-gradient-"].text-white,
+.light .studio-btn-primary {
+  color: #ffffff !important;
+}
+
 
 .light .text-slate-400,
 .light .text-slate-500,
