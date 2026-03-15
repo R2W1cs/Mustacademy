@@ -146,6 +146,23 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
         return () => cancelAnimationFrame(frame);
     }, [isSpeaking, isListening]);
 
+    const handleClose = () => {
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.src = ""; // Force release
+            audioRef.current = null;
+        }
+        if (recognitionRef.current) {
+            try { 
+                recognitionRef.current.onend = null; // Prevent restart loop
+                recognitionRef.current.stop(); 
+            } catch (e) { }
+        }
+        setIsSpeaking(false);
+        setIsListening(false);
+        onClose();
+    };
+
     const WaveCore = ({ amplitude, frequency, opacity, color, strokeWidth = 1.5 }) => {
         const W = 800, H = 200, mid = H / 2;
         const points = 120;
@@ -422,7 +439,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                     } else {
                         clearInterval(interval);
                     }
-                }, (audio.duration * 1000) / words.length || 200);
+                }, ((audio.duration * 1000) / words.length) * 1.2 || 250); // Added 20% buffer to slow down text reveal
             };
 
             audio.onended = () => {
@@ -488,7 +505,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                         className={`fixed top-0 right-0 bottom-0 z-[40] p-12 overflow-y-auto no-scrollbar flex flex-col items-center justify-center ${isDark ? 'bg-[#05070a]' : 'bg-white'}`}
                     >
                         <div className="absolute top-0 right-0 p-6">
-                            <button onClick={onClose} className="text-slate-500 hover:text-slate-300 transition-colors">
+                            <button onClick={handleClose} className="text-slate-500 hover:text-slate-300 transition-colors">
                                 <X size={24} />
                             </button>
                         </div>
@@ -618,7 +635,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                                             <span className="text-xs font-black">{timeLeft}s</span>
                                         </div>
                                     )}
-                                    <button onClick={onClose} className="p-2 rounded-xl text-slate-700 hover:text-red-400 hover:bg-red-500/10 transition-all">
+                                    <button onClick={handleClose} className="p-2 rounded-xl text-slate-700 hover:text-red-400 hover:bg-red-500/10 transition-all">
                                         <X size={20} />
                                     </button>
                                 </div>
@@ -768,7 +785,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                                         </div>
                                     </div>
                                     <p className="text-slate-400 max-w-xl mb-16 italic border-l-4 border-indigo-500/50 pl-10 text-lg leading-relaxed text-left">"{scorecard.summary}"</p>
-                                    <button onClick={onClose} className="bg-indigo-600 hover:bg-indigo-500 text-white px-16 py-6 rounded-2xl font-black uppercase tracking-[0.5em] text-sm shadow-2xl transition-all hover:scale-105 active:scale-95">Secure Session & Exit</button>
+                                    <button onClick={handleClose} className="bg-indigo-600 hover:bg-indigo-500 text-white px-16 py-6 rounded-2xl font-black uppercase tracking-[0.5em] text-sm shadow-2xl transition-all hover:scale-105 active:scale-95">Secure Session & Exit</button>
                                 </div>
                             ) : (
                                 <>
