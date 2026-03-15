@@ -7,6 +7,7 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "@huggingface/transformers": "^3.8.1",
     "axios": "^1.13.5",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.6",
@@ -24,7 +25,8 @@
     "pdf-parse": "^2.4.5",
     "pg": "^8.11.3",
     "rss-parser": "^3.13.0",
-    "socket.io": "^4.8.3"
+    "socket.io": "^4.8.3",
+    "wavefile": "^11.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.3"

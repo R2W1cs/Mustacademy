@@ -1,3 +1,0 @@
-2026-03-15 15:24:15
-FORCE_REDEPLOY_v19.5_KILL_STALE_BUNDLE: 2026-03-15T15:23Z
-Reason: Kill stale InterviewPrepModal-NcUvaq8y bundle. Deploy clean v19.5 with rAF sync fix.

@@ -240,7 +240,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
     }, []);
 
     useEffect(() => {
-        // [Nuclear Firewall] Native Web Speech API blocked. Neural backend only.
+
 
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognition) {
@@ -256,7 +256,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                 }
 
                 if (currentTranscript.trim()) {
-                    console.log("[Mic] Input:", currentTranscript);
+
                     setInput(currentTranscript);
 
                     if (timerRef.current) clearTimeout(timerRef.current);
@@ -270,12 +270,12 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
             };
 
             recognitionRef.current.onstart = () => {
-                console.log("[Mic] Session Started");
+
                 setIsListening(true);
             };
 
             recognitionRef.current.onend = () => {
-                console.log("[Mic] Session Ended");
+
                 setIsListening(false);
                 // Restart if it ended unexpectedly and we should be listening
                 if (isListeningRef.current && !isSpeakingRef.current && !loadingRef.current) {
@@ -459,7 +459,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                 throw new Error('Empty audio response');
             }
 
-            console.log('%c[Neural-Audio] Marcus Sterling high-fidelity stream active.', 'color: #3b82f6; font-weight: bold;');
+
 
             const url = URL.createObjectURL(response.data);
             const audio = new Audio(url);
@@ -494,7 +494,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                     setVoiceIntensity(0.6 + Math.random() * 0.4);
                 }, 50);
 
-                console.log(`%c[GOD-MODE] Word-Sync Active. ${words.length} words tracked.`, 'color: #a855f7; font-weight: bold;');
+
             };
 
             audio.onended = () => {
