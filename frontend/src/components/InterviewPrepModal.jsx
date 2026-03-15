@@ -397,7 +397,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
 
             // Fetch Neural TTS from Backend explicitly for Marcus (Male Premium)
             const response = await api.post("/tts", 
-                { text: cleanText, voice: "en-US-BrianNeural" },
+                { text: cleanText, voice: "en-US-ChristopherNeural" },
                 { responseType: 'blob' }
             );
 
