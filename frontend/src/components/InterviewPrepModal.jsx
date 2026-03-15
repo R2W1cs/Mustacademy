@@ -456,7 +456,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
 
                 // Wait for duration availability
                 const duration = audio.duration || cleanText.length / 15; // fallback
-                const tickRate = Math.max(120, (duration * 1000) / (words.length || 1)) * 1.85; // v17.0: significantly slowed down
+                const tickRate = Math.max(150, (duration * 1000) / (words.length || 1)) * 2.25; // v17.1: Extreme slowdown (2.25x)
 
                 textIntervalRef.current = setInterval(() => {
                     if (currentWord < words.length) {
