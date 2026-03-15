@@ -856,7 +856,7 @@ export default function BoardroomModal({ onClose, isPage = false }) {
                                             </div>
                                             <div>
                                                 <h3 className="font-black text-sm uppercase tracking-[0.3em] text-white">SWAIN PANEL</h3>
-                                                <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Real-Time Behavioral Analysis Active</p>
+                                                <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Real-Time Behavioral Analysis Active | v20.1_NEURAL_SWAIN</p>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-3">
