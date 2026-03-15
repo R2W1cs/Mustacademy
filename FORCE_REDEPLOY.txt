@@ -1,0 +1,3 @@
+FORCE_REDEPLOY_v18.0_ABSOLUTE_RESET_PROTOCOL: 2026-03-15T11:58Z
+Reason: Stale production cache detected (v13.0 instead of v17.1). 
+This file exists solely to trigger a fresh build of the frontend and backend assets.

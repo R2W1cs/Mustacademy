@@ -146,10 +146,36 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
     const [phase_offset, setPhaseOffset] = useState(0);
     const [voiceIntensity, setVoiceIntensity] = useState(0);
 
+    // v18.0 Absolute Close Protocol
+    const handleClose = () => {
+        // 1. Kill Audio Hardware
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.src = ""; // Clear buffer
+            audioRef.current = null;
+        }
+        // 2. Kill Text Intervals
+        if (textIntervalRef.current) {
+            clearInterval(textIntervalRef.current);
+            textIntervalRef.current = null;
+        }
+        // 3. Kill Recognition
+        if (recognitionRef.current) {
+            try { 
+                recognitionRef.current.onend = null;
+                recognitionRef.current.stop(); 
+            } catch (e) { }
+        }
+        // 4. Reset State
+        setIsSpeaking(false);
+        setIsListening(false);
+        if (onClose) onClose();
+    };
+
     useEffect(() => {
         let frame;
         const animate = () => {
-            setPhaseOffset(p => p + (isSpeaking ? 0.08 : isListening ? 0.04 : 0.01));
+            setPhaseOffset(p => p + (isSpeaking ? 0.03 : isListening ? 0.02 : 0.01)); // Slower cinematic waves
             // Slow decay for voice intensity when not speaking
             if (!isSpeaking) setVoiceIntensity(prev => Math.max(0, prev - 0.1));
             frame = requestAnimationFrame(animate);
@@ -158,22 +184,6 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
         return () => cancelAnimationFrame(frame);
     }, [isSpeaking, isListening]);
 
-    const handleClose = () => {
-        if (audioRef.current) {
-            audioRef.current.pause();
-            audioRef.current.src = ""; // Force release
-            audioRef.current = null;
-        }
-        if (recognitionRef.current) {
-            try { 
-                recognitionRef.current.onend = null; // Prevent restart loop
-                recognitionRef.current.stop(); 
-            } catch (e) { }
-        }
-        setIsSpeaking(false);
-        setIsListening(false);
-        onClose();
-    };
 
     const WaveCore = ({ amplitude, frequency, opacity, color, strokeWidth = 1.5 }) => {
         const W = 800, H = 200, mid = H / 2;
@@ -456,19 +466,23 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
 
                 // Wait for duration availability
                 const duration = audio.duration || cleanText.length / 15; // fallback
-                const tickRate = Math.max(150, (duration * 1000) / (words.length || 1)) * 2.25; // v17.1: Extreme slowdown (2.25x)
+                // v18.0: Extreme slowdown (3.0x) to ensure text never precedes neural cadence
+                const tickRate = Math.max(160, (duration * 1000) / (words.length || 1)) * 3.0; 
 
                 textIntervalRef.current = setInterval(() => {
-                    if (currentWord < words.length) {
+                    // Safety Guard: Check indices and references explicitly for minified runtime
+                    if (words && Array.isArray(words) && currentWord < words.length) {
                         const word = words[currentWord];
-                        if (word) {
+                        if (word && typeof word === 'string') {
                             setRevealedLength(prev => prev + word.length + 1);
                         }
                         setVoiceIntensity(0.8 + Math.random() * 0.4);
                         currentWord++;
                     } else {
-                        clearInterval(textIntervalRef.current);
-                        textIntervalRef.current = null;
+                        if (textIntervalRef.current) {
+                            clearInterval(textIntervalRef.current);
+                            textIntervalRef.current = null;
+                        }
                     }
                 }, tickRate); 
             };
