@@ -457,51 +457,38 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
             audioRef.current = audio;
 
             audio.onplay = () => {
-                // Approximate word revealing since we lost onboundary
                 const words = cleanText.split(' ').filter(w => w.trim().length > 0);
-                let currentWord = 0;
                 
-                // Safety: Clear previous if triggered twice
-                if (textIntervalRef.current) clearInterval(textIntervalRef.current);
-
-                // Wait for duration availability
-                const duration = audio.duration || cleanText.length / 15; // fallback
-                // v19.0: God-Mode Slowdown (3.5x) + Extreme Hardening
-                const tickRate = Math.max(180, (duration * 1000) / (words.length || 1)) * 3.5; 
-
-                console.log(`%c[GOD-MODE] Sync Initialized. Words: ${words.length} | Tick: ${tickRate}ms | Duration: ${duration}s`, "color: #10b981; font-weight: bold;");
-
-                textIntervalRef.current = setInterval(() => {
-                    try {
-                        // v19.0: Unbreakable Word Guard
-                        if (!words || !Array.isArray(words)) {
-                            console.error("[GOD-MODE] WORDS ARRAY LOST");
-                            clearInterval(textIntervalRef.current);
-                            return;
-                        }
-
-                        if (words && words.length > 0 && currentWord < words.length) {
-                            const word = words[currentWord];
-                            if (word !== undefined && word !== null) {
-                                const wordLen = typeof word === 'string' ? word.length : String(word).length;
-                                setRevealedLength(prev => prev + wordLen + 1);
-                            } else {
-                                console.warn(`[GOD-MODE] Undefined word at index ${currentWord}`);
-                            }
-                            setVoiceIntensity(0.8 + Math.random() * 0.4);
-                            currentWord++;
-                        } else {
-                            if (textIntervalRef.current) {
-                                clearInterval(textIntervalRef.current);
-                                textIntervalRef.current = null;
-                            }
-                            console.log("[GOD-MODE] Sync Completed Successfully.");
-                        }
-                    } catch (err) {
-                        console.error("[GOD-MODE] INTERVAL CRASH PREVENTED:", err);
-                        clearInterval(textIntervalRef.current);
+                const sync = () => {
+                    if (!audioRef.current || !audioRef.current.duration) {
+                        textIntervalRef.current = requestAnimationFrame(sync);
+                        return;
                     }
-                }, tickRate); 
+                    
+                    const progress = audioRef.current.currentTime / audioRef.current.duration;
+                    const charTarget = Math.floor(progress * cleanText.length);
+                    
+                    let currentLen = 0;
+                    let lastWordBoundary = 0;
+                    for (const word of words) {
+                        if (currentLen + word.length <= charTarget + 1) {
+                            currentLen += word.length + 1;
+                            lastWordBoundary = currentLen;
+                        } else {
+                            break;
+                        }
+                    }
+                    
+                    setRevealedLength(Math.min(lastWordBoundary, cleanText.length));
+                    setVoiceIntensity(0.6 + Math.random() * 0.4);
+
+                    if (!audioRef.current.paused && !audioRef.current.ended) {
+                        textIntervalRef.current = requestAnimationFrame(sync);
+                    }
+                };
+
+                textIntervalRef.current = requestAnimationFrame(sync);
+                console.log(`%c[GOD-MODE] Precision Word-Sync Active. Words: ${words.length}`, "color: #a855f7; font-weight: bold;");
             };
 
             audio.onended = () => {
