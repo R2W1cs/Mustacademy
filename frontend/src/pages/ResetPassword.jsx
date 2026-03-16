@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "../api/axios";
+import { Eye, EyeOff } from "lucide-react";
 
 const FloatingParticles = () => {
     const particles = Array.from({ length: 50 }, (_, i) => ({
@@ -47,6 +48,8 @@ const ResetPassword = () => {
     const navigate = useNavigate();
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState(false);
@@ -96,24 +99,63 @@ const ResetPassword = () => {
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="space-y-4">
-                            <input
-                                type="password"
-                                placeholder="New Password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="w-full px-6 py-4 bg-white/10 border-2 border-white/20 rounded-2xl text-white placeholder-white/40 focus:border-[#FFD700] focus:bg-white/15 transition-all outline-none"
-                                required
-                                minLength={6}
-                            />
-                            <input
-                                type="password"
-                                placeholder="Confirm New Password"
-                                value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
-                                className="w-full px-6 py-4 bg-white/10 border-2 border-white/20 rounded-2xl text-white placeholder-white/40 focus:border-[#FFD700] focus:bg-white/15 transition-all outline-none"
-                                required
-                                minLength={6}
-                            />
+                            <div className="relative group">
+                                <input
+                                    type={showPassword ? "text" : "password"}
+                                    placeholder="New Password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="w-full px-6 py-4 bg-white/10 border-2 border-white/20 rounded-2xl text-white placeholder-white/40 focus:border-[#FFD700] focus:bg-white/15 transition-all outline-none pr-14"
+                                    required
+                                    minLength={6}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-white/40 hover:text-[#FFD700] transition-colors"
+                                >
+                                    <AnimatePresence mode="wait" initial={false}>
+                                        <motion.div
+                                            key={showPassword ? "eye-off" : "eye-on"}
+                                            initial={{ opacity: 0, scale: 0.5, rotate: -45 }}
+                                            animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                                            exit={{ opacity: 0, scale: 0.5, rotate: 45 }}
+                                            transition={{ duration: 0.2 }}
+                                        >
+                                            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                        </motion.div>
+                                    </AnimatePresence>
+                                </button>
+                            </div>
+
+                            <div className="relative group">
+                                <input
+                                    type={showConfirmPassword ? "text" : "password"}
+                                    placeholder="Confirm New Password"
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    className="w-full px-6 py-4 bg-white/10 border-2 border-white/20 rounded-2xl text-white placeholder-white/40 focus:border-[#FFD700] focus:bg-white/15 transition-all outline-none pr-14"
+                                    required
+                                    minLength={6}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-white/40 hover:text-[#FFD700] transition-colors"
+                                >
+                                    <AnimatePresence mode="wait" initial={false}>
+                                        <motion.div
+                                            key={showConfirmPassword ? "eye-off" : "eye-on"}
+                                            initial={{ opacity: 0, scale: 0.5, rotate: -45 }}
+                                            animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                                            exit={{ opacity: 0, scale: 0.5, rotate: 45 }}
+                                            transition={{ duration: 0.2 }}
+                                        >
+                                            {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                        </motion.div>
+                                    </AnimatePresence>
+                                </button>
+                            </div>
                         </div>
 
                         <AnimatePresence>

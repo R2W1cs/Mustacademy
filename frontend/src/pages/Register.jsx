@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "../api/axios";
-import { Mail, Lock, Check, AlertCircle, ArrowRight } from "lucide-react";
+import { Mail, Lock, Check, AlertCircle, ArrowRight, Eye, EyeOff } from "lucide-react";
 
 // Floating Particles Component
 const FloatingParticles = () => {
@@ -48,20 +48,24 @@ const FloatingParticles = () => {
 const AnimatedInput = ({ type = "text", placeholder, value, onChange }) => {
   const [isFocused, setIsFocused] = useState(false);
   const [hasValue, setHasValue] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     setHasValue(value?.length > 0);
   }, [value]);
 
+  const isPasswordField = type === "password";
+  const inputType = isPasswordField && showPassword ? "text" : type;
+
   return (
-    <div className="relative">
+    <div className="relative group">
       <input
-        type={type}
+        type={inputType}
         value={value}
         onChange={onChange}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
-        className="w-full px-6 py-4 bg-white/10 border-2 border-white/20 rounded-2xl text-white placeholder-transparent focus:border-gold focus:bg-white/15 transition-all duration-300 outline-none backdrop-blur-xl"
+        className="w-full px-6 py-4 bg-white/10 border-2 border-white/20 rounded-2xl text-white placeholder-transparent focus:border-gold focus:bg-white/15 transition-all duration-300 outline-none backdrop-blur-xl pr-14"
         placeholder={placeholder}
       />
 
@@ -78,14 +82,34 @@ const AnimatedInput = ({ type = "text", placeholder, value, onChange }) => {
         {placeholder}
       </motion.label>
 
-      <motion.div
-        className="absolute right-4 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-white/40"
-        animate={{
-          scale: isFocused ? [1, 1.5, 1] : 1,
-          backgroundColor: isFocused ? "#FFD700" : "rgba(255, 255, 255, 0.4)",
-        }}
-        transition={{ duration: 0.3 }}
-      />
+      {isPasswordField ? (
+        <button
+          type="button"
+          onClick={() => setShowPassword(!showPassword)}
+          className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-white/40 hover:text-gold transition-colors block"
+        >
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={showPassword ? "eye-off" : "eye-on"}
+              initial={{ opacity: 0, scale: 0.5, rotate: -45 }}
+              animate={{ opacity: 1, scale: 1, rotate: 0 }}
+              exit={{ opacity: 0, scale: 0.5, rotate: 45 }}
+              transition={{ duration: 0.2 }}
+            >
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </motion.div>
+          </AnimatePresence>
+        </button>
+      ) : (
+        <motion.div
+          className="absolute right-4 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-white/40"
+          animate={{
+            scale: isFocused ? [1, 1.5, 1] : 1,
+            backgroundColor: isFocused ? "#FFD700" : "rgba(255, 255, 255, 0.4)",
+          }}
+          transition={{ duration: 0.3 }}
+        />
+      )}
     </div>
   );
 };
