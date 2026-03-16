@@ -68,13 +68,23 @@ export const getDashboardStats = async (req, res) => {
         FROM summary
       `, [userId]).catch(e => { console.error("CohortPercentileRes failed:", e.message); return { rows: [{ percentile: 0 }] }; }),
       pool.query("SELECT c.name FROM user_courses uc JOIN courses c ON uc.course_id = c.id WHERE uc.user_id = $1 AND uc.status = 'completed'", [userId]).catch(() => ({ rows: [] })),
-      pool.query(`WITH last_49_days AS(
-      SELECT generate_series(current_date - INTERVAL '48 days', current_date, '1 day':: interval):: date AS day
-    )
-          SELECT d.day as exact_date, to_char(d.day, 'Dy') as day_label, to_char(d.day, 'IYYY-IW') as week_num, COALESCE(SUM(uc.points), 0) as activity_count
-          FROM last_49_days d
-          LEFT JOIN user_contributions uc ON d.day = date_trunc('day', uc.created_at) AND uc.user_id = $1
-          GROUP BY d.day ORDER BY d.day`, [userId]).catch(e => { console.error("Activity7WeeksRes failed:", e.message); return { rows: [] }; }),
+      pool.query(`WITH weeks AS (
+          SELECT generate_series(
+            date_trunc('week', current_date) - interval '6 weeks',
+            date_trunc('week', current_date) + interval '6 days',
+            '1 day'::interval
+          )::date AS day
+        )
+        SELECT 
+          d.day as exact_date, 
+          to_char(d.day, 'Dy') as day_label, 
+          to_char(d.day, 'IYYY-IW') as week_id,
+          date_trunc('week', d.day)::date as week_start,
+          (date_trunc('week', d.day) + interval '6 days')::date as week_end,
+          COALESCE(SUM(uc.points), 0) as activity_count
+        FROM weeks d
+        LEFT JOIN user_contributions uc ON d.day = date_trunc('day', uc.created_at) AND uc.user_id = $1
+        GROUP BY d.day ORDER BY d.day`, [userId]).catch(e => { console.error("Activity7WeeksRes failed:", e.message); return { rows: [] }; }),
       pool.query(`
         SELECT t.title as topic, c.name as course,
       COALESCE(utp.completed, false) as completed,
@@ -154,18 +164,22 @@ export const getDashboardStats = async (req, res) => {
     let lastWeekNum = null;
 
     activity7WeeksRes.rows.forEach((row) => {
-      if (row.week_num !== lastWeekNum) {
-        if (lastWeekNum !== null) currentWeekIdx++;
-        lastWeekNum = row.week_num;
-      }
-      const weekLabel = `Week ${currentWeekIdx} `;
-      if (!weeksMap[weekLabel]) {
-        weeksMap[weekLabel] = { week: weekLabel, hours: 0, days: [] };
+      const week_start = new Date(row.week_start);
+      const week_end = new Date(row.week_end);
+      const weekRangeLabel = `${week_start.toLocaleDateString('en-US', { month: 'short', day: '2-digit' })} - ${week_end.toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}`;
+      
+      if (!weeksMap[row.week_id]) {
+        weeksMap[row.week_id] = { 
+          week: weekRangeLabel, 
+          weekId: row.week_id,
+          hours: 0, 
+          days: [] 
+        };
       }
       // Scale activity_count to 'hours' visually (e.g. 10 points = 1 hour)
       const dailyHours = parseFloat((parseInt(row.activity_count) / 10).toFixed(1));
-      weeksMap[weekLabel].hours += dailyHours;
-      weeksMap[weekLabel].days.push({
+      weeksMap[row.week_id].hours += dailyHours;
+      weeksMap[row.week_id].days.push({
         day: row.day_label,
         hours: dailyHours,
         date: row.exact_date
@@ -234,10 +248,24 @@ export const getDashboardStats = async (req, res) => {
       academicSkills = academicSkills.slice(0, 6);
     }
 
-    let generalSkills = generalSkillsMap.map(gs => ({
-      skill: gs.skill,
-      value: gs.total > 0 ? Math.round((gs.value / gs.total) * 100) : 0
-    })).sort((a, b) => b.value - a.value).slice(0, 6); // Top 6
+    let generalSkills = generalSkillsMap
+      .filter(gs => gs.total > 0) // Only show categories where the user has at least one associated topic
+      .map(gs => ({
+        skill: gs.skill,
+        value: Math.round((gs.value / gs.total) * 100)
+      }))
+      .sort((a, b) => b.value - a.value);
+
+    // If no active skills or very few, we add up to 6 useful placeholders but ensure they're at 0
+    if (generalSkills.length < 6) {
+      const activeNames = new Set(generalSkills.map(s => s.skill));
+      const candidates = generalCategories.filter(cat => !activeNames.has(cat));
+      const needed = 6 - generalSkills.length;
+      const placeholders = candidates.slice(0, needed).map(cat => ({ skill: cat, value: 0 }));
+      generalSkills = [...generalSkills, ...placeholders];
+    } else {
+      generalSkills = generalSkills.slice(0, 6);
+    }
 
     // 3. Career Oracle Data
     const careerOracle = getCareerAlignment(dream_job, completedNamesRes.rows);
