@@ -17,10 +17,6 @@ const MOCK_FALLBACKS = {
     mentor: [
         "That's an excellent question. Based on the current syllabus, I'd suggest focusing on the core data structures first.",
         "Interesting angle. In computer science, we often trade space for time. How might that apply here?"
-    ],
-    companion: [
-        "I'm feeling great today! How is your energy level? Don't forget to hydrate!",
-        "Success is a habit, not an act. You're doing great, keep pushing!"
     ]
 };
 
@@ -310,7 +306,6 @@ export const callAI = async (prompt, expectJson = true) => {
             reply: "⚠️ [OFFLINE MODE] " + mockReply,
             segments: [
                 { speaker: "host", text: "Dr. Aria here. We're experiencing some technical interference with our primary neural link." },
-                { speaker: "expert", text: "Prof. Nova confirming. I'll provide a simplified overview until full synthesis is restored." },
                 { speaker: "host", text: mockReply }
             ],
             title: "Neural Link Interrupted",

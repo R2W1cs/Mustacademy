@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import api from "../api/axios";
+import api, { getSocketUrl } from "../api/axios";
 import io from "socket.io-client";
 import { Sparkles, Star, Zap, Target, Binary, Cpu, Link as LinkIcon } from "lucide-react";
 
@@ -34,7 +34,7 @@ const CognitiveConstellation = () => {
         fetchMap();
 
         // Listen for real-time updates
-        const socket = io(import.meta.env.VITE_API_BASE_URL || "http://localhost:3001");
+        const socket = io(getSocketUrl());
         // Get current user to join room (we can fetch it from local storage or better pass it as prop)
         const userStr = localStorage.getItem('user');
         if (userStr) {

@@ -2,7 +2,12 @@ import axios from "axios";
 
 const productionApiUrl = "https://mustacademy-backend.onrender.com/api";
 const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
-const baseURL = import.meta.env.VITE_API_URL || (isProduction ? productionApiUrl : "https://mustacademy-backend.onrender.com/api");
+const devApiUrl = `${window.location.protocol}//${window.location.hostname}:3001/api`;
+
+const baseURL = import.meta.env.VITE_API_URL || (isProduction ? productionApiUrl : devApiUrl);
+
+export const getApiUrl = () => baseURL;
+export const getSocketUrl = () => baseURL.replace('/api', '');
 
 const api = axios.create({
   baseURL,

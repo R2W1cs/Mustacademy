@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { io } from "socket.io-client";
+import { getSocketUrl } from "../api/axios";
 import { getMyProfile } from "../api/profile";
 import { getMyContributions } from "../api/contributions";
 import { useTheme } from "../auth/ThemeContext";
@@ -40,7 +41,7 @@ const Navbar = () => {
         fetchUserData();
 
         // Socket.io initialization
-        const socket = io(import.meta.env.VITE_API_URL?.replace('/api', '') || "http://localhost:3001");
+        const socket = io(getSocketUrl());
 
         socket.on("connect", () => {
             console.log("[SOCKET] Real-time link established.");

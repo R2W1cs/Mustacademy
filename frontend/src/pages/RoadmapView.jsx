@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import api from "../api/axios";
+import api, { getSocketUrl } from "../api/axios";
 import { getCareerRoadmap, generateTrajectory } from "../api/career";
 import { getMyProfile } from "../api/profile";
 import { useTheme } from "../auth/ThemeContext";
@@ -24,7 +24,7 @@ const VideoCard = ({ video, onLike, onFeedback }) => {
                     controls
                     className="w-full h-full object-cover"
                     poster={`https://ui-avatars.com/api/?name=${encodeURIComponent(video.title)}&background=random&size=320`}
-                    src={`${(import.meta.env.VITE_API_URL || 'http://localhost:3001').replace('/api', '').replace(/\/$/, '')}${video.video_url}`}
+                    src={`${getSocketUrl().replace(/\/$/, '')}${video.video_url}`}
                     onError={(e) => {
                         console.error("Video playback error:", e);
                         // Fallback poster if video fails

@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
-import api from '../api/axios';
+import api, { getSocketUrl } from '../api/axios';
 
-const SOCKET_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3001';
+const SOCKET_URL = getSocketUrl();
 
 export const useSynapticChat = (roomId) => {
     const [messages, setMessages] = useState([]);
