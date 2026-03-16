@@ -36,8 +36,9 @@ export default function TopicPodcastPlayer({ topic }) {
     const utteranceRef = useRef(null);
     const audioRef = useRef(null);
 
-    useEffect(() => {
+    const prefetchCache = useRef({});
 
+    useEffect(() => {
         // Cleanup function for stopping all audio
         const stopAllAudio = () => {
             if (audioRef.current) {
@@ -46,7 +47,6 @@ export default function TopicPodcastPlayer({ topic }) {
                 audioRef.current.onerror = null;
                 audioRef.current = null;
             }
-            // Only cancel if we are explicitly stopping playback (not just moving segments)
             if (!isPlaying && window.speechSynthesis.speaking) {
                 window.speechSynthesis.cancel();
             }
@@ -63,12 +63,9 @@ export default function TopicPodcastPlayer({ topic }) {
             return;
         }
 
-
         const playLocalSpeech = (text) => {
             return new Promise((resolve, reject) => {
                 const utterance = new SpeechSynthesisUtterance(text);
-                
-                // Try to find Sonia or a natural female voice
                 const voices = window.speechSynthesis.getVoices();
                 const sonia = voices.find(v => v.name.includes("Sonia") || v.name.includes("Aria"));
                 if (sonia) utterance.voice = sonia;
@@ -76,8 +73,7 @@ export default function TopicPodcastPlayer({ topic }) {
                 utterance.onend = () => resolve();
                 utterance.onerror = (err) => {
                     if (err.error === 'interrupted') {
-                        console.log("[Local-TTS] Speech interrupted (expected on pause/skip)");
-                        resolve(); // Don't treat as a crash
+                        resolve(); 
                     } else {
                         reject(err);
                     }
@@ -88,25 +84,50 @@ export default function TopicPodcastPlayer({ topic }) {
             });
         };
 
-        const playCloudAudio = async (text, speakerType, retryCount = 0) => {
+        const prefetchNext = async (index) => {
+            const nextIdx = index + 1;
+            if (nextIdx >= episode.segments.length) return;
+            
+            const nextSeg = episode.segments[nextIdx];
+            if (nextSeg.speaker === 'host' || prefetchCache.current[nextIdx]) return;
+
             try {
-                // Fetch Neural TTS from Backend
                 const response = await api.post("/ai/podcast/speech",
-                    { text, speaker: speakerType },
+                    { text: nextSeg.text, speaker: nextSeg.speaker },
                     { responseType: 'blob', timeout: 30000 }
                 );
+                if (response.data && response.data.size > 500) {
+                    prefetchCache.current[nextIdx] = URL.createObjectURL(response.data);
+                    console.log(`[Neural-Audio] Pre-fetched segment ${nextIdx}`);
+                }
+            } catch (err) {
+                console.warn(`[Neural-Audio] Pre-fetch failed for ${nextIdx}:`, err.message);
+            }
+        };
 
-                if (!response.data || response.data.size < 500) {
-                    throw new Error("Empty audio response");
+        const playCloudAudio = async (text, speakerType, segmentIndex, retryCount = 0) => {
+            try {
+                let url = prefetchCache.current[segmentIndex];
+                
+                if (!url) {
+                    const response = await api.post("/ai/podcast/speech",
+                        { text, speaker: speakerType },
+                        { responseType: 'blob', timeout: 30000 }
+                    );
+
+                    if (!response.data || response.data.size < 500) {
+                        throw new Error("Empty audio response");
+                    }
+                    url = URL.createObjectURL(response.data);
                 }
 
-                console.log(`%c[Neural-Audio] High-fidelity stream active (${speakerType}).`, "color: #10b981; font-weight: bold;");
-                const url = URL.createObjectURL(response.data);
                 const audio = new Audio(url);
                 audioRef.current = audio;
 
                 audio.onended = () => {
-                    URL.revokeObjectURL(url);
+                    if (!prefetchCache.current[segmentIndex]) {
+                        URL.revokeObjectURL(url);
+                    }
                     if (activeSegment < episode.segments.length - 1) {
                         setActiveSegment(prev => prev + 1);
                     } else {
@@ -121,24 +142,22 @@ export default function TopicPodcastPlayer({ topic }) {
                 };
 
                 await audio.play();
-            } catch (err) {
-                const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message;
-                console.error(`%c[Neural-Audio] Cloud Fetch Failed: ${errorMsg}`, "color: #ef4444; font-weight: bold;");
-                
-                if (retryCount < 1) {
-                    console.warn("[Neural-Audio] Retrying high-fidelity synthesis...");
-                    return playCloudAudio(text, speakerType, retryCount + 1);
-                }
+                // Pre-fetch the NEXT one as soon as this one starts playing
+                prefetchNext(segmentIndex);
 
-                setError("High-fidelity audio service temporarily unreachable. Trying to reconnect...");
+            } catch (err) {
+                console.error(`[Neural-Audio] Cloud Fetch Failed: ${err.message}`);
+                if (retryCount < 1) return playCloudAudio(text, speakerType, segmentIndex, retryCount + 1);
+                setError("Audio service unreachable.");
                 setIsPlaying(false);
             }
         };
 
         const startSequence = async () => {
             if (segment.speaker === 'host') {
-                // Dr. Aria uses local Windows Speech Synthesis
                 try {
+                    // Pre-fetch next segment immediately while local TTS plays
+                    prefetchNext(activeSegment);
                     await playLocalSpeech(segment.text);
                     if (activeSegment < episode.segments.length - 1) {
                         setActiveSegment(prev => prev + 1);
@@ -146,20 +165,15 @@ export default function TopicPodcastPlayer({ topic }) {
                         setIsPlaying(false);
                     }
                 } catch (err) {
-                    console.error("[Local-TTS] Error:", err);
                     setIsPlaying(false);
                 }
             } else {
-                // Prof. Nova uses Cloud TTS with a 1.5s delay
-                const delay = activeSegment === 0 ? 0 : 1500;
-                setTimeout(() => {
-                    playCloudAudio(segment.text, segment.speaker);
-                }, delay);
+                // Removed 1.5s delay
+                playCloudAudio(segment.text, segment.speaker, activeSegment);
             }
         };
 
         startSequence();
-
         return stopAllAudio;
     }, [isPlaying, activeSegment, episode]);
 
