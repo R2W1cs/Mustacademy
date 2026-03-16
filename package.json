@@ -1,6 +1,5 @@
 {
-  "name": "mustacademy-platform-v20",
-  "version": "20.0.0",
+  "name": "mustacademy",
   "private": true,
   "scripts": {
     "build": "cd frontend && npm install && npm run build",

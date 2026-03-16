@@ -295,11 +295,11 @@ export const callAI = async (prompt, expectJson = true) => {
 
     // 3. Last resort: Ollama (if running locally)
     try {
-
+        console.log("[callAI] Attempting local Ollama uplink...");
         const ollamaRes = await callOllama(prompt, expectJson);
         if (ollamaRes && !ollamaRes.error) return ollamaRes;
     } catch (err) {
-
+        console.error("[callAI] Ollama uplink failed:", err.message);
     }
 
     // 4. Dead-End Fallback: Mock Data

@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: cs-roadmap-backend
+    name: mustacademy-backend
     runtime: node
     region: frankfurt
     plan: free
@@ -14,6 +14,10 @@ services:
       - key: DATABASE_URL
         sync: false
       - key: JWT_SECRET
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: SERPAPI_KEY
         sync: false
       - key: FRONTEND_URL
         sync: false

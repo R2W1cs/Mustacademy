@@ -36,42 +36,32 @@ const ROLES = [
 
 const PHASES = ['INTRO', 'EXPERIENCE', 'TECHNICAL', 'HIGH_PRESSURE', 'BEHAVIORAL', 'CLOSING'];
 
-// Cinematic Synaptic Background Component
-const SynapticBackground = () => (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-40">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(99,102,241,0.1),transparent_70%)]" />
-        <svg className="w-full h-full opacity-20">
-            <filter id="synaptic-blur">
-                <feGaussianBlur in="SourceGraphic" stdDeviation="5" />
-            </filter>
-            <motion.circle
-                cx="30%" cy="40%" r="150" fill="rgba(99,102,241,0.1)"
-                animate={{ cx: ["30%", "40%", "30%"], cy: ["40%", "30%", "40%"] }}
-                transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
-                filter="url(#synaptic-blur)"
-            />
-            <motion.circle
-                cx="70%" cy="60%" r="200" fill="rgba(79,70,229,0.1)"
-                animate={{ cx: ["70%", "60%", "70%"], cy: ["60%", "70%", "60%"] }}
-                transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
-                filter="url(#synaptic-blur)"
-            />
-        </svg>
-    </div>
-);
-
-// Cinematic opening animation variants
+// Cinematic opening animation variants — cycles randomly each session
 const OPENING_VARIANTS = [
     {
         name: 'iris-bloom',
-        initial: { opacity: 0, scale: 0.98, filter: 'blur(30px)' },
+        initial: { opacity: 0, scale: 0.85, filter: 'blur(20px)' },
         animate: { opacity: 1, scale: 1, filter: 'blur(0px)' },
-        exit: { opacity: 0, scale: 1.02, filter: 'blur(30px)' },
-        transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] },
+        exit: { opacity: 0, scale: 1.05, filter: 'blur(20px)' },
+        transition: { duration: 0.65, ease: [0.16, 1, 0.3, 1] },
+    },
+    {
+        name: 'command-slide',
+        initial: { opacity: 0, x: '100%' },
+        animate: { opacity: 1, x: 0 },
+        exit: { opacity: 0, x: '100%' },
+        transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] },
+    },
+    {
+        name: 'neural-fade',
+        initial: { opacity: 0, y: 40, filter: 'blur(8px)' },
+        animate: { opacity: 1, y: 0, filter: 'blur(0px)' },
+        exit: { opacity: 0, y: -40, filter: 'blur(8px)' },
+        transition: { duration: 0.6, ease: 'easeOut' },
     },
 ];
 
-export default function SwainBoardroom({ onClose, isPage = false }) {
+export default function InterviewPrepModal({ onClose, isPage = false }) {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
 
@@ -94,7 +84,7 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
                 audioRef.current = null;
             }
             if (textIntervalRef.current) {
-                clearInterval(textIntervalRef.current);
+                cancelAnimationFrame(textIntervalRef.current);
                 textIntervalRef.current = null;
             }
         };
@@ -166,7 +156,7 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
         }
         // 2. Kill Text Intervals
         if (textIntervalRef.current) {
-            clearInterval(textIntervalRef.current);
+            cancelAnimationFrame(textIntervalRef.current);
             textIntervalRef.current = null;
         }
         // 3. Kill Recognition
@@ -250,7 +240,7 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
     }, []);
 
     useEffect(() => {
-
+        // [Nuclear Firewall] Native Web Speech API blocked. Neural backend only.
 
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognition) {
@@ -261,13 +251,12 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
 
             recognitionRef.current.onresult = (e) => {
                 let currentTranscript = "";
-                if (!e.results) return;
                 for (let i = 0; i < e.results.length; i++) {
                     currentTranscript += e.results[i][0].transcript;
                 }
 
                 if (currentTranscript.trim()) {
-
+                    console.log("[Mic] Input:", currentTranscript);
                     setInput(currentTranscript);
 
                     if (timerRef.current) clearTimeout(timerRef.current);
@@ -281,12 +270,12 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
             };
 
             recognitionRef.current.onstart = () => {
-
+                console.log("[Mic] Session Started");
                 setIsListening(true);
             };
 
             recognitionRef.current.onend = () => {
-
+                console.log("[Mic] Session Ended");
                 setIsListening(false);
                 // Restart if it ended unexpectedly and we should be listening
                 if (isListeningRef.current && !isSpeakingRef.current && !loadingRef.current) {
@@ -430,103 +419,95 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
     const audioRef = useRef(null);
     const textIntervalRef = useRef(null);
 
-    // Helper to kill all audio + sync
-    const killAudio = () => {
-        if (textIntervalRef.current) {
-            clearInterval(textIntervalRef.current);
-            textIntervalRef.current = null;
-        }
+    const speak = async (text) => {
+        if (!text || typeof text !== 'string') return;
+        // Stop any existing audio
         if (audioRef.current) {
-            try { audioRef.current.pause(); } catch (e) {}
+            audioRef.current.pause();
             audioRef.current = null;
         }
-    };
 
-    const speak = async (rawText) => {
-        if (!rawText || typeof rawText !== 'string') return;
-
-        // Kill anything currently playing
-        killAudio();
-
-        const { cleanText } = parseProsody(rawText);
-        if (!cleanText || !cleanText.trim()) return;
-
-        // Freeze these into local variables — no closures over mutable refs
-        const textSnapshot = cleanText;
-        const totalChars = (textSnapshot || "").length;
+        const { cleanText } = parseProsody(text);
+        if (!cleanText) return;
 
         try {
             setIsSpeaking(true);
             setRevealedLength(0);
-            if (recognitionRef.current) try { recognitionRef.current.stop(); } catch (e) {}
+            if (recognitionRef.current) try { recognitionRef.current.stop(); } catch (e) { }
 
-            const response = await api.post(
-                '/tts',
-                { text: textSnapshot, voice: 'en-US-BrianNeural' },
+            // Clear any lingering intervals
+            if (textIntervalRef.current) {
+                clearInterval(textIntervalRef.current);
+                textIntervalRef.current = null;
+            }
+
+            // Fetch Neural TTS from Backend explicitly for Marcus (Male Premium)
+            const response = await api.post("/tts", 
+                { text: cleanText, voice: "en-US-BrianNeural" },
                 { responseType: 'blob' }
             );
 
             if (!response.data || response.data.size < 500) {
-                throw new Error('Empty audio response');
+                throw new Error("Empty audio response from cloud");
             }
 
-
-
+            console.log("%c[Neural-Audio] Marcus Sterling high-fidelity stream active.", "color: #3b82f6; font-weight: bold;");
             const url = URL.createObjectURL(response.data);
             const audio = new Audio(url);
             audioRef.current = audio;
 
-            // Word-boundary map built once
-            const words = textSnapshot.split(' ').filter(Boolean);
-            const wordBoundaries = [];
-            let pos = 0;
-            for (const w of words) {
-                pos += w.length + 1; // +1 for space
-                wordBoundaries.push(Math.min(pos, totalChars || 0));
-            }
-
             audio.onplay = () => {
-                // Poll audio.currentTime every 50ms — simple, safe, reliable
-                textIntervalRef.current = setInterval(() => {
-                    const a = audioRef.current;
-                    if (!a || !a.duration || isNaN(a.duration) || a.duration <= 0) return;
-
-                    const progress = Math.min(a.currentTime / (a.duration || 1), 1);
-                    const charTarget = Math.floor(progress * totalChars);
-
-                    // Find last word boundary that fits within charTarget
-                    let reveal = 0;
-                    for (const boundary of wordBoundaries) {
-                        if (boundary <= charTarget + 2) reveal = boundary;
-                        else break;
+                const words = cleanText.split(' ').filter(w => w.trim().length > 0);
+                
+                const sync = () => {
+                    const audio = audioRef.current;
+                    if (!audio || !audio.duration || audio.paused || audio.ended) {
+                        return;
                     }
-
-                    setRevealedLength(Math.min(reveal, totalChars));
+                    
+                    const clean = cleanText || "";
+                    const progress = audio.currentTime / audio.duration;
+                    const charTarget = Math.floor(progress * clean.length);
+                    
+                    let currentLen = 0;
+                    let lastWordBoundary = 0;
+                    const wordList = words || [];
+                    
+                    for (const word of wordList) {
+                        if (!word) continue;
+                        if (currentLen + word.length <= charTarget + 1) {
+                            currentLen += word.length + 1;
+                            lastWordBoundary = currentLen;
+                        } else {
+                            break;
+                        }
+                    }
+                    
+                    setRevealedLength(Math.min(lastWordBoundary, clean.length));
                     setVoiceIntensity(0.6 + Math.random() * 0.4);
-                }, 50);
 
+                    textIntervalRef.current = requestAnimationFrame(sync);
+                };
 
+                textIntervalRef.current = requestAnimationFrame(sync);
+                console.log(`%c[GOD-MODE] Precision Word-Sync Active. Words: ${words.length}`, "color: #a855f7; font-weight: bold;");
             };
 
             audio.onended = () => {
-                clearInterval(textIntervalRef.current);
-                textIntervalRef.current = null;
                 setIsSpeaking(false);
-                setRevealedLength(totalChars);
+                setRevealedLength(cleanText.length);
                 URL.revokeObjectURL(url);
                 if (!scorecard && !loadingRef.current) {
                     setTimeout(() => {
                         if (recognitionRef.current && !isListeningRef.current && !isSpeakingRef.current && !loadingRef.current) {
-                            try { recognitionRef.current.start(); } catch (e) {}
+                            try { recognitionRef.current.start(); } catch (e) { }
                         }
                     }, 800);
                 }
             };
 
             audio.onerror = () => {
-                clearInterval(textIntervalRef.current);
-                textIntervalRef.current = null;
-                console.error('[Neural-Audio] Playback failure.');
+                console.error("[Neural-Audio] Playback failure.");
                 setIsSpeaking(false);
                 URL.revokeObjectURL(url);
             };
@@ -534,9 +515,8 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
             await audio.play();
 
         } catch (err) {
-            killAudio();
             const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message;
-            console.error(`%c[Neural-Audio] Synthesis Failure: ${errorMsg}`, 'color: #ef4444; font-weight: bold;');
+            console.error(`%c[Neural-Audio] Marcus Synthesis Failure: ${errorMsg}`, "color: #ef4444; font-weight: bold;");
             setIsSpeaking(false);
         }
     };
@@ -580,20 +560,13 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
                                 <X size={24} />
                             </button>
                         </div>
-                        <div className="text-center mb-16 relative z-10">
-                            <motion.h2 
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className={`text-6xl font-black mb-4 tracking-[0.3em] ${isDark ? 'text-white' : 'text-slate-900'} uppercase`}
-                            >
-                                Boardroom
-                            </motion.h2>
-                            <p className={`text-[10px] font-black uppercase tracking-[0.6em] mb-12 ${isDark ? 'text-indigo-500/80' : 'text-indigo-400'}`}>High-Fidelity Behavioral Engine</p>
-                            <div className="flex justify-center mb-12">
-                                <div className="w-40 h-40 rounded-full border border-indigo-500/20 flex items-center justify-center bg-slate-900/40 backdrop-blur-3xl shadow-[0_0_50px_rgba(99,102,241,0.1)] relative overflow-hidden group">
-                                    <div className="absolute inset-0 bg-indigo-500/5 group-hover:bg-indigo-500/10 transition-colors" />
-                                    <Cpu className="text-indigo-400 animate-pulse relative z-10" size={56} />
-                                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(99,102,241,0.2),transparent_70%)] animate-pulse" />
+                        <div className="text-center mb-12">
+                            <h2 className={`text-5xl font-black mb-2 tracking-[0.2em] ${isDark ? 'text-white' : 'text-slate-900'} uppercase`}>The Boardroom</h2>
+                            <p className={`text-sm font-bold uppercase tracking-widest mb-6 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>High-Fidelity Interview Simulation</p>
+                            <div className="flex justify-center mb-8">
+                                <div className="w-32 h-32 rounded-full border-4 border-indigo-500/30 flex items-center justify-center bg-slate-900/50 shadow-2xl relative overflow-hidden">
+                                    <Cpu className="text-indigo-500 animate-pulse" size={48} />
+                                    <div className="absolute inset-0 bg-indigo-500/10 blur-xl" />
                                 </div>
                             </div>
                         </div>
@@ -607,27 +580,26 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
                                             ? 'bg-slate-900/40 border-slate-800 hover:border-indigo-500/50 hover:bg-slate-900/60 shadow-lg'
                                             : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-indigo-50'} `}
                                     >
-                                        <div className="flex flex-col h-full justify-between relative z-10">
+                                        <div className="flex flex-col h-full justify-between">
                                             <div className="mb-4">
-                                                <div className={`text-[8px] font-black uppercase tracking-[0.4em] mb-3 ${isDark ? 'text-indigo-500/60' : 'text-indigo-600'}`}>
-                                                    {role.branches ? 'Strategic Division' : 'Standard Ops'}
+                                                <div className={`text-[10px] font-black uppercase tracking-[0.2em] mb-2 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
+                                                    {role.branches ? 'Strategic Division' : 'Standard Protocol'}
                                                 </div>
-                                                <h4 className={`text-lg font-black tracking-tight leading-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                                                <h4 className={`text-base font-bold tracking-tight leading-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
                                                     {role.title}
                                                 </h4>
                                             </div>
 
-                                            <div className="flex items-center justify-between mt-auto pt-6 border-t border-indigo-500/5">
-                                                <span className={`text-[8px] font-black uppercase tracking-[0.3em] ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
-                                                    ACCESS Dossier
+                                            <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-800/20">
+                                                <span className={`text-[9px] font-bold uppercase tracking-widest ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                                                    View Dossier
                                                 </span>
-                                                <ChevronRight size={14} className={`transition-transform group-hover:translate-x-2 ${isDark ? 'text-indigo-500' : 'text-indigo-400'}`} />
+                                                <ChevronRight size={14} className={`transition-transform group-hover:translate-x-1 ${isDark ? 'text-indigo-500' : 'text-indigo-400'}`} />
                                             </div>
                                         </div>
 
-                                        {/* HUD Corner Accents */}
-                                        <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-indigo-500/20 rounded-tr-sm group-hover:border-indigo-500/50 transition-colors" />
-                                        <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-indigo-500/20 rounded-bl-sm group-hover:border-indigo-500/50 transition-colors" />
+                                        {/* Subtle background glow on hover */}
+                                        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/0 via-transparent to-indigo-500/0 group-hover:from-indigo-500/[0.03] transition-colors pointer-events-none" />
                                     </button>
                                 ))
                             ) : selectedRole.branches && !selectedBranch ? (
@@ -694,29 +666,27 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
                         exit={openingVariant.exit}
                         transition={openingVariant.transition}
                         style={{ left: currentSidebarWidth, width: `calc(100% - ${currentSidebarWidth}px)`, transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}
-                        className={`${isDark ? 'bg-[#05070a/10]' : 'bg-white'} fixed top-0 right-0 bottom-0 z-[40] flex flex-col md:flex-row overflow-hidden no-scrollbar backdrop-blur-3xl`}
+                        className={`${isDark ? 'bg-[#05070a]' : 'bg-white'} fixed top-0 right-0 bottom-0 z-[40] flex flex-col md:flex-row overflow-hidden no-scrollbar`}
                     >
-                        <SynapticBackground />
-                        
                         {/* Realistic Command Center Sidebar */}
-                        <div className={`w-full md:w-[40%] h-full ${isDark ? 'bg-slate-950/40' : 'bg-slate-50/50'} p-12 flex flex-col items-center justify-between border-r ${isDark ? 'border-white/5' : 'border-gray-200'} relative shadow-2xl z-20 backdrop-blur-2xl`}>
-                            {/* Boardroom LEFT PANEL — HUD Details */}
+                        <div className={`w-full md:w-[45%] h-full ${isDark ? 'bg-slate-900/10' : 'bg-slate-50/50'} p-12 flex flex-col items-center justify-between border-r ${isDark ? 'border-indigo-500/10' : 'border-gray-200'} relative shadow-2xl z-20`}>
+                            {/* Boardroom LEFT PANEL — calm wave visualization */}
                             <div className="w-full flex justify-between items-start mb-6">
-                                <div className="flex flex-col gap-2">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)] animate-pulse" />
-                                        <span className="text-[9px] font-black uppercase tracking-[0.5em] text-white/40">SYSTEM · ACTIVE</span>
+                                <div className="flex flex-col gap-1.5">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-2 h-2 rounded-full bg-red-500 shadow-lg" />
+                                        <span className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-500">LIVE · SIM-01</span>
                                     </div>
-                                    <p className="text-xl font-black text-white uppercase tracking-tighter">{selectedRole?.title}</p>
+                                    <p className="text-[11px] font-bold text-slate-600 uppercase tracking-[0.2em]">{selectedRole?.title}</p>
                                 </div>
-                                <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-3">
                                     {timeLeft !== null && (
-                                        <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-indigo-400 backdrop-blur-md">
-                                            <Timer size={14} className="animate-spin-slow" />
-                                            <span className="text-sm font-black tabular-nums">{timeLeft}s</span>
+                                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/60 border border-slate-800 text-indigo-400">
+                                            <Timer size={12} className="animate-spin-slow" />
+                                            <span className="text-xs font-black">{timeLeft}s</span>
                                         </div>
                                     )}
-                                    <button onClick={handleClose} className="p-3 rounded-xl text-white/20 hover:text-white hover:bg-white/5 transition-all border border-transparent hover:border-white/10">
+                                    <button onClick={handleClose} className="p-2 rounded-xl text-slate-700 hover:text-red-400 hover:bg-red-500/10 transition-all">
                                         <X size={20} />
                                     </button>
                                 </div>
@@ -827,93 +797,62 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
                             </div>
 
                             {/* Bottom metadata row */}
-                            <div className="w-full flex items-center justify-between pt-8 border-t border-white/5 relative z-10">
-                                <div className="flex items-center gap-3">
-                                    <div className={`w-2 h-2 rounded-full ${isSpeaking ? 'bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]' : 'bg-white/10'}`} />
-                                    <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.4em]">RSA-4096</span>
+                            <div className="w-full flex items-center justify-between pt-6 border-t border-slate-900">
+                                <div className="flex items-center gap-2">
+                                    <div className={`w-1.5 h-1.5 rounded-full ${isSpeaking ? 'bg-indigo-500 animate-ping' : 'bg-slate-800'}`} />
+                                    <span className="text-[9px] font-bold text-slate-700 uppercase tracking-widest">AES-256</span>
                                 </div>
-                                <span className="text-[8px] font-black text-indigo-500/60 uppercase tracking-[0.4em]">NEURAL CORE · 1.0ms</span>
-                                <div className="flex items-center gap-3">
-                                    <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.4em]">UPLINK</span>
-                                    <div className={`w-2 h-2 rounded-full ${isListening ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-white/10'}`} />
+                                <span className="text-[9px] font-bold text-slate-700 uppercase tracking-widest">Neural Sync · 99.8%</span>
+                                <div className="flex items-center gap-2">
+                                    <div className={`w-1.5 h-1.5 rounded-full ${isListening ? 'bg-emerald-500 animate-ping' : 'bg-slate-800'}`} />
+                                    <span className="text-[9px] font-bold text-slate-700 uppercase tracking-widest">Uplink</span>
                                 </div>
                             </div>
                         </div>
 
                         {/* Panoramic Chat Interface */}
-                        <div className={`flex-1 flex flex-col ${isDark ? 'bg-transparent' : 'bg-white'} relative z-10 p-4`}>
-                            <div className={`flex-1 flex flex-col ${isDark ? 'bg-slate-950/60 border border-white/5' : 'bg-white border-gray-100'} rounded-[3rem] overflow-hidden shadow-3xl backdrop-blur-2xl`}>
+                        <div className={`flex-1 flex flex-col ${isDark ? 'bg-[#070b14]' : 'bg-white'} relative z-10 shadow-lg`}>
                             {scorecard ? (
-                                    <div className="flex-1 p-16 overflow-y-auto custom-scrollbar flex flex-col items-center justify-center text-center relative">
-                                        {/* Scorecard Background Accents */}
-                                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(99,102,241,0.05),transparent_70%)] pointer-events-none" />
-                                        
-                                        <motion.div
-                                            initial={{ scale: 0.8, opacity: 0 }}
-                                            animate={{ scale: 1, opacity: 1 }}
-                                            transition={{ type: "spring", damping: 15 }}
-                                            className="relative mb-12"
-                                        >
-                                            <div className="w-56 h-56 rounded-full border border-indigo-500/30 flex flex-col items-center justify-center bg-slate-900/40 backdrop-blur-3xl shadow-[0_0_80px_rgba(99,102,241,0.2)] relative group">
-                                                <div className="absolute inset-0 rounded-full bg-[conic-gradient(from_0deg,#6366f1,transparent)] opacity-20 animate-spin-slow" />
-                                                <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.5em] mb-2 relative z-10">Neural Index</span>
-                                                <span className="text-8xl font-black text-white relative z-10 tracking-tighter">{scorecard.technical_score}</span>
-                                            </div>
-                                        </motion.div>
-
-                                        <motion.div
-                                            initial={{ y: 20, opacity: 0 }}
-                                            animate={{ y: 0, opacity: 1 }}
-                                            transition={{ delay: 0.2 }}
-                                        >
-                                            <h2 className="text-7xl font-black mb-4 uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-white/60">{scorecard.level}</h2>
-                                            <p className="text-xl font-bold text-indigo-400 uppercase tracking-[0.8em] mb-12">{scorecard.verdict}</p>
-                                        </motion.div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16 max-w-2xl w-full">
-                                            <div className="p-8 rounded-[2rem] bg-white/2 border border-white/5 backdrop-blur-3xl flex flex-col items-center gap-3 group hover:border-indigo-500/20 transition-all">
-                                                <div className="p-4 rounded-2xl bg-indigo-500/10 text-indigo-400"><DollarSign size={24} /></div>
-                                                <span className="text-white/30 font-black uppercase tracking-[0.4em] text-[8px]">Market Valuation</span>
-                                                <span className="text-white font-black text-lg uppercase tracking-tight">{scorecard.salary_band}</span>
-                                            </div>
-                                            <div className="p-8 rounded-[2rem] bg-white/2 border border-white/5 backdrop-blur-3xl flex flex-col items-center gap-3 group hover:border-indigo-500/20 transition-all">
-                                                <div className="p-4 rounded-2xl bg-indigo-500/10 text-indigo-400"><TrendingUp size={24} /></div>
-                                                <span className="text-white/30 font-black uppercase tracking-[0.4em] text-[8px]">Trajectory</span>
-                                                <span className="text-white font-black text-lg uppercase tracking-tight">{scorecard.promotion_readiness}</span>
-                                            </div>
+                                <div className="flex-1 p-24 overflow-y-auto custom-scrollbar flex flex-col items-center justify-center text-center">
+                                    <motion.div
+                                        initial={{ scale: 0, rotate: -20 }}
+                                        animate={{ scale: 1, rotate: 0 }}
+                                        className="w-40 h-40 rounded-full bg-indigo-600/10 border-4 border-indigo-600 flex flex-col items-center justify-center mb-10 shadow-lg"
+                                    >
+                                        <span className="text-sm font-black text-indigo-400 uppercase tracking-widest">Score</span>
+                                        <span className="text-6xl font-black text-indigo-500">{scorecard.technical_score}</span>
+                                    </motion.div>
+                                    <h2 className="text-6xl font-black mb-6 uppercase tracking-tighter text-white">{scorecard.level} - {scorecard.verdict}</h2>
+                                    <div className="flex gap-12 mb-16 justify-center">
+                                        <div className="flex flex-col items-center gap-2">
+                                            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-indigo-400 mb-2"><DollarSign size={20} /></div>
+                                            <span className="text-slate-500 font-bold uppercase tracking-widest text-[9px]">Market Valuation</span>
+                                            <span className="text-white font-black text-xs">{scorecard.salary_band}</span>
                                         </div>
-
-                                        <blockquote className="relative max-w-2xl mb-16">
-                                            <div className="absolute -left-8 -top-8 text-indigo-500/20 text-8xl font-serif">“</div>
-                                            <p className="text-white/60 text-xl font-medium leading-relaxed italic relative z-10">
-                                                {scorecard.summary}
-                                            </p>
-                                            <div className="absolute -right-8 -bottom-8 text-indigo-500/20 text-8xl font-serif">”</div>
-                                        </blockquote>
-
-                                        <button 
-                                            onClick={handleClose} 
-                                            className="group relative px-20 py-7 rounded-2xl bg-indigo-600 text-white font-black uppercase tracking-[0.6em] text-xs shadow-[0_20px_50px_rgba(99,102,241,0.3)] transition-all hover:scale-[1.02] hover:bg-indigo-500 active:scale-95 overflow-hidden"
-                                        >
-                                            <span className="relative z-10">Secure & Finalize</span>
-                                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-                                        </button>
+                                        <div className="flex flex-col items-center gap-2">
+                                            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-indigo-400 mb-2"><TrendingUp size={20} /></div>
+                                            <span className="text-slate-500 font-bold uppercase tracking-widest text-[9px]">Trajectory</span>
+                                            <span className="text-white font-black text-xs">{scorecard.promotion_readiness}</span>
+                                        </div>
                                     </div>
+                                    <p className="text-slate-400 max-w-xl mb-16 italic border-l-4 border-indigo-500/50 pl-10 text-lg leading-relaxed text-left">"{scorecard.summary}"</p>
+                                    <button onClick={handleClose} className="bg-indigo-600 hover:bg-indigo-500 text-white px-16 py-6 rounded-2xl font-black uppercase tracking-[0.5em] text-sm shadow-2xl transition-all hover:scale-105 active:scale-95">Secure Session & Exit</button>
+                                </div>
                             ) : (
                                 <>
-                                    <div className={`p-8 border-b ${isDark ? 'border-white/5' : 'border-gray-100'} flex justify-between items-center bg-white/2 backdrop-blur-3xl`}>
+                                    <div className={`p-10 border-b ${isDark ? 'border-slate-800/50' : 'border-gray-100'} flex justify-between items-center bg-slate-950/20 backdrop-blur-md`}>
                                         <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 rounded-2xl bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center">
-                                                <UserSquare2 className="text-indigo-400" size={24} />
+                                            <div className="w-10 h-10 rounded-xl bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center">
+                                                <UserSquare2 className="text-indigo-400" size={20} />
                                             </div>
                                             <div>
-                                                <h3 className="font-black text-xs uppercase tracking-[0.4em] text-white/90">SWAIN INTERFACE</h3>
-                                                <p className="text-[8px] font-black text-slate-500 uppercase tracking-[0.5em]">Behavioral Diagnostics Active | v21.0_ELITE</p>
+                                                <h3 className="font-black text-sm uppercase tracking-[0.3em] text-white">SWAIN PANEL</h3>
+                                                <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Real-Time Behavioral Analysis Active</p>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-4">
-                                            <div className="bg-indigo-500/10 px-6 py-2 rounded-xl border border-indigo-500/10">
-                                                <span className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.4em]">NEURAL SYNC ACTIVE</span>
+                                        <div className="flex items-center gap-3">
+                                            <div className="bg-indigo-500/10 px-4 py-2 rounded-lg border border-indigo-500/20">
+                                                <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Ultra-Low Latency Mode</span>
                                             </div>
                                         </div>
                                     </div>
@@ -925,8 +864,7 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
 
                                         {messages.map((m, i) => {
                                             const isAI = m.sender === 'ai';
-                                            const messagesLength = messages?.length || 0;
-                                            const isLastAI = isAI && i === messagesLength - 1;
+                                            const isLastAI = isAI && i === messages.length - 1;
                                             const showCursor = isLastAI && isSpeaking;
 
                                             const userStyles = isDark ? 'bg-slate-900/60 text-white border-slate-800' : 'bg-slate-100 text-slate-900 border-gray-200';
@@ -936,29 +874,18 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
                                             return (
                                                 <motion.div
                                                     key={i}
-                                                    initial={{ opacity: 0, y: 10, scale: 0.98 }}
-                                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                    initial={{ opacity: 0, x: isAI ? -20 : 20 }}
+                                                    animate={{ opacity: 1, x: 0 }}
                                                     className={`flex flex-col ${m.sender === 'user' ? 'items-end' : 'items-start'}`}
                                                 >
-                                                    <div className={`max-w-[85%] p-7 rounded-[2.5rem] text-[15px] font-medium leading-[1.7] ${bubbleStyles} border backdrop-blur-md shadow-2xl hover:border-indigo-500/30 transition-all duration-500 group relative overflow-hidden`}>
-                                                        {/* Bubble Highlight */}
-                                                        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
-                                                        
-                                                        {(() => {
-                                                            const cleanText = String(m.text || "").replace(/\[PAUSE\]|\[SPEED:[\d.]+\]/g, "");
-                                                            if (isLastAI && isSpeaking) {
-                                                                return (
-                                                                    <>
-                                                                        <span className="relative z-10 text-white/90">{cleanText.substring(0, revealedLength)}</span>
-                                                                        <span className="relative z-10 opacity-20 transition-opacity duration-300">{cleanText.substring(revealedLength)}</span>
-                                                                    </>
-                                                                );
-                                                            }
-                                                            return <span className="relative z-10 text-white/90">{cleanText}</span>;
-                                                        })()}
-                                                        {showCursor && <span className="inline-block w-1 h-4 ml-2 bg-indigo-500 animate-pulse align-middle" />}
+                                                    <div className={`max-w-[80%] p-8 rounded-[2rem] text-[15px] font-medium leading-[1.8] ${bubbleStyles} border backdrop-blur-sm shadow-xl`}>
+                                                        {isLastAI && isSpeaking
+                                                            ? String(m.text || "").replace(/\[PAUSE\]|\[SPEED:[\d.]+\]/g, "").substring(0, revealedLength)
+                                                            : String(m.text || "").replace(/\[PAUSE\]|\[SPEED:[\d.]+\]/g, "")
+                                                        }
+                                                        {showCursor && <span className="inline-block w-2 h-5 ml-2 bg-indigo-500 animate-pulse align-middle" />}
                                                     </div>
-                                                    <span className="mt-4 text-[7px] font-black text-white/20 uppercase tracking-[0.4em] px-6">{isAI ? 'SWAIN · VOCAL_CORE' : 'SIGNAL · SOURCE_0'}</span>
+                                                    <span className="mt-3 text-[8px] font-black text-slate-600 uppercase tracking-widest px-4">{isAI ? 'MARCUS STERLING' : 'CANDIDATE UPLINK'}</span>
                                                 </motion.div>
                                             );
                                         })}
@@ -1001,7 +928,6 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
                                     </div>
                                 </>
                             )}
-                            </div>
                         </div>
                     </motion.div>
                 )}

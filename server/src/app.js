@@ -40,7 +40,8 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://127.0.0.1:5173',
   'https://mustacademy.vercel.app',
-  'https://mustacademy-frontend.vercel.app'
+  'https://mustacademy-frontend.vercel.app',
+  'https://mustAacademy.vercel.app'
 ];
 
 if (process.env.FRONTEND_URL && !allowedOrigins.includes(process.env.FRONTEND_URL)) {
@@ -99,7 +100,7 @@ app.get('/api/health', async (req, res) => {
 });
 
 app.get('/api', (req, res) => {
-  res.json({ message: 'MustAcademy API - Production Sync Active 🚀' });
+  res.json({ message: 'MustAcademy API - v19.4 GOD_MODE Precision Sync Active 🚀' });
 });
 
 app.get('/', (req, res) => {

@@ -1,15 +1,13 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import SwainBoardroom from "../components/SwainBoardroom";
+import InterviewPrepModal from "../components/InterviewPrepModal";
 import { useTheme } from "../auth/ThemeContext";
 import { ArrowLeft, Briefcase } from "lucide-react";
 
 export default function InterviewPage() {
     const navigate = useNavigate();
     const { theme } = useTheme();
-
-    // Default to 'light' theme in case it's undefined
-    const isDark = theme === 'dark' || false;
+    const isDark = theme === 'dark';
 
     // Safety cleanup: Ensure body scroll is restored if the modal was active
     useEffect(() => {
@@ -20,27 +18,36 @@ export default function InterviewPage() {
     }, []);
 
     return (
-        <div className="min-h-screen bg-[#020617] relative overflow-hidden flex flex-col items-center justify-center p-6 sm:p-12">
-            {/* Cinematic Background */}
-            <div className="absolute inset-0 z-0">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(99,102,241,0.08),transparent_70%)]" />
-                <div className="absolute inset-0 opacity-20 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] blend-overlay" />
+        <div className={`min-h-screen p-8 relative overflow-hidden ${isDark ? 'bg-[#050810] text-white' : 'bg-gray-50 text-gray-900'}`}>
+            {/* Premium Atmospheric Background */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <div className={`absolute -top-[20%] -right-[10%] w-[70%] h-[70%] rounded-full blur-[120px] opacity-20 ${isDark ? 'bg-purple-600/30' : 'bg-purple-200/50'}`} />
+                <div className={`absolute -bottom-[20%] -left-[10%] w-[60%] h-[60%] rounded-full blur-[100px] opacity-10 ${isDark ? 'bg-indigo-600/20' : 'bg-indigo-100/40'}`} />
+                <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full opacity-[0.03] ${isDark ? 'invert' : ''}`}
+                    style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
             </div>
 
-            <div className="w-full max-w-[1600px] h-[95vh] relative z-10 flex flex-col">
-                <div className="mb-4 flex justify-between items-center px-12">
-                    <div className="flex flex-col">
-                        <h1 className="text-xl font-black text-white/90 uppercase tracking-[0.5em] mb-1">PROTOTYPE SWAIN</h1>
-                        <div className="flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping" />
-                            <p className="text-slate-500 font-bold text-[8px] uppercase tracking-[0.4em]">NEURAL UPLINK ACTIVE · SECURE</p>
+            <header className="mb-8 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={() => navigate(-1)}
+                        className={`p-2 rounded-xl border transition-all ${isDark ? 'bg-white/5 border-white/10 hover:bg-white/10' : 'bg-white border-gray-200 hover:border-gray-300 shadow-sm'}`}
+                    >
+                        <ArrowLeft size={20} />
+                    </button>
+                    <div>
+                        <div className="flex items-center gap-2 mb-1">
+                            <Briefcase className="text-purple-500" size={20} />
+                            <h1 className="text-2xl font-black tracking-tight">Interview Boardroom</h1>
                         </div>
+                        <p className="text-sm text-gray-500 font-medium">Precision AI Simulation Protocol</p>
                     </div>
                 </div>
+            </header>
 
-                <div className="flex-1 bg-slate-950/50 rounded-[3rem] border border-slate-800 shadow-2xl overflow-hidden backdrop-blur-xl">
-                    {/* Ensure onClose prop is passed properly */}
-                    <SwainBoardroom isPage={true} onClose={() => navigate(-1)} />
+            <div className={`max-w-6xl mx-auto rounded-[2.5rem] border shadow-2xl overflow-hidden ${isDark ? 'bg-[#0f1729]/80 border-white/5' : 'bg-white border-gray-100'}`}>
+                <div className="p-1">
+                    <InterviewPrepModal isPage={true} onClose={() => navigate(-1)} />
                 </div>
             </div>
         </div>
