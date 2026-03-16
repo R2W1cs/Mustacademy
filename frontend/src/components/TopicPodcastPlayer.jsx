@@ -74,7 +74,14 @@ export default function TopicPodcastPlayer({ topic }) {
                 if (sonia) utterance.voice = sonia;
                 
                 utterance.onend = () => resolve();
-                utterance.onerror = (err) => reject(err);
+                utterance.onerror = (err) => {
+                    if (err.error === 'interrupted') {
+                        console.log("[Local-TTS] Speech interrupted (expected on pause/skip)");
+                        resolve(); // Don't treat as a crash
+                    } else {
+                        reject(err);
+                    }
+                };
                 
                 utteranceRef.current = utterance;
                 window.speechSynthesis.speak(utterance);
