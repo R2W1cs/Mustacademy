@@ -11,63 +11,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <title>MustAcademy</title>
-    <script>
-      /**
-       * --- NUCLEAR ANTI-ROBOT FIREWALL (v8.0 REINFORCED) ---
-       * This script triggers a mandatory cache purge and blocks all robotic synthesis.
-       */
-      (function() {
-        const CURRENT_VERSION = "v19.4_GOD_MODE";
-        console.log(`%c[NUCLEAR-FIREWALL] v8.1 INITIALIZED | ${CURRENT_VERSION}`, "color: #a855f7; font-weight: bold; background: #000; padding: 10px; border: 2px solid #a855f7; display: block; width: 100%; text-align: center;");
-        // [CACHE-BREAKER-PULSE]: 2026-03-15T14:26Z
 
-        
-        // 1. Absolute Prototype Lock for Speech
-        if (window.speechSynthesis) {
-          window.speechSynthesis.speak = function() {
-            console.warn("%c[FIREWALL] Robotic fallback blocked! Studio Human Neural Active.", "color: #ef4444; font-weight: bold; background: #000; padding: 2px 5px; border-radius: 4px.");
-            return false;
-          };
-          try { window.speechSynthesis.cancel(); } catch(e) {}
-        }
-        
-        // 2. Clear Cache if old version detected
-        const savedVersion = localStorage.getItem("STUDIO_SYNC_ID");
-        if (savedVersion !== CURRENT_VERSION) {
-          console.warn("[NUCLEAR-FIREWALL] Build upgrade detected. Purging all cached ghosts...");
-          
-          // PRESERVE AUTHENTICATION TOKENS
-          const token = localStorage.getItem("token");
-          const userId = localStorage.getItem("userId");
-          const userName = localStorage.getItem("userName");
-          
-          localStorage.clear(); // Total wipe
-          
-          // RESTORE AUTHENTICATION TOKENS
-          if (token) localStorage.setItem("token", token);
-          if (userId) localStorage.setItem("userId", userId);
-          if (userName) localStorage.setItem("userName", userName);
-
-          localStorage.setItem("STUDIO_SYNC_ID", CURRENT_VERSION);
-          
-          if ('caches' in window) {
-            caches.keys().then(names => {
-              for (let name of names) caches.delete(name);
-            });
-          }
-          
-          console.log("%c[FIREWALL] Cache Purge Successful. Executing Forced Reload...", "color: #10b981; font-weight: bold;");
-          setTimeout(() => { window.location.reload(true); }, 500);
-        }
-        // 3. Global Error Recovery
-        window.onerror = function(msg, url) {
-          if (url && (url.includes('InterviewPrepModal') || url.includes('index-'))) {
-            console.error("[GOD-MODE] CRASH DETECTED. FORCING RECOVERY RELOAD.");
-            setTimeout(() => { window.location.reload(true); }, 1000);
-          }
-        };
-      })();
-    </script>
   </head>
   <body>
     <div id="root"></div>

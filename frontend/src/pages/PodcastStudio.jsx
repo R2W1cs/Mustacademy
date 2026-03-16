@@ -176,55 +176,89 @@ export default function CsDocumentary() {
                 audioRef.current.pause();
                 audioRef.current = null;
             }
+            if (window.speechSynthesis.speaking) {
+                window.speechSynthesis.cancel();
+            }
         };
 
         if (!isPlaying || !episode) { stopAudio(); return; }
+
+        const playLocalSpeech = (text) => {
+            return new Promise((resolve, reject) => {
+                const utterance = new SpeechSynthesisUtterance(text);
+                const voices = window.speechSynthesis.getVoices();
+                const sonia = voices.find(v => v.name.includes("Sonia") || v.name.includes("Aria"));
+                if (sonia) utterance.voice = sonia;
+                
+                utterance.onend = () => resolve();
+                utterance.onerror = (err) => reject(err);
+                window.speechSynthesis.speak(utterance);
+            });
+        };
 
         const playSegment = async () => {
             const segment = episode.segments[activeSegment];
             if (!segment) return;
 
-            try {
-                // Fetch Neural TTS from Backend
-                const response = await api.post("/ai/podcast/speech",
-                    { text: segment.text, speaker: segment.speaker },
-                    { responseType: 'blob' }
-                );
-
-                const url = URL.createObjectURL(response.data);
-                const audio = new Audio(url);
-                audioRef.current = audio;
-
-                audio.onended = () => {
-                    URL.revokeObjectURL(url);
+            if (segment.speaker === 'host') {
+                try {
+                    await playLocalSpeech(segment.text);
                     if (activeSegment < episode.segments.length - 1) {
                         setActiveSegment(prev => prev + 1);
                     } else {
                         setIsPlaying(false);
                     }
-                };
-
-                audio.onerror = () => {
-                    URL.revokeObjectURL(url);
-                    // Minimal fallback
-                    if (activeSegment < episode.segments.length - 1) setActiveSegment(prev => prev + 1);
-                    else setIsPlaying(false);
-                };
-
-                await audio.play();
-            } catch (err) {
-                const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message;
-                console.error(`%c[Neural-Audio] Documentary Synthesis Failure: ${errorMsg}`, "color: #ef4444; font-weight: bold;");
-                
-                // STRICT: No robotic fallback. Wait and try next segment or stop.
-                setTimeout(() => {
-                    if (activeSegment < episode.segments.length - 1) {
-                        setActiveSegment(prev => prev + 1);
-                    } else {
-                        setIsPlaying(false);
-                    }
-                }, 1500); 
+                } catch (err) {
+                    console.error("[Local-TTS] Error:", err);
+                    setIsPlaying(false);
+                }
+                return;
             }
+
+            // Prof. Nova (expert) segments with 1.5s delay
+            const delay = activeSegment === 0 ? 0 : 1500;
+            
+            setTimeout(async () => {
+                try {
+                    // Fetch Neural TTS from Backend
+                    const response = await api.post("/ai/podcast/speech",
+                        { text: segment.text, speaker: segment.speaker },
+                        { responseType: 'blob' }
+                    );
+
+                    const url = URL.createObjectURL(response.data);
+                    const audio = new Audio(url);
+                    audioRef.current = audio;
+
+                    audio.onended = () => {
+                        URL.revokeObjectURL(url);
+                        if (activeSegment < episode.segments.length - 1) {
+                            setActiveSegment(prev => prev + 1);
+                        } else {
+                            setIsPlaying(false);
+                        }
+                    };
+
+                    audio.onerror = () => {
+                        URL.revokeObjectURL(url);
+                        if (activeSegment < episode.segments.length - 1) setActiveSegment(prev => prev + 1);
+                        else setIsPlaying(false);
+                    };
+
+                    await audio.play();
+                } catch (err) {
+                    const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message;
+                    console.error(`%c[Neural-Audio] Documentary Synthesis Failure: ${errorMsg}`, "color: #ef4444; font-weight: bold;");
+                    
+                    setTimeout(() => {
+                        if (activeSegment < episode.segments.length - 1) {
+                            setActiveSegment(prev => prev + 1);
+                        } else {
+                            setIsPlaying(false);
+                        }
+                    }, 1500); 
+                }
+            }, delay);
         };
 
         playSegment();

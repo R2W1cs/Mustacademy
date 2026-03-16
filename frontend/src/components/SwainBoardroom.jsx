@@ -111,6 +111,7 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
     const [input, setInput] = useState("");
     const [isListening, setIsListening] = useState(false);
     const [isSpeaking, setIsSpeaking] = useState(false);
+    const [isFlashing, setIsFlashing] = useState(false);
     const [loading, setLoading] = useState(false);
     const [conversationId] = useState(() => {
         if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
@@ -351,6 +352,9 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
                 conversationId
             });
             const reply = res.data.reply || "Connection established. Marcus Stering here. Ready when you are.";
+            setIsFlashing(true);
+            setIsSpeaking(true);
+            setRevealedLength(0);
             setMessages([{ sender: 'ai', text: String(reply) }]);
             speak(String(reply));
         } catch (err) {
@@ -386,6 +390,9 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
             });
 
             const reply = res.data.reply || "I encountered a processing error. Could you repeat that?";
+            setIsFlashing(true);
+            setIsSpeaking(true);
+            setRevealedLength(0);
             setMessages(prev => [...prev, {
                 sender: 'ai',
                 text: String(reply),
@@ -444,6 +451,9 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
 
     const speak = async (rawText) => {
         if (!rawText || typeof rawText !== 'string') return;
+
+        setIsFlashing(true);
+        setTimeout(() => setIsFlashing(false), 600);
 
         // Kill anything currently playing
         killAudio();
@@ -944,19 +954,25 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
                                                         {/* Bubble Highlight */}
                                                         <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
                                                         
-                                                        {(() => {
-                                                            const cleanText = String(m.text || "").replace(/\[PAUSE\]|\[SPEED:[\d.]+\]/g, "");
-                                                            if (isLastAI && isSpeaking) {
-                                                                return (
-                                                                    <>
-                                                                        <span className="relative z-10 text-white/90">{cleanText.substring(0, revealedLength)}</span>
-                                                                        <span className="relative z-10 opacity-20 transition-opacity duration-300">{cleanText.substring(revealedLength)}</span>
-                                                                    </>
-                                                                );
-                                                            }
-                                                            return <span className="relative z-10 text-white/90">{cleanText}</span>;
-                                                        })()}
-                                                        {showCursor && <span className="inline-block w-1 h-4 ml-2 bg-indigo-500 animate-pulse align-middle" />}
+                                                        <div className="relative z-10 w-full whitespace-pre-wrap">
+                                                            {(() => {
+                                                                const cleanText = String(m.text || "").replace(/\[PAUSE\]|\[SPEED:[\d.]+\]/g, "");
+                                                                if (isLastAI && isFlashing) {
+                                                                    return <span className="text-white drop-shadow-[0_0_12px_rgba(255,255,255,0.8)] filter brightness-125 transition-all duration-300">{cleanText}</span>;
+                                                                }
+                                                                if (isLastAI && isSpeaking) {
+                                                                    return (
+                                                                        <>
+                                                                            <span className="text-white/90">{cleanText.substring(0, revealedLength)}</span>
+                                                                            <span className="opacity-20 transition-opacity duration-300">{cleanText.substring(revealedLength)}</span>
+                                                                        </>
+                                                                    );
+                                                                }
+                                                                // For historical messages, show full text
+                                                                return <span className="text-white/90">{cleanText}</span>;
+                                                            })()}
+                                                            {showCursor && <span className="inline-block w-1 h-4 ml-2 bg-indigo-500 animate-pulse align-middle" />}
+                                                        </div>
                                                     </div>
                                                     <span className="mt-4 text-[7px] font-black text-white/20 uppercase tracking-[0.4em] px-6">{isAI ? 'SWAIN · VOCAL_CORE' : 'SIGNAL · SOURCE_0'}</span>
                                                 </motion.div>

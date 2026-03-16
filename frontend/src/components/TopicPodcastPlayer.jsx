@@ -46,6 +46,10 @@ export default function TopicPodcastPlayer({ topic }) {
                 audioRef.current.onerror = null;
                 audioRef.current = null;
             }
+            // Only cancel if we are explicitly stopping playback (not just moving segments)
+            if (!isPlaying && window.speechSynthesis.speaking) {
+                window.speechSynthesis.cancel();
+            }
         };
 
         if (!isPlaying || !episode) {
@@ -59,6 +63,23 @@ export default function TopicPodcastPlayer({ topic }) {
             return;
         }
 
+
+        const playLocalSpeech = (text) => {
+            return new Promise((resolve, reject) => {
+                const utterance = new SpeechSynthesisUtterance(text);
+                
+                // Try to find Sonia or a natural female voice
+                const voices = window.speechSynthesis.getVoices();
+                const sonia = voices.find(v => v.name.includes("Sonia") || v.name.includes("Aria"));
+                if (sonia) utterance.voice = sonia;
+                
+                utterance.onend = () => resolve();
+                utterance.onerror = (err) => reject(err);
+                
+                utteranceRef.current = utterance;
+                window.speechSynthesis.speak(utterance);
+            });
+        };
 
         const playCloudAudio = async (text, speakerType, retryCount = 0) => {
             try {
@@ -107,8 +128,30 @@ export default function TopicPodcastPlayer({ topic }) {
             }
         };
 
-        // EXCLUSIVE: We no longer fallback to browser robots. 100% human or silence.
-        playCloudAudio(segment.text, segment.speaker);
+        const startSequence = async () => {
+            if (segment.speaker === 'host') {
+                // Dr. Aria uses local Windows Speech Synthesis
+                try {
+                    await playLocalSpeech(segment.text);
+                    if (activeSegment < episode.segments.length - 1) {
+                        setActiveSegment(prev => prev + 1);
+                    } else {
+                        setIsPlaying(false);
+                    }
+                } catch (err) {
+                    console.error("[Local-TTS] Error:", err);
+                    setIsPlaying(false);
+                }
+            } else {
+                // Prof. Nova uses Cloud TTS with a 1.5s delay
+                const delay = activeSegment === 0 ? 0 : 1500;
+                setTimeout(() => {
+                    playCloudAudio(segment.text, segment.speaker);
+                }, delay);
+            }
+        };
+
+        startSequence();
 
         return stopAllAudio;
     }, [isPlaying, activeSegment, episode]);

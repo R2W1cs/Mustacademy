@@ -1,23 +1,26 @@
 services:
   - type: web
     name: mustacademy-backend
-    runtime: node
-    region: frankfurt
+    env: node
     plan: free
-    buildCommand: cd server && npm install
+    buildCommand: npm install && cd server && npm install
     startCommand: cd server && npm start
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 10000
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: mustacademy-db
+          property: connectionString
       - key: JWT_SECRET
-        sync: false
+        generateValue: true
       - key: GROQ_API_KEY
         sync: false
-      - key: SERPAPI_KEY
+      - key: GEMINI_API_KEY
         sync: false
       - key: FRONTEND_URL
-        sync: false
+        value: https://mustacademy-frontend.vercel.app
+
+databases:
+  - name: mustacademy-db
+    plan: free

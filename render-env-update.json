@@ -1,9 +1,0 @@
-[
-  {"key":"DATABASE_URL","value":"postgresql://neondb_owner:npg_uY4h7djiasIp@ep-misty-queen-ag8488es.c-2.eu-central-1.aws.neon.tech/cs_roadmap?sslmode=require"},
-  {"key":"JWT_SECRET","value":"9d9273dba12083a9a4936e90d9e71dd887a2aaead3e89eca85ee20d6d3790737d007ae507dd45a7627b92597b68bf430a74fc26c8e6bff97f97f3cd9bc5f354d0"},
-  {"key":"NODE_ENV","value":"production"},
-  {"key":"PORT","value":"10000"},
-  {"key":"FRONTEND_URL","value":"https://mustacademy.vercel.app"},
-  {"key":"GROQ_API_KEY","value":"YOUR_GROQ_API_KEY_HERE"},
-  {"key":"SERPAPI_KEY","value":"YOUR_SERPAPI_KEY_HERE"}
-]

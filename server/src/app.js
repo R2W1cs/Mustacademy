@@ -52,7 +52,7 @@ app.use(cors({
   origin: allowedOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Sync-ID', 'x-sync-id']
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(express.json({ limit: '50mb' }));
@@ -100,7 +100,7 @@ app.get('/api/health', async (req, res) => {
 });
 
 app.get('/api', (req, res) => {
-  res.json({ message: 'MustAcademy API - v19.4 GOD_MODE Precision Sync Active 🚀' });
+  res.json({ message: 'MustAcademy API - Precision Sync Active 🚀' });
 });
 
 app.get('/', (req, res) => {

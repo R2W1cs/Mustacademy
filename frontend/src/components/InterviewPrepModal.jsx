@@ -276,17 +276,23 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
 
             recognitionRef.current.onend = () => {
                 console.log("[Mic] Session Ended");
-                setIsListening(false);
-                // Restart if it ended unexpectedly and we should be listening
+                // Only restart if we intended to be listening and aren't inhibited by speaking/loading
+                // We check the refs which are now updated immediately
                 if (isListeningRef.current && !isSpeakingRef.current && !loadingRef.current) {
                     try { recognitionRef.current.start(); } catch (e) { }
+                } else {
+                    setIsListening(false);
+                    isListeningRef.current = false;
                 }
             };
 
             recognitionRef.current.onerror = (e) => {
                 console.error("[Mic] Engine Error:", e.error);
-                if (e.error === 'no-speech') return; // Ignore silence timeouts
                 setIsListening(false);
+                isListeningRef.current = false;
+                if (e.error === 'no-speech') {
+                    console.warn("[Mic] No speech detected. Stopping listening core.");
+                }
             };
         }
         return () => {
@@ -334,6 +340,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
 
         setIsStarted(true);
         setLoading(true);
+        loadingRef.current = true;
         try {
             const res = await api.post("/ai/interview/start", {
                 targetJob: job,
@@ -341,6 +348,8 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
             });
             const reply = res.data.reply || "Connection established. Marcus Stering here. Ready when you are.";
             setMessages([{ sender: 'ai', text: String(reply) }]);
+            setLoading(false);
+            loadingRef.current = false;
             speak(String(reply));
         } catch (err) {
             console.error("Start Error:", err);
@@ -351,6 +360,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
             }]);
         } finally {
             setLoading(false);
+            loadingRef.current = false;
         }
     };
 
@@ -361,6 +371,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
         setMessages(prev => [...prev, { sender: 'user', text: String(textToSend) }]);
         setInput("");
         setLoading(true);
+        loadingRef.current = true;
         setTimeLeft(null);
         if (timerRef.current) clearTimeout(timerRef.current);
 
@@ -399,6 +410,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
             setMessages(prev => [...prev, { sender: 'ai', text: "Interruption detected. Please restate." }]);
         } finally {
             setLoading(false);
+            loadingRef.current = false;
         }
     };
 
@@ -432,6 +444,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
 
         try {
             setIsSpeaking(true);
+            isSpeakingRef.current = true;
             setRevealedLength(0);
             if (recognitionRef.current) try { recognitionRef.current.stop(); } catch (e) { }
 
@@ -495,6 +508,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
 
             audio.onended = () => {
                 setIsSpeaking(false);
+                isSpeakingRef.current = false;
                 setRevealedLength(cleanText.length);
                 URL.revokeObjectURL(url);
                 if (!scorecard && !loadingRef.current) {
@@ -509,6 +523,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
             audio.onerror = () => {
                 console.error("[Neural-Audio] Playback failure.");
                 setIsSpeaking(false);
+                isSpeakingRef.current = false;
                 URL.revokeObjectURL(url);
             };
 
@@ -518,6 +533,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
             const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message;
             console.error(`%c[Neural-Audio] Marcus Synthesis Failure: ${errorMsg}`, "color: #ef4444; font-weight: bold;");
             setIsSpeaking(false);
+            isSpeakingRef.current = false;
         }
     };
 
@@ -534,9 +550,13 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
 
     const toggleListening = () => {
         if (isListening) {
+            setIsListening(false);
+            isListeningRef.current = false;
             if (recognitionRef.current) try { recognitionRef.current.stop(); } catch (e) { }
         } else {
             if (recognitionRef.current && !isSpeaking) {
+                setIsListening(true);
+                isListeningRef.current = true;
                 try { recognitionRef.current.start(); } catch (e) { }
             }
         }
