@@ -74,8 +74,7 @@ export const callGroq = async (prompt, expectJson = true, model = "llama-3.3-70b
             messages: [{ role: "user", content: prompt }],
             temperature: 1,
             max_completion_tokens: 8192,
-            top_p: 1,
-            reasoning_effort: "medium"
+            top_p: 1
         };
 
         if (expectJson) {
@@ -115,7 +114,6 @@ export const streamAI = async (prompt, model = "llama-3.3-70b-versatile") => {
                 temperature: 1,
                 max_completion_tokens: 8192,
                 top_p: 1,
-                reasoning_effort: "medium",
                 stream: true,
             });
             return stream;
