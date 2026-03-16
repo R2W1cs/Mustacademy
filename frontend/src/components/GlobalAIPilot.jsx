@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bot, X, Send, ChevronDown, Zap, Clock, ArrowRight, ChevronRight, Activity, Play, Pause, CheckCircle2 } from 'lucide-react';
-import api, { getApiUrl } from '../api/axios';
+import api from '../api/axios';
 import { useTheme } from '../auth/ThemeContext';
 import { usePlan } from '../auth/PlanContext';
 
@@ -113,8 +113,7 @@ export default function GlobalAIPilot() {
             // Add a placeholder message for the AI
             setMessages(prev => [...prev, { role: 'ai', text: '' }]);
 
-            const apiUrl = getApiUrl();
-            const response = await fetch(`${apiUrl}/ai/chat/stream`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/ai/chat/stream`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
