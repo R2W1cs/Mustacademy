@@ -7,7 +7,9 @@ import { ArrowLeft, Briefcase } from "lucide-react";
 export default function InterviewPage() {
     const navigate = useNavigate();
     const { theme } = useTheme();
-    const isDark = theme === 'dark';
+
+    // Default to 'light' theme in case it's undefined
+    const isDark = theme === 'dark' || false;
 
     // Safety cleanup: Ensure body scroll is restored if the modal was active
     useEffect(() => {
@@ -37,6 +39,7 @@ export default function InterviewPage() {
                 </div>
 
                 <div className="flex-1 bg-slate-950/50 rounded-[3rem] border border-slate-800 shadow-2xl overflow-hidden backdrop-blur-xl">
+                    {/* Ensure onClose prop is passed properly */}
                     <SwainBoardroom isPage={true} onClose={() => navigate(-1)} />
                 </div>
             </div>

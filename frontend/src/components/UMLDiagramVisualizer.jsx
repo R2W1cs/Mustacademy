@@ -460,7 +460,7 @@ const UMLDiagramVisualizer = ({ type = 'use case' }) => {
                                 className={`w-1.5 h-1.5 rounded-full ${i === step ? `bg-${config.color}-400` : 'bg-white/20'}`} 
                                 style={{ 
                                     boxShadow: i === step 
-                                        ? `0 0 10px rgba(var(--${config.color}-400), 0.8)` 
+                                        ? `0 0 10px rgba(var(--primary), 0.8)` 
                                         : 'none' 
                                 }}
                             />
@@ -486,7 +486,7 @@ const UMLDiagramVisualizer = ({ type = 'use case' }) => {
                             style={{ 
                                 boxShadow: isPlaying 
                                     ? '0 0 15px rgba(239, 68, 68, 0.3)' 
-                                    : `0 0 15px rgba(var(--${config.color}-500), 0.3)` 
+                                    : `0 0 15px rgba(var(--primary), 0.3)` 
                             }}
                         >
                             {isPlaying ? "Pause" : <><Play size={12} /> Auto Build</>}

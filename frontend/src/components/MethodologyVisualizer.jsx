@@ -505,7 +505,7 @@ const MethodologyVisualizer = ({ type = 'waterfall' }) => {
                                         style={{ 
                                             boxShadow: isPlaying 
                                                 ? '0 0 15px rgba(239, 68, 68, 0.3)' 
-                                                : `0 0 15px rgba(var(--${config.color}-500), 0.3)` 
+                                                : `0 0 15px rgba(var(--primary), 0.3)` 
                                         }}
                                     >
                                         {isPlaying ? "Pause" : <><Play size={12} /> Auto Play</>}

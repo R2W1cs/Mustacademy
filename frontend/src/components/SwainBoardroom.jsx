@@ -297,6 +297,15 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
             recognitionRef.current.onerror = (e) => {
                 console.error("[Mic] Engine Error:", e.error);
                 if (e.error === 'no-speech') return; // Ignore silence timeouts
+
+                // For non-recoverable errors, clear the ref BEFORE setting state
+                // so the onend handler does NOT attempt to auto-restart into a broken connection
+                if (['network', 'aborted', 'service-not-allowed', 'not-allowed'].includes(e.error)) {
+                    isListeningRef.current = false;
+                    if (e.error === 'network') {
+                        console.warn("[Mic] Network error — speech recognition requires a secure HTTPS context and network access to the browser's speech service.");
+                    }
+                }
                 setIsListening(false);
             };
         }
@@ -486,26 +495,12 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
             }
 
             audio.onplay = () => {
-                // Poll audio.currentTime every 50ms — simple, safe, reliable
+                // Show full text immediately — no word-by-word reveal
+                setRevealedLength(totalChars);
+                // Poll for voice intensity animation only
                 textIntervalRef.current = setInterval(() => {
-                    const a = audioRef.current;
-                    if (!a || !a.duration || isNaN(a.duration) || a.duration <= 0) return;
-
-                    const progress = Math.min(a.currentTime / (a.duration || 1), 1);
-                    const charTarget = Math.floor(progress * totalChars);
-
-                    // Find last word boundary that fits within charTarget
-                    let reveal = 0;
-                    for (const boundary of wordBoundaries) {
-                        if (boundary <= charTarget + 2) reveal = boundary;
-                        else break;
-                    }
-
-                    setRevealedLength(Math.min(reveal, totalChars));
                     setVoiceIntensity(0.6 + Math.random() * 0.4);
-                }, 50);
-
-
+                }, 80);
             };
 
             audio.onended = () => {
@@ -694,7 +689,7 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
                         exit={openingVariant.exit}
                         transition={openingVariant.transition}
                         style={{ left: currentSidebarWidth, width: `calc(100% - ${currentSidebarWidth}px)`, transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}
-                        className={`${isDark ? 'bg-[#05070a/10]' : 'bg-white'} fixed top-0 right-0 bottom-0 z-[40] flex flex-col md:flex-row overflow-hidden no-scrollbar backdrop-blur-3xl`}
+                        className={`${isDark ? 'bg-[#05070a]' : 'bg-white'} fixed top-0 right-0 bottom-0 z-[40] flex flex-col md:flex-row overflow-hidden no-scrollbar backdrop-blur-3xl`}
                     >
                         <SynapticBackground />
                         
@@ -946,14 +941,6 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
                                                         
                                                         {(() => {
                                                             const cleanText = String(m.text || "").replace(/\[PAUSE\]|\[SPEED:[\d.]+\]/g, "");
-                                                            if (isLastAI && isSpeaking) {
-                                                                return (
-                                                                    <>
-                                                                        <span className="relative z-10 text-white/90">{cleanText.substring(0, revealedLength)}</span>
-                                                                        <span className="relative z-10 opacity-20 transition-opacity duration-300">{cleanText.substring(revealedLength)}</span>
-                                                                    </>
-                                                                );
-                                                            }
                                                             return <span className="relative z-10 text-white/90">{cleanText}</span>;
                                                         })()}
                                                         {showCursor && <span className="inline-block w-1 h-4 ml-2 bg-indigo-500 animate-pulse align-middle" />}
