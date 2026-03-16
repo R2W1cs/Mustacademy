@@ -5,7 +5,7 @@ import { Communicate } from 'edge-tts-universal';
  * Converts text to high-quality speech using Microsoft Edge Neural voices.
  */
 export const generateTTS = async (req, res) => {
-    const { text, voice = 'en-US-AriaNeural' } = req.body;
+    const { text, voice = 'en-US-AvaNeural' } = req.body;
 
     if (!text) {
         return res.status(400).json({ error: 'Text is required for synthesis.' });

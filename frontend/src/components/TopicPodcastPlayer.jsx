@@ -64,101 +64,55 @@ export default function TopicPodcastPlayer({ topic }) {
         }
 
 
-        const playLocalSpeech = (text) => {
-            return new Promise((resolve, reject) => {
-                const utterance = new SpeechSynthesisUtterance(text);
-                
-                // Try to find Sonia or a natural female voice
-                const voices = window.speechSynthesis.getVoices();
-                const sonia = voices.find(v => v.name.includes("Sonia") || v.name.includes("Aria"));
-                if (sonia) utterance.voice = sonia;
-                
-                utterance.onend = () => resolve();
-                utterance.onerror = (err) => {
-                    if (err.error === 'interrupted') {
-                        console.log("[Local-TTS] Speech interrupted (expected on pause/skip)");
-                        resolve(); // Don't treat as a crash
-                    } else {
-                        reject(err);
-                    }
-                };
-                
-                utteranceRef.current = utterance;
-                window.speechSynthesis.speak(utterance);
-            });
-        };
+        const playSegment = async () => {
+            const segment = episode.segments[activeSegment];
+            if (!segment) return;
 
-        const playCloudAudio = async (text, speakerType, retryCount = 0) => {
-            try {
-                // Fetch Neural TTS from Backend
-                const response = await api.post("/ai/podcast/speech",
-                    { text, speaker: speakerType },
-                    { responseType: 'blob', timeout: 30000 }
-                );
-
-                if (!response.data || response.data.size < 500) {
-                    throw new Error("Empty audio response");
-                }
-
-                console.log(`%c[Neural-Audio] High-fidelity stream active (${speakerType}).`, "color: #10b981; font-weight: bold;");
-                const url = URL.createObjectURL(response.data);
-                const audio = new Audio(url);
-                audioRef.current = audio;
-
-                audio.onended = () => {
-                    URL.revokeObjectURL(url);
-                    if (activeSegment < episode.segments.length - 1) {
-                        setActiveSegment(prev => prev + 1);
-                    } else {
-                        setIsPlaying(false);
-                    }
-                };
-
-                audio.onerror = (err) => {
-                    console.error("[Neural-Audio] Playback interrupted.", err);
-                    URL.revokeObjectURL(url);
-                    setIsPlaying(false);
-                };
-
-                await audio.play();
-            } catch (err) {
-                const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message;
-                console.error(`%c[Neural-Audio] Cloud Fetch Failed: ${errorMsg}`, "color: #ef4444; font-weight: bold;");
-                
-                if (retryCount < 1) {
-                    console.warn("[Neural-Audio] Retrying high-fidelity synthesis...");
-                    return playCloudAudio(text, speakerType, retryCount + 1);
-                }
-
-                setError("High-fidelity audio service temporarily unreachable. Trying to reconnect...");
-                setIsPlaying(false);
-            }
-        };
-
-        const startSequence = async () => {
-            if (segment.speaker === 'host') {
-                // Dr. Aria uses local Windows Speech Synthesis
+            // Neural TTS from Backend for BOTH speakers
+            const delay = activeSegment === 0 ? 0 : 800;
+            
+            setTimeout(async () => {
                 try {
-                    await playLocalSpeech(segment.text);
-                    if (activeSegment < episode.segments.length - 1) {
-                        setActiveSegment(prev => prev + 1);
-                    } else {
-                        setIsPlaying(false);
-                    }
+                    const response = await api.post("/ai/podcast/speech",
+                        { text: segment.text, speaker: segment.speaker },
+                        { responseType: 'blob' }
+                    );
+
+                    const url = URL.createObjectURL(response.data);
+                    const audio = new Audio(url);
+                    audioRef.current = audio;
+
+                    audio.onended = () => {
+                        URL.revokeObjectURL(url);
+                        if (activeSegment < episode.segments.length - 1) {
+                            setActiveSegment(prev => prev + 1);
+                        } else {
+                            setIsPlaying(false);
+                        }
+                    };
+
+                    audio.onerror = () => {
+                        URL.revokeObjectURL(url);
+                        if (activeSegment < episode.segments.length - 1) setActiveSegment(prev => prev + 1);
+                        else setIsPlaying(false);
+                    };
+
+                    await audio.play();
                 } catch (err) {
-                    console.error("[Local-TTS] Error:", err);
-                    setIsPlaying(false);
+                    console.error("[Neural-Audio] Synthesis Failure:", err.message);
+                    
+                    setTimeout(() => {
+                        if (activeSegment < episode.segments.length - 1) {
+                            setActiveSegment(prev => prev + 1);
+                        } else {
+                            setIsPlaying(false);
+                        }
+                    }, 1500); 
                 }
-            } else {
-                // Prof. Nova uses Cloud TTS with a 1.5s delay
-                const delay = activeSegment === 0 ? 0 : 1500;
-                setTimeout(() => {
-                    playCloudAudio(segment.text, segment.speaker);
-                }, delay);
-            }
+            }, delay);
         };
 
-        startSequence();
+        playSegment();
 
         return stopAllAudio;
     }, [isPlaying, activeSegment, episode]);
