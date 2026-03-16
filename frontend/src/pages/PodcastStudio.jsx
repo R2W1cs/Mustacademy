@@ -139,9 +139,8 @@ export default function CsDocumentary() {
     const [showAbout, setShowAbout] = useState(false);
 
     const [masterclassEpisodes, setMasterclassEpisodes] = useState([]);
-    const [mcTitle, setMcTitle] = useState("");
-    const [mcTheme, setMcTheme] = useState("");
     const [generatingMasterclass, setGeneratingMasterclass] = useState(false);
+    const [isCinematicFullscreen, setIsCinematicFullscreen] = useState(false);
 
     const intervalRef = useRef(null);
 
@@ -183,44 +182,15 @@ export default function CsDocumentary() {
 
         if (!isPlaying || !episode) { stopAudio(); return; }
 
-        const playLocalSpeech = (text) => {
-            return new Promise((resolve, reject) => {
-                const utterance = new SpeechSynthesisUtterance(text);
-                const voices = window.speechSynthesis.getVoices();
-                const sonia = voices.find(v => v.name.includes("Sonia") || v.name.includes("Aria"));
-                if (sonia) utterance.voice = sonia;
-                
-                utterance.onend = () => resolve();
-                utterance.onerror = (err) => reject(err);
-                window.speechSynthesis.speak(utterance);
-            });
-        };
-
         const playSegment = async () => {
             const segment = episode.segments[activeSegment];
             if (!segment) return;
 
-            if (segment.speaker === 'host') {
-                try {
-                    await playLocalSpeech(segment.text);
-                    if (activeSegment < episode.segments.length - 1) {
-                        setActiveSegment(prev => prev + 1);
-                    } else {
-                        setIsPlaying(false);
-                    }
-                } catch (err) {
-                    console.error("[Local-TTS] Error:", err);
-                    setIsPlaying(false);
-                }
-                return;
-            }
-
-            // Prof. Nova (expert) segments with 1.5s delay
-            const delay = activeSegment === 0 ? 0 : 1500;
+            // Neural TTS from Backend (Aria & Nova)
+            const delay = activeSegment === 0 ? 0 : 800;
             
             setTimeout(async () => {
                 try {
-                    // Fetch Neural TTS from Backend
                     const response = await api.post("/ai/podcast/speech",
                         { text: segment.text, speaker: segment.speaker },
                         { responseType: 'blob' }
@@ -247,8 +217,7 @@ export default function CsDocumentary() {
 
                     await audio.play();
                 } catch (err) {
-                    const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message;
-                    console.error(`%c[Neural-Audio] Documentary Synthesis Failure: ${errorMsg}`, "color: #ef4444; font-weight: bold;");
+                    console.error("[Neural-Audio] Synthesis Failure:", err.message);
                     
                     setTimeout(() => {
                         if (activeSegment < episode.segments.length - 1) {
@@ -356,10 +325,10 @@ export default function CsDocumentary() {
                         </span>
                     </div>
                     <h1 className="text-5xl md:text-8xl font-black mb-3 tracking-tighter drop-shadow-lg leading-none">
-                        CS DOCUMENTARY
+                        CINEMATIC STUDIO
                     </h1>
                     <p className={`text-base md:text-lg max-w-xl font-medium mb-8 drop-shadow-md ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                        The complete story of computer science — from vacuum tubes to neural networks. Select any topic to generate your AI-narrated story.
+                        High-fidelity visual documentaries. Select a topic to generate a cinematic deep-dive narrated by neural AI voices.
                     </p>
 
                     <div className="flex items-center gap-3 flex-wrap">
@@ -546,82 +515,110 @@ export default function CsDocumentary() {
                                 <p className={isDark ? "text-gray-400" : "text-gray-600"}>Architecting narrative, composing voices, setting the scene.</p>
                             </div>
                         ) : episode ? (
-                            <div className="grid grid-cols-1 lg:grid-cols-3">
-                                {/* Left Panel — Story Cover + Controls */}
-                                <div className={`lg:col-span-1 border-b lg:border-b-0 lg:border-r ${isDark ? 'border-zinc-800' : 'border-gray-200'} flex flex-col overflow-hidden`}>
-                                    {/* Cover Image */}
-                                    {episode.topicImage && (
-                                        <div className="relative h-48 overflow-hidden">
+                            <div className={`relative ${isCinematicFullscreen ? 'fixed inset-0 z-[300] bg-black h-screen' : 'grid grid-cols-1 lg:grid-cols-3'}`}>
+                                {/* Cinematic Stage */}
+                                <div className={`relative overflow-hidden ${isCinematicFullscreen ? 'h-full w-full' : 'lg:col-span-2 h-[480px]'}`}>
+                                    {/* Ken Burns Background */}
+                                    <AnimatePresence mode="wait">
+                                        <motion.div
+                                            key={activeSegment}
+                                            initial={{ scale: 1, x: 0, y: 0 }}
+                                            animate={{ 
+                                                scale: 1.15, 
+                                                x: activeSegment % 2 === 0 ? 10 : -10,
+                                                y: activeSegment % 3 === 0 ? 5 : -5
+                                            }}
+                                            transition={{ duration: 15, ease: "linear" }}
+                                            className="absolute inset-0 z-0"
+                                        >
                                             <img
                                                 src={episode.topicImage}
                                                 alt={episode.title}
-                                                className="w-full h-full object-cover"
-                                                onError={e => { e.target.style.display = 'none'; }}
+                                                className="w-full h-full object-cover opacity-60"
                                             />
-                                            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/70" />
-                                            <div className="absolute bottom-3 left-4">
-                                                <span className="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded" style={{ backgroundColor: netflixRed, color: 'white' }}>
-                                                    Now Streaming
-                                                </span>
-                                            </div>
-                                        </div>
-                                    )}
+                                        </motion.div>
+                                    </AnimatePresence>
 
-                                    <div className="p-8 flex-1">
-                                        <h2 className="text-2xl font-black mb-3 tracking-tight">{episode.title}</h2>
-                                        <p className={`text-sm mb-6 leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{episode.summary}</p>
-
-                                        <div className="space-y-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer" style={{ backgroundColor: netflixRed, color: 'white' }}>
-                                                    {isPlaying
-                                                        ? <Pause size={20} fill="currentColor" onClick={() => setIsPlaying(false)} />
-                                                        : <Play size={20} fill="currentColor" onClick={() => { setIsPlaying(true); }} />
-                                                    }
+                                    {/* Overlays */}
+                                    <div className="absolute inset-0 z-10 bg-gradient-to-t from-black via-transparent to-black/40" />
+                                    
+                                    {/* Content Overlay */}
+                                    <div className="absolute inset-x-0 bottom-0 z-20 p-8 md:p-12">
+                                        <div className="max-w-3xl">
+                                            <div className="flex items-center gap-3 mb-4">
+                                                <div className="px-2 py-0.5 rounded bg-red-600 text-[10px] font-black text-white uppercase tracking-widest">
+                                                    {episode.segments[activeSegment]?.speaker === 'host' ? 'Dr. Aria' : 'Prof. Nova'}
                                                 </div>
-                                                <span className="font-bold uppercase text-xs tracking-widest">
-                                                    {isPlaying ? "Live Narration" : "Story Standby"}
-                                                </span>
+                                                <div className="h-0.5 w-12 bg-white/20" />
+                                                <div className="text-[10px] font-bold text-white/60 uppercase tracking-[0.2em]">
+                                                    Scene {activeSegment + 1} / {episode.segments.length}
+                                                </div>
                                             </div>
-
-                                            <div className={`w-full h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-zinc-800' : 'bg-gray-200'}`}>
-                                                <motion.div
-                                                    animate={{ width: `${((activeSegment + 1) / (episode.segments?.length || 1)) * 100}%` }}
-                                                    className="h-full rounded-full"
-                                                    style={{ backgroundColor: netflixRed }}
-                                                    transition={{ duration: 0.3 }}
-                                                />
-                                            </div>
-                                            <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                                                Scene {activeSegment + 1} of {episode.segments?.length || 0}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Right Panel — Script */}
-                                <div className="p-10 lg:col-span-2 h-[480px] overflow-y-auto custom-scrollbar">
-                                    <div className="space-y-6">
-                                        {episode.segments?.map((seg, i) => {
-                                            const isActive = activeSegment === i;
-                                            const isHost = seg.speaker === 'host';
-                                            return (
-                                                <div
-                                                    key={i}
-                                                    onClick={() => setActiveSegment(i)}
-                                                    className={`transition-all duration-300 cursor-pointer ${isActive ? 'opacity-100 scale-[1.01]' : 'opacity-35 hover:opacity-60'}`}
+                                            
+                                            <AnimatePresence mode="wait">
+                                                <motion.p
+                                                    key={activeSegment}
+                                                    initial={{ opacity: 0, y: 20 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: -20 }}
+                                                    transition={{ duration: 0.8, ease: "easeOut" }}
+                                                    className="text-2xl md:text-4xl font-black text-white leading-tight tracking-tight drop-shadow-2xl italic"
                                                 >
-                                                    <div className="font-bold text-xs uppercase tracking-widest mb-1" style={{ color: isActive ? netflixRed : (isDark ? '#555' : '#bbb') }}>
-                                                        {isHost ? 'Narrator' : 'Expert'}
-                                                    </div>
-                                                    <p className={`text-xl lg:text-2xl font-medium leading-relaxed ${isActive ? (isDark ? 'text-white' : 'text-black') : (isDark ? 'text-zinc-600' : 'text-gray-300')}`}>
-                                                        "{seg.text}"
-                                                    </p>
-                                                </div>
-                                            );
-                                        })}
+                                                    "{episode.segments[activeSegment]?.text}"
+                                                </motion.p>
+                                            </AnimatePresence>
+                                        </div>
+                                    </div>
+
+                                    {/* Top Controls */}
+                                    <div className="absolute top-6 right-6 z-30 flex items-center gap-2">
+                                        <button 
+                                            onClick={() => setIsCinematicFullscreen(!isCinematicFullscreen)}
+                                            className="p-3 rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-md transition-all border border-white/10"
+                                        >
+                                            <Film size={20} />
+                                        </button>
+                                        <button 
+                                            onClick={() => setEpisode(null)}
+                                            className="p-3 rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-md transition-all border border-white/10"
+                                        >
+                                            <X size={20} />
+                                        </button>
+                                    </div>
+                                    
+                                    {/* Playback Progress Strip (Bottom) */}
+                                    <div className="absolute bottom-0 inset-x-0 h-1 z-30 bg-white/10">
+                                        <motion.div 
+                                            className="h-full bg-red-600 shadow-[0_0_10px_#E50914]"
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${((activeSegment + 1) / episode.segments.length) * 100}%` }}
+                                        />
                                     </div>
                                 </div>
+
+                                {/* Script/Side Panel (Only if not fullscreen) */}
+                                {!isCinematicFullscreen && (
+                                    <div className={`p-8 lg:col-span-1 border-l ${isDark ? 'border-zinc-800 bg-black/20' : 'border-gray-200 bg-white'} overflow-y-auto h-[480px] custom-scrollbar`}>
+                                        <div className="mb-6">
+                                            <h3 className="text-xs font-black uppercase tracking-widest text-red-600 mb-2">Original Production</h3>
+                                            <h2 className="text-xl font-black leading-tight">{episode.title}</h2>
+                                        </div>
+                                        <div className="space-y-4">
+                                            {episode.segments.map((seg, i) => (
+                                                <div 
+                                                    key={i} 
+                                                    onClick={() => setActiveSegment(i)}
+                                                    className={`p-3 rounded-lg cursor-pointer transition-all ${activeSegment === i ? (isDark ? 'bg-white/10' : 'bg-red-50 border-l-2 border-red-600') : 'opacity-40 hover:opacity-70'}`}
+                                                >
+                                                    <p className="text-[10px] font-black uppercase mb-1 opacity-60">
+                                                        {seg.speaker === 'host' ? 'Dr. Aria' : 'Prof. Nova'}
+                                                    </p>
+                                                    <p className="text-xs font-medium line-clamp-2">{seg.text}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         ) : null}
                     </motion.div>
