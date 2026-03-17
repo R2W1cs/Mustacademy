@@ -145,7 +145,7 @@ export default function Dashboard() {
             {/* Global Cute Glows */}
             <div className={`absolute top-[-10%] left-[-5%] w-[40%] h-[40%] ${isDark ? 'bg-indigo-500/10' : 'bg-pink-400/10'} blur-[120px] rounded-full pointer-events-none transition-colors duration-1000`}></div>
             <div className={`absolute bottom-[20%] right-[-10%] w-[35%] h-[50%] ${isDark ? 'bg-cyan-500/10' : 'bg-blue-400/10'} blur-[150px] rounded-full pointer-events-none transition-colors duration-1000`}></div>
-                      <div className="max-w-7xl mx-auto px-4 md:px-8 relative z-10">
+                      <div className="max-w-[1800px] mx-auto px-4 md:px-8 relative z-10">
                 {/* Header Section */}
                 <header className="mb-10 animate-fade-in relative z-20">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
