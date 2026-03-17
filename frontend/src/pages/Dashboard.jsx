@@ -8,7 +8,11 @@ import {
     Target, Sparkles, Briefcase, MessageSquare
 } from "lucide-react";
 import { useTheme } from "../auth/ThemeContext";
-import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, LineChart, CartesianGrid, XAxis, YAxis, Tooltip, Line } from 'recharts';
+import { 
+    ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, 
+    PolarRadiusAxis, Radar, AreaChart, CartesianGrid, XAxis, 
+    YAxis, Tooltip, Area, Defs, LinearGradient, Stop 
+} from 'recharts';
 
 // Mock data removed (fetching real data now)
 import { io } from "socket.io-client";
@@ -135,10 +139,12 @@ export default function Dashboard() {
     const themeClass = isDark ? "bg-[#050810] text-white" : "light bg-[#FFFFFF] text-gray-900";
     const sidebarClass = isDark ? "bg-[#0a0e1a] border-white/5" : "bg-white border-gray-100 border-r";
     const cardClass = isDark
-        ? "glass-morphism hover:border-white/20 hover:scale-[1.01] hover:shadow-lg transition-all duration-500"
-        : "glass-morphism hover:border-red-200 hover:scale-[1.01] transition-all duration-500 shadow-sm";
-    const textMuted = isDark ? "text-gray-400" : "text-slate-500 font-medium";
-    const headingColor = isDark ? "text-white" : "text-slate-900";
+        ? "glass-morphism holographic-card hover:border-cyan-500/30 transition-all duration-500 shadow-2xl"
+        : "glass-morphism hover:border-red-200 transition-all duration-500 shadow-sm";
+    const textMuted = isDark ? "text-slate-400 font-light" : "text-slate-500 font-medium";
+    const headingColor = isDark ? "text-white tracking-tight" : "text-slate-900";
+    const accentColor = isDark ? "#00f2ff" : "#C01636"; // Cyan vs Red
+    const accentGlow = isDark ? "rgba(0, 242, 255, 0.4)" : "rgba(192, 22, 54, 0.2)";
 
     return (
         <div className={`animate-fade-in group ${themeClass}`}>
@@ -241,7 +247,7 @@ export default function Dashboard() {
                                 </button>
                                 <button
                                     onClick={() => setSkillMode('academic')}
-                                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${skillMode === 'academic' ? (isDark ? 'bg-[#6366f1] text-white shadow-sm' : 'bg-red-600 text-white shadow-sm') : 'text-gray-500 hover:text-gray-300'}`}
+                                    className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-md transition-all ${skillMode === 'academic' ? (isDark ? 'bg-[#00f2ff] text-black shadow-[0_0_15px_rgba(0,242,255,0.4)]' : 'bg-red-600 text-white shadow-sm') : 'text-gray-500 hover:text-gray-300'}`}
                                 >
                                     Academic
                                 </button>
@@ -256,10 +262,10 @@ export default function Dashboard() {
                                     <Radar
                                         name="Proficiency"
                                         dataKey="value"
-                                        stroke={isDark ? "#6366f1" : "#C01636"}
-                                        fill={isDark ? "#6366f1" : "#C01636"}
-                                        fillOpacity={0.25}
-                                        strokeWidth={2}
+                                        stroke={accentColor}
+                                        fill={accentColor}
+                                        fillOpacity={0.15}
+                                        strokeWidth={3}
                                     />
                                 </RadarChart>
                             ) : (
@@ -305,7 +311,7 @@ export default function Dashboard() {
                         </div>
                         <ResponsiveContainer width="100%" height={240}>
                             {stats?.weeklyProgress?.length > 0 ? (
-                                <LineChart
+                                <AreaChart
                                     data={selectedWeek ? selectedWeek.days : stats.weeklyProgress}
                                     onClick={(e) => {
                                         if (!selectedWeek && e?.activePayload?.[0]?.payload) {
@@ -314,27 +320,36 @@ export default function Dashboard() {
                                     }}
                                     style={{ cursor: selectedWeek ? 'default' : 'pointer' }}
                                 >
-                                    <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "rgba(148, 163, 184, 0.08)" : "rgba(192, 22, 54, 0.05)"} vertical={false} />
-                                    <XAxis dataKey={selectedWeek ? "day" : "week"} stroke="#64748b" fontSize={13} tickLine={false} axisLine={false} />
-                                    <YAxis stroke="#64748b" fontSize={13} tickLine={false} axisLine={false} />
+                                    <defs>
+                                        <linearGradient id="colorHours" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor={accentColor} stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor={accentColor} stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(192, 22, 54, 0.05)"} vertical={false} />
+                                    <XAxis dataKey={selectedWeek ? "day" : "week"} stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
+                                    <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
                                     <Tooltip
                                         contentStyle={{
-                                            backgroundColor: isDark ? "#151b28" : "#ffffff",
-                                            border: isDark ? "1px solid rgba(148, 163, 184, 0.1)" : "1px solid rgba(99, 102, 241, 0.2)",
+                                            backgroundColor: isDark ? "#0f172a" : "#ffffff",
+                                            border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(192, 22, 54, 0.1)",
                                             borderRadius: "12px",
                                             color: isDark ? "#fff" : "#000",
-                                            fontSize: "14px",
+                                            fontSize: "12px",
+                                            boxShadow: isDark ? "0 10px 30px rgba(0,0,0,0.5)" : "0 10px 30px rgba(0,0,0,0.1)"
                                         }}
                                     />
-                                    <Line
+                                    <Area
                                         type="monotone"
                                         dataKey="hours"
-                                        stroke={isDark ? "#6366f1" : "#C01636"}
-                                        strokeWidth={2.5}
-                                        dot={{ fill: isDark ? "#6366f1" : "#C01636", r: 5, strokeWidth: 0 }}
-                                        activeDot={{ r: 7 }}
+                                        stroke={accentColor}
+                                        strokeWidth={3}
+                                        fillOpacity={1}
+                                        fill="url(#colorHours)"
+                                        dot={{ fill: accentColor, r: 4, strokeWidth: 0, fillOpacity: 0.8 }}
+                                        activeDot={{ r: 6, stroke: accentColor, strokeWidth: 2, fill: '#fff' }}
                                     />
-                                </LineChart>
+                                </AreaChart>
                             ) : (
                                 <div className="h-full flex items-center justify-center text-sm text-gray-500">
                                     <TrendingUp className="w-5 h-5 mr-3 opacity-50" />
@@ -478,8 +493,8 @@ export default function Dashboard() {
                                     Simulate high-pressure technical interviews with real-time feedback and AI analysis tailored to your profile.
                                 </p>
                             )}
-                            <div className={`flex items-center text-sm font-bold uppercase tracking-widest gap-2 ${isDark ? 'text-indigo-500' : 'text-red-600'}`}>
-                                Enter Session <ArrowRight size={16} />
+                            <div className={`flex items-center text-[10px] font-black uppercase tracking-[0.2em] gap-2 ${isDark ? 'text-cyan-400 group-hover:text-cyan-300' : 'text-red-600'}`}>
+                                Enter Session <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                             </div>
                         </div>
                     </div>
