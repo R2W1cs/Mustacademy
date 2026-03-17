@@ -5,7 +5,8 @@ import api from "../api/axios";
 import {
     Bell, Search, ArrowRight, Brain,
     Activity, TrendingUp, ChevronLeft, PenTool,
-    Target, Sparkles, Briefcase, MessageSquare
+    Target, Sparkles, Briefcase, MessageSquare,
+    Heart, Star, Coffee
 } from "lucide-react";
 import { useTheme } from "../auth/ThemeContext";
 import { 
@@ -34,11 +35,14 @@ const timeAgo = (date) => {
     return Math.floor(seconds) + "s ago";
 };
 
-// Restored Components
-// Lazy Loaded Components
-const AiMentorModal = lazy(() => import("../components/AiMentorModal"));
-
 const LeaderboardModal = lazy(() => import("../components/LeaderboardModal"));
+const AiMentorModal = lazy(() => import("../components/AiMentorModal"));
+const QuizModal = lazy(() => import("../components/QuizModal"));
+const InterviewPrepModal = lazy(() => import("../components/InterviewPrepModal"));
+const MultiplayerQuizModal = lazy(() => import("../components/MultiplayerQuizModal"));
+const ScholarlyFeedbackModal = lazy(() => import("../components/ScholarlyFeedbackModal"));
+const DashboardSkeleton = lazy(() => import("../components/DashboardSkeleton"));
+import StreakWidget from "../components/StreakWidget";
 
 export default function Dashboard() {
     const { theme } = useTheme();
