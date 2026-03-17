@@ -36,7 +36,7 @@ const MainLayout = ({ children }) => {
     window.dispatchEvent(new CustomEvent('sidebarToggle', { detail: { isCollapsed: newState } }));
   };
 
-  const isImmersiveRoute = location.pathname.includes('/roadmap') || location.pathname.startsWith('/topics') || location.pathname.startsWith('/podcast-studio');
+  const isImmersiveRoute = location.pathname.startsWith('/dashboard') || location.pathname.includes('/roadmap') || location.pathname.startsWith('/topics') || location.pathname.startsWith('/podcast-studio');
   const isCelestialRoute = location.pathname.startsWith('/library') || location.pathname.startsWith('/courses') || location.pathname.startsWith('/topics');
 
   return (

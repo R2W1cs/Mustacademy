@@ -102,7 +102,7 @@ export default function Sidebar({ isCollapsed, toggleSidebar }) {
                 transition: 'width 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
                 backdropFilter: 'blur(25px) saturate(160%)'
             }}
-            className={`min-h-screen relative z-40 ${sidebarClass} flex flex-col`}
+            className={`h-screen sticky top-0 z-40 ${sidebarClass} flex flex-col`}
         >
             {isDark && <StarParticles />}
             {/* Collapse Toggle Button */}

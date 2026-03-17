@@ -147,7 +147,7 @@ export default function Dashboard() {
             <div className={`absolute bottom-[20%] right-[-10%] w-[35%] h-[50%] ${isDark ? 'bg-cyan-500/10' : 'bg-blue-400/10'} blur-[150px] rounded-full pointer-events-none transition-colors duration-1000`}></div>
                       <div className="max-w-[1800px] mx-auto px-4 md:px-8 relative z-10">
                 {/* Header Section */}
-                <header className="mb-10 animate-fade-in relative z-20">
+                <header className="mb-10 animate-fade-in relative z-20 pt-10">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                         {/* Welcome & Metrics Group */}
                         <div className="flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-8">
@@ -181,16 +181,52 @@ export default function Dashboard() {
                         </div>
 
                         {/* Actions Group (Notifications + Search) */}
-                        <div className="flex items-center space-x-3">
-                            <button
-                                onClick={() => setShowNotifications(!showNotifications)}
-                                className={`group/notif p-2.5 rounded-xl transition-all relative ${isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-100 hover:bg-gray-200'}`}
-                            >
-                                <Bell className={isDark ? "text-gray-400 group-hover/notif:text-amber-400" : "text-gray-600"} size={18} />
-                                {notifications.length > 0 && (
-                                    <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-[#050810]"></span>
-                                )}
-                            </button>
+                        <div className="flex items-center space-x-3 relative">
+                            <div className="relative">
+                                <button
+                                    onClick={() => setShowNotifications(!showNotifications)}
+                                    className={`group/notif p-2.5 rounded-xl transition-all relative ${isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-100 hover:bg-gray-200'} ${showNotifications ? 'ring-2 ring-cyan-500/50' : ''}`}
+                                >
+                                    <Bell className={isDark ? "text-gray-400 group-hover/notif:text-amber-400" : "text-gray-600"} size={18} />
+                                    {notifications.length > 0 && (
+                                        <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-[#050810]"></span>
+                                    )}
+                                </button>
+
+                                <AnimatePresence>
+                                    {showNotifications && (
+                                        <>
+                                            <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} />
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                className={`absolute right-0 mt-3 w-80 max-h-[400px] overflow-y-auto p-4 rounded-3xl border shadow-2xl z-50 ${isDark ? 'glass-morphism border-white/10' : 'bg-white border-slate-200'}`}
+                                            >
+                                                <div className="flex items-center justify-between mb-4 px-2">
+                                                    <h4 className="text-[10px] font-black uppercase tracking-widest">Pulse Feed</h4>
+                                                    <button className="text-[9px] text-cyan-500 font-bold uppercase tracking-tighter" onClick={() => setNotifications([])}>Clear all</button>
+                                                </div>
+                                                <div className="space-y-3">
+                                                    {notifications.length > 0 ? (
+                                                        notifications.map((n, i) => (
+                                                            <div key={i} className={`p-3 rounded-2xl border transition-all ${isDark ? 'hover:bg-white/5 border-white/5' : 'hover:bg-black/5 border-slate-100'}`}>
+                                                                <p className="text-xs font-semibold mb-1">{n.text || n.message}</p>
+                                                                <p className="text-[9px] opacity-50 font-medium">{timeAgo(n.date || n.createdAt)}</p>
+                                                            </div>
+                                                        ))
+                                                    ) : (
+                                                        <div className="py-10 text-center opacity-40">
+                                                            <Bell size={32} className="mx-auto mb-3" />
+                                                            <p className="text-[10px] font-black uppercase tracking-widest">System Silent</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </motion.div>
+                                        </>
+                                    )}
+                                </AnimatePresence>
+                            </div>
 
                             <button
                                 onClick={() => window.dispatchEvent(new CustomEvent('open-command-palette'))}
