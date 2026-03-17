@@ -236,27 +236,6 @@ export default function Dashboard() {
                             </div>
                         </div>
                     </div>
-                    {/* Interactive "Cute" Quick Stats */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
-                        {[
-                            { label: "Brain Power", value: `${Math.round(asc / 10)}%`, icon: Brain, color: "bg-cyan-500", shadow: "shadow-cyan-500/20" },
-                            { label: "Focus Vibe", value: streak > 0 ? "On Fire" : "Ready", icon: Coffee, color: "bg-orange-500", shadow: "shadow-orange-500/20" },
-                            { label: "Daily Love", value: streak, icon: Heart, color: "bg-pink-500", shadow: "shadow-pink-500/20" },
-                            { label: "Elite Rank", value: "Alpha", icon: Star, color: "bg-indigo-500", shadow: "shadow-indigo-500/20" }
-                        ].map((w, i) => (
-                            <motion.div
-                                key={i}
-                                whileHover={{ y: -8, scale: 1.02 }}
-                                className={`${cardClass} p-5 flex flex-col items-center justify-center text-center cursor-pointer relative overflow-hidden group/widget`}
-                            >
-                                <div className={`mb-3 p-3 rounded-2xl ${w.color} text-white ${w.shadow} transition-transform group-hover/widget:rotate-12`}>
-                                    <w.icon size={20} />
-                                </div>
-                                <p className={`text-[10px] font-black uppercase tracking-widest ${textMuted} mb-1`}>{w.label}</p>
-                                <p className="text-xl font-black tracking-tight">{w.value}</p>
-                            </motion.div>
-                        ))}
-                    </div>
                 </header>
 
                 {/* Bento Grid Layout */}
