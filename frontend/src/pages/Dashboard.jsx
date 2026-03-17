@@ -21,7 +21,11 @@ import { useSocket } from "../hooks/useSocket";
 
 // Helper for relative time
 const timeAgo = (date) => {
-    const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+    if (!date) return 'Just now';
+    const parsed = new Date(date);
+    if (isNaN(parsed.getTime())) return 'Just now';
+    const seconds = Math.floor((new Date() - parsed) / 1000);
+    if (seconds < 5) return 'Just now';
     let interval = seconds / 31536000;
     if (interval > 1) return Math.floor(interval) + "y ago";
     interval = seconds / 2592000;
@@ -201,24 +205,24 @@ export default function Dashboard() {
                                                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                className={`absolute right-0 mt-3 w-80 max-h-[400px] overflow-y-auto p-4 rounded-3xl border shadow-2xl z-50 ${isDark ? 'glass-morphism border-white/10' : 'bg-white border-slate-200'}`}
+                                                className={`absolute right-0 mt-3 w-80 max-h-[400px] overflow-y-auto p-4 rounded-3xl border shadow-2xl z-50 ${isDark ? 'bg-[#0d1222] border-white/10' : 'bg-white border-slate-200'}`}
                                             >
                                                 <div className="flex items-center justify-between mb-4 px-2">
-                                                    <h4 className="text-[10px] font-black uppercase tracking-widest">Pulse Feed</h4>
+                                                    <h4 className={`text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-white' : 'text-slate-900'}`}>Pulse Feed</h4>
                                                     <button className="text-[9px] text-cyan-500 font-bold uppercase tracking-tighter" onClick={() => setNotifications([])}>Clear all</button>
                                                 </div>
                                                 <div className="space-y-3">
                                                     {notifications.length > 0 ? (
                                                         notifications.map((n, i) => (
                                                             <div key={i} className={`p-3 rounded-2xl border transition-all ${isDark ? 'hover:bg-white/5 border-white/5' : 'hover:bg-black/5 border-slate-100'}`}>
-                                                                <p className="text-xs font-semibold mb-1">{n.text || n.message}</p>
+                                                                <p className={`text-xs font-semibold mb-1 ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{n.text || n.message}</p>
                                                                 <p className="text-[9px] opacity-50 font-medium">{timeAgo(n.date || n.createdAt)}</p>
                                                             </div>
                                                         ))
                                                     ) : (
                                                         <div className="py-10 text-center opacity-40">
-                                                            <Bell size={32} className="mx-auto mb-3" />
-                                                            <p className="text-[10px] font-black uppercase tracking-widest">System Silent</p>
+                                                            <Bell size={32} className={`mx-auto mb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
+                                                            <p className={`text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>System Silent</p>
                                                         </div>
                                                     )}
                                                 </div>
@@ -241,7 +245,44 @@ export default function Dashboard() {
                         </div>
                     </div>
                 </header>
-                
+
+                {/* ── Continue Learning Card ── */}
+                {stats?.lastActiveCourse ? (
+                    <motion.div
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.1 }}
+                        className={`mb-8 p-6 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 group transition-all hover:-translate-y-0.5 ${cardClass}`}
+                    >
+                        <div className="flex items-center gap-5">
+                            <div className={`w-14 h-14 shrink-0 rounded-2xl flex items-center justify-center border transition-all ${isDark ? 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400 group-hover:bg-cyan-500/20' : 'bg-red-500/5 border-red-500/10 text-red-600 group-hover:bg-red-500/10'}`}>
+                                <TrendingUp size={24} />
+                            </div>
+                            <div>
+                                <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isDark ? 'text-cyan-400' : 'text-red-600'}`}>Continue Learning</p>
+                                <h3 className={`text-base font-black leading-tight mb-1 ${headingColor}`}>{stats.lastActiveCourse.title}</h3>
+                                <p className={`text-xs ${textMuted}`}>{stats.lastActiveCourse.progress ?? 0}% complete</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-4 w-full sm:w-auto">
+                            <div className="flex-1 sm:w-40">
+                                <div className={`w-full h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-white/10' : 'bg-slate-200'}`}>
+                                    <div
+                                        className={`h-full rounded-full transition-all duration-700 ${isDark ? 'bg-cyan-400' : 'bg-red-500'}`}
+                                        style={{ width: `${stats.lastActiveCourse.progress ?? 0}%` }}
+                                    />
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => navigate(`/courses/${stats.lastActiveCourse._id || stats.lastActiveCourse.id}`)}
+                                className={`shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all hover:scale-105 ${isDark ? 'bg-cyan-500 text-black hover:bg-cyan-400' : 'bg-red-600 text-white hover:bg-red-500'}`}
+                            >
+                                Resume <ArrowRight size={14} />
+                            </button>
+                        </div>
+                    </motion.div>
+                ) : null}
+
                 {/* Bento Grid Layout */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                     {/* 1. Skill Overview (2/3) */}
