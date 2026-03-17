@@ -151,60 +151,22 @@ export default function Dashboard() {
             {/* Global Cute Glows */}
             <div className={`absolute top-[-10%] left-[-5%] w-[40%] h-[40%] ${isDark ? 'bg-indigo-500/10' : 'bg-pink-400/10'} blur-[120px] rounded-full pointer-events-none transition-colors duration-1000`}></div>
             <div className={`absolute bottom-[20%] right-[-10%] w-[35%] h-[50%] ${isDark ? 'bg-cyan-500/10' : 'bg-blue-400/10'} blur-[150px] rounded-full pointer-events-none transition-colors duration-1000`}></div>
-            
-            <div className="max-w-[1800px] mx-auto relative z-10">
+                      <div className="max-w-7xl mx-auto px-4 md:px-8 relative z-10">
                 {/* Header Section */}
                 <header className="mb-6 animate-fade-in relative z-20">
                     <div className="flex items-center justify-between mb-4">
                         <div>
-                            <h1 className={`text-3xl font-black mb-1 ${headingColor}`}>Welcome back, {userName.split(' ')[0]}! 👋</h1>
-                            <p className={textMuted}>Ready to continue your precision learning journey?</p>
+                            <h1 className={`text-2xl font-black mb-1 ${headingColor}`}>Welcome back, {userName.split(' ')[0]}! 👋</h1>
+                            <p className={`text-xs ${textMuted}`}>Ready to continue your precision learning journey?</p>
                         </div>
                         <div className="flex items-center space-x-4 relative">
-                            <div className="relative">
-                                <button
-                                    onClick={() => setShowNotifications(!showNotifications)}
-                                    className={`p-3 rounded-lg transition ${isDark ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-100 hover:bg-gray-200'} ${showNotifications ? 'ring-2 ring-cyan-500' : ''}`}
-                                >
-                                    <Bell className={isDark ? "text-gray-400" : "text-gray-600"} size={20} />
-                                    <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-slate-900"></span>
-                                </button>
-
-                                <AnimatePresence>
-                                    {showNotifications && (
-                                        <motion.div
-                                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                            className={`absolute right-0 mt-4 w-80 rounded-2xl border shadow-2xl z-[100] overflow-hidden ${isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'}`}
-                                        >
-                                            <div className={`p-4 border-b ${isDark ? 'border-gray-800 bg-gray-900' : 'border-gray-100 bg-gray-50'}`}>
-                                                <h4 className={`font-bold text-sm ${headingColor}`}>Incoming Transmissions</h4>
-                                            </div>
-                                            <div className="max-h-64 overflow-y-auto">
-                                                {notifications.length > 0 ? (
-                                                    notifications.map(n => (
-                                                        <div key={n.id} className={`p-4 border-b last:border-0 hover:bg-white/5 transition-colors cursor-pointer ${isDark ? 'border-gray-800' : 'border-gray-50'}`}>
-                                                            <p className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{n.message}</p>
-                                                            <span className="text-[10px] text-gray-500 mt-1 block">{timeAgo(n.created_at)}</span>
-                                                        </div>
-                                                    ))
-                                                ) : (
-                                                    <div className={`p-4 text-center text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                                                        No new transmissions.
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
-                            </div>
+                            {/* Simple Search/Command Button */}
                             <button
                                 onClick={() => window.dispatchEvent(new CustomEvent('open-command-palette'))}
-                                className={`group/search p-3 rounded-lg transition flex items-center gap-3 ${isDark ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-100 hover:bg-gray-200'}`}
+                                className={`group/search p-2.5 rounded-xl transition flex items-center gap-3 ${isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-100 hover:bg-gray-200'}`}
                             >
-                                <Search className={isDark ? "text-gray-400 group-hover/search:text-cyan-400" : "text-gray-600"} size={20} />
-                                <div className={`hidden md:flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-black transition-colors ${isDark ? 'bg-black/20 border-white/10 text-gray-500' : 'bg-white border-gray-200 text-gray-400'}`}>
+                                <Search className={isDark ? "text-gray-400 group-hover/search:text-cyan-400" : "text-gray-600"} size={18} />
+                                <div className={`hidden md:flex items-center gap-1 px-1.5 py-0.5 rounded border text-[9px] font-black transition-colors ${isDark ? 'bg-black/20 border-white/10 text-gray-500' : 'bg-white border-gray-200 text-gray-400'}`}>
                                     <span>CTRL</span>
                                     <span>K</span>
                                 </div>
@@ -212,29 +174,49 @@ export default function Dashboard() {
                         </div>
                     </div>
 
-                    {/* Soft Gradient Banner */}
-                    <div className={`rounded-[3rem] p-8 relative overflow-hidden shadow-2xl transition-all duration-500 glass-border ${isDark ? 'bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 shadow-indigo-900/20' : 'bg-gradient-to-br from-[#FF4D6D] to-[#FF8FA3] shadow-red-900/10'}`}>
-                        <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl"></div>
-                        <div className="absolute bottom-0 left-1/4 w-40 h-40 bg-white/5 rounded-full translate-y-1/2 blur-3xl"></div>
+                    {/* Compact Soft Gradient Banner */}
+                    <div className={`rounded-[2.5rem] p-6 mb-8 relative overflow-hidden shadow-2xl transition-all duration-500 glass-border ${isDark ? 'bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 shadow-indigo-900/20' : 'bg-gradient-to-br from-[#FF4D6D] to-[#FF8FA3] shadow-red-900/10'}`}>
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl"></div>
                         <div className="relative z-10 flex items-center justify-between">
                             <div>
-                                <p className="text-white/80 text-xs mb-2 font-black uppercase tracking-[0.2em]">Learning Protocol 1.0</p>
-                                <h2 className="text-4xl font-black mb-3 text-white italic tracking-tighter">Mission: Study Sphere</h2>
-                                <p className="text-white/90 text-sm mb-6 max-w-md leading-relaxed">Level up your cognitive architecture with precision-guided modules.</p>
+                                <p className="text-white/80 text-[10px] mb-1 font-black uppercase tracking-[0.2em]">Mission Control</p>
+                                <h2 className="text-2xl font-black mb-4 text-white italic tracking-tighter">Mission: Study Sphere</h2>
                                 <button
                                     onClick={() => navigate('/courses')}
-                                    className={`bg-white px-8 py-3 rounded-2xl font-black transition-all flex items-center space-x-3 shadow-xl hover:scale-105 active:scale-95 ${isDark ? 'text-indigo-600' : 'text-[#FF4D6D]'}`}
+                                    className={`bg-white px-6 py-2 rounded-xl font-black transition-all flex items-center space-x-2 shadow-xl hover:scale-105 active:scale-95 text-xs ${isDark ? 'text-indigo-600' : 'text-[#FF4D6D]'}`}
                                 >
-                                    <span className="uppercase tracking-widest text-xs">Launch Protocol</span>
-                                    <ArrowRight size={18} />
+                                    <span className="uppercase tracking-widest">Launch protocol</span>
+                                    <ArrowRight size={16} />
                                 </button>
                             </div>
-                            <div className="hidden lg:block">
-                                <motion.div animate={{ y: [0, -10, 0] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}>
-                                    <Sparkles className="text-white/40" size={80} />
-                                </motion.div>
+                            <div className="hidden lg:block opacity-40">
+                                <Sparkles className="text-white" size={60} />
                             </div>
                         </div>
+                    </div>
+
+                    {/* Restored Balanced Quick Stats */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                        {[
+                            { label: "Brain Power", value: `${Math.round(asc / 10)}%`, icon: Brain, color: "text-cyan-500", bg: "bg-cyan-500/10" },
+                            { label: "Focus Vibe", value: streak > 0 ? "On Fire" : "Ready", icon: Coffee, color: "text-orange-500", bg: "bg-orange-500/10" },
+                            { label: "Daily Love", value: streak, icon: Heart, color: "text-pink-500", bg: "bg-pink-500/10" },
+                            { label: "Elite Rank", value: "Alpha", icon: Star, color: "text-indigo-500", bg: "bg-indigo-500/10" }
+                        ].map((w, i) => (
+                            <motion.div
+                                key={i}
+                                whileHover={{ y: -4 }}
+                                className={`${cardClass} p-4 flex items-center space-x-4 cursor-pointer`}
+                            >
+                                <div className={`p-2.5 rounded-xl ${w.bg} ${w.color}`}>
+                                    <w.icon size={18} />
+                                </div>
+                                <div>
+                                    <p className={`text-[9px] font-black uppercase tracking-widest ${textMuted}`}>{w.label}</p>
+                                    <p className="text-lg font-black tracking-tight">{w.value}</p>
+                                </div>
+                            </motion.div>
+                        ))}
                     </div>
                 </header>
 
