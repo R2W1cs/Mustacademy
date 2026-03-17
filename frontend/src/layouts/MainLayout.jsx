@@ -40,8 +40,10 @@ const MainLayout = ({ children }) => {
   const isCelestialRoute = location.pathname.startsWith('/library') || location.pathname.startsWith('/courses') || location.pathname.startsWith('/topics');
 
   return (
-    <div className={["min-h-screen", "relative", "overflow-hidden", isDark ? "selection:bg-indigo-500/30 selection:text-indigo-200 bg-gray-950 text-slate-100" : "selection:bg-red-500/30 selection:text-red-900 light"].join(" ")}>
-      <AtmosphericAura />
+    <div className={`flex min-h-screen relative overflow-hidden ${isDark ? 'bg-[#050810] text-slate-100' : 'bg-[#FAFAFF] text-slate-900'} ${isNavigating ? 'cursor-wait' : ''}`}>
+      {/* Global Cute Glows */}
+      <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-indigo-500/5 blur-[120px] rounded-full pointer-events-none"></div>
+      <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-pink-500/5 blur-[100px] rounded-full pointer-events-none"></div>
       <Sidebar isDark={isDark} toggleTheme={toggleTheme} isCollapsed={isCollapsed} toggleSidebar={toggleSidebar} />
       <main
         style={{

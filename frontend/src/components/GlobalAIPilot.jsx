@@ -109,29 +109,50 @@ export default function GlobalAIPilot() {
         setMessages(prev => [...prev, { role: 'user', text }]);
         setLoading(true);
 
-        try {
-            // Add a placeholder message for the AI
-            setMessages(prev => [...prev, { role: 'ai', text: '' }]);
+        // Add a placeholder message for the AI
+        setMessages(prev => [...prev, { role: 'ai', text: '' }]);
 
-            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/ai/chat/stream`, {
+        const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+        const token = localStorage.getItem('token');
+
+        try {
+            // --- RENDER WAKE-UP PING ---
+            // Render free tier spins down after inactivity. Ping the health endpoint
+            // first to wake it up before attempting the long-lived stream connection.
+            try {
+                await fetch(`${apiBase.replace('/api', '')}/api/health`, {
+                    signal: AbortSignal.timeout(5000)
+                });
+            } catch { /* Ignore ping failure, proceed to stream attempt */ }
+
+            // --- STREAM REQUEST with 60s timeout ---
+            const controller = new AbortController();
+            const streamTimeout = setTimeout(() => controller.abort(), 60000);
+
+            const response = await fetch(`${apiBase}/ai/chat/stream`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     message: text,
                     conversationId: currentConversationId
-                })
+                }),
+                signal: controller.signal
             });
 
-            if (!response.ok) throw new Error('Stream connection failed');
+            clearTimeout(streamTimeout);
+
+            if (!response.ok) {
+                const status = response.status;
+                if (status === 401) throw new Error('401');
+                throw new Error(`HTTP ${status}`);
+            }
 
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             let accumulatedResponse = '';
-
-            let historyRefreshed = false;
 
             while (true) {
                 const { done, value } = await reader.read();
@@ -154,12 +175,6 @@ export default function GlobalAIPilot() {
                                     next[next.length - 1] = { role: 'ai', text: accumulatedResponse };
                                     return next;
                                 });
-
-                                // Trigger history refresh as soon as we get the first chunk
-                                if (!historyRefreshed) {
-                                    fetchHistory();
-                                    historyRefreshed = true;
-                                }
                             }
                         } catch (e) {
                             console.warn("Stream parse error", e);
@@ -172,7 +187,10 @@ export default function GlobalAIPilot() {
             console.error("Stream Error", err);
             setMessages(prev => {
                 const next = [...prev];
-                next[next.length - 1] = { role: 'ai', text: 'Intelligence feed interrupted. Please retry.' };
+                let errorMessage = 'Intelligence feed interrupted. Please retry.';
+                if (err.message?.includes('401')) errorMessage = 'Session expired. Please re-login.';
+                else if (err.name === 'AbortError') errorMessage = 'Connection timed out. The server may be waking up — please retry in a moment.';
+                next[next.length - 1] = { role: 'ai', text: errorMessage };
                 return next;
             });
         } finally {

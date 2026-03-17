@@ -10,7 +10,6 @@ import enrollRoutes from './routes/enroll.routes.js';
 import profileRoutes from './routes/profile.routes.js';
 import userRoutes from './routes/user.routes.js';
 import aiRoutes from './routes/ai.routes.js';
-import chatRoutes from './routes/chat.routes.js';
 import badgeRoutes from './routes/badge.routes.js';
 
 import contributionRoutes from './routes/contribution.routes.js';
@@ -74,7 +73,6 @@ app.use('/api/enroll', enrollRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/ai', aiRoutes);
-app.use('/api/chat', chatRoutes);
 app.use('/api/badges', badgeRoutes);
 
 app.use('/api/contributions', contributionRoutes);

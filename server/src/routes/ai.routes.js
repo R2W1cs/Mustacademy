@@ -1,8 +1,7 @@
 import express from "express";
 import { protect } from "../middleware/auth.middleware.js";
 import {
-    chatWithMentor, chatWithMentorStream, getGoals, completeGoal, submitWork, getChatHistory,
-    getChatSessions, getSessionMessages,
+    chatWithMentor, chatWithMentorStream, getGoals, completeGoal, submitWork,
     generateQuiz, submitQuiz,
     generateDailyPlan, getDailyPlan, deleteDailyPlan, completeSession,
     startInterview, chatWithInterviewer, generateFiller, generateLibraryLecture, verifyLibraryAnswer, interactWithProfessor,
@@ -17,9 +16,6 @@ const router = express.Router();
 router.post("/chat", protect, chatWithMentor);
 router.post("/chat/stream", protect, chatWithMentorStream);
 router.get("/goals", protect, getGoals);
-router.get("/chat/history", protect, getChatHistory);
-router.get("/chat/sessions", protect, getChatSessions);
-router.get("/chat/session/:conversationId", protect, getSessionMessages);
 
 router.post("/complete", protect, completeGoal);
 router.post("/submit", protect, submitWork);

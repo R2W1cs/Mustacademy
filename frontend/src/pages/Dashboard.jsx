@@ -5,7 +5,8 @@ import api from "../api/axios";
 import {
     Bell, Search, ArrowRight, Brain,
     Activity, TrendingUp, ChevronLeft, PenTool,
-    Target, Sparkles, Briefcase, MessageSquare
+    Target, Sparkles, Briefcase, MessageSquare,
+    Heart, Star, Coffee
 } from "lucide-react";
 import { useTheme } from "../auth/ThemeContext";
 import { 
@@ -135,20 +136,23 @@ export default function Dashboard() {
     const userInitial = userName.charAt(0);
     const asc = contrib?.stats?.current_asc || 0;
 
-    // Dynamic styles based on theme
-    const themeClass = isDark ? "bg-[#050810] text-white" : "light bg-[#FFFFFF] text-gray-900";
-    const sidebarClass = isDark ? "bg-[#0a0e1a] border-white/5" : "bg-white border-gray-100 border-r";
+    // Dynamic "Cute" styles
+    const themeClass = isDark ? "bg-[#050810] text-white" : "light bg-[#FAFAFF] text-gray-900";
     const cardClass = isDark
-        ? "glass-morphism holographic-card hover:border-cyan-500/30 transition-all duration-500 shadow-2xl"
-        : "glass-morphism hover:border-red-200 transition-all duration-500 shadow-sm";
-    const textMuted = isDark ? "text-slate-400 font-light" : "text-slate-500 font-medium";
+        ? "glass-morphism rounded-[2.5rem] border-white/5 hover:border-cyan-500/30 transition-all duration-500 shadow-[0_20px_50px_rgba(0,0,0,0.3)]"
+        : "bg-white/80 backdrop-blur-xl rounded-[2.5rem] border-red-50 hover:border-red-200 transition-all duration-500 shadow-[0_15px_35px_rgba(192,22,54,0.05)]";
+    const textMuted = isDark ? "text-slate-400 font-medium" : "text-slate-500 font-medium";
     const headingColor = isDark ? "text-white tracking-tight" : "text-slate-900";
-    const accentColor = isDark ? "#00f2ff" : "#C01636"; // Cyan vs Red
-    const accentGlow = isDark ? "rgba(0, 242, 255, 0.4)" : "rgba(192, 22, 54, 0.2)";
+    const accentColor = isDark ? "#00f2ff" : "#FF4D6D"; // Softer Red/Pink for "cute"
+    const accentGlow = isDark ? "rgba(0, 242, 255, 0.4)" : "rgba(255, 77, 109, 0.2)";
 
     return (
-        <div className={`animate-fade-in group ${themeClass}`}>
-            <div className="max-w-[1800px] mx-auto">
+        <div className={`animate-fade-in group relative overflow-hidden ${themeClass}`}>
+            {/* Global Cute Glows */}
+            <div className={`absolute top-[-10%] left-[-5%] w-[40%] h-[40%] ${isDark ? 'bg-indigo-500/10' : 'bg-pink-400/10'} blur-[120px] rounded-full pointer-events-none transition-colors duration-1000`}></div>
+            <div className={`absolute bottom-[20%] right-[-10%] w-[35%] h-[50%] ${isDark ? 'bg-cyan-500/10' : 'bg-blue-400/10'} blur-[150px] rounded-full pointer-events-none transition-colors duration-1000`}></div>
+            
+            <div className="max-w-[1800px] mx-auto relative z-10">
                 {/* Header Section */}
                 <header className="mb-6 animate-fade-in relative z-20">
                     <div className="flex items-center justify-between mb-4">
@@ -208,24 +212,50 @@ export default function Dashboard() {
                         </div>
                     </div>
 
-                    {/* Gradient Banner - Changes based on theme */}
-                    <div className={`rounded-2xl p-6 relative overflow-hidden shadow-2xl transition-all duration-500 glass-border ${isDark ? 'gradient-purple shadow-purple-900/20' : 'bg-[#C01636] shadow-red-900/20'}`}>
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
-                        <div className="absolute bottom-0 left-1/2 w-32 h-32 bg-white/5 rounded-full translate-y-1/2"></div>
+                    {/* Soft Gradient Banner */}
+                    <div className={`rounded-[3rem] p-8 relative overflow-hidden shadow-2xl transition-all duration-500 glass-border ${isDark ? 'bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 shadow-indigo-900/20' : 'bg-gradient-to-br from-[#FF4D6D] to-[#FF8FA3] shadow-red-900/10'}`}>
+                        <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl"></div>
+                        <div className="absolute bottom-0 left-1/4 w-40 h-40 bg-white/5 rounded-full translate-y-1/2 blur-3xl"></div>
                         <div className="relative z-10 flex items-center justify-between">
                             <div>
-                                <p className="text-white/80 text-sm mb-1 font-medium">Continue your Knowledge Map</p>
-                                <h2 className="text-2xl font-bold mb-2 text-white">Project Basics</h2>
-                                <p className="text-white/90 text-sm mb-4">Master the fundamentals in your learning journey</p>
+                                <p className="text-white/80 text-xs mb-2 font-black uppercase tracking-[0.2em]">Learning Protocol 1.0</p>
+                                <h2 className="text-4xl font-black mb-3 text-white italic tracking-tighter">Mission: Study Sphere</h2>
+                                <p className="text-white/90 text-sm mb-6 max-w-md leading-relaxed">Level up your cognitive architecture with precision-guided modules.</p>
                                 <button
                                     onClick={() => navigate('/courses')}
-                                    className={`bg-white px-6 py-2.5 rounded-lg font-bold transition flex items-center space-x-2 shadow-lg ${isDark ? 'text-purple-700 hover:bg-purple-50' : 'text-red-600 hover:bg-gray-50'}`}
+                                    className={`bg-white px-8 py-3 rounded-2xl font-black transition-all flex items-center space-x-3 shadow-xl hover:scale-105 active:scale-95 ${isDark ? 'text-indigo-600' : 'text-[#FF4D6D]'}`}
                                 >
-                                    <span>Continue Learning</span>
-                                    <ArrowRight size={16} />
+                                    <span className="uppercase tracking-widest text-xs">Launch Protocol</span>
+                                    <ArrowRight size={18} />
                                 </button>
                             </div>
+                            <div className="hidden lg:block">
+                                <motion.div animate={{ y: [0, -10, 0] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}>
+                                    <Sparkles className="text-white/40" size={80} />
+                                </motion.div>
+                            </div>
                         </div>
+                    </div>
+                    {/* Interactive "Cute" Quick Stats */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+                        {[
+                            { label: "Brain Power", value: `${Math.round(asc / 10)}%`, icon: Brain, color: "bg-cyan-500", shadow: "shadow-cyan-500/20" },
+                            { label: "Focus Vibe", value: streak > 0 ? "On Fire" : "Ready", icon: Coffee, color: "bg-orange-500", shadow: "shadow-orange-500/20" },
+                            { label: "Daily Love", value: streak, icon: Heart, color: "bg-pink-500", shadow: "shadow-pink-500/20" },
+                            { label: "Elite Rank", value: "Alpha", icon: Star, color: "bg-indigo-500", shadow: "shadow-indigo-500/20" }
+                        ].map((w, i) => (
+                            <motion.div
+                                key={i}
+                                whileHover={{ y: -8, scale: 1.02 }}
+                                className={`${cardClass} p-5 flex flex-col items-center justify-center text-center cursor-pointer relative overflow-hidden group/widget`}
+                            >
+                                <div className={`mb-3 p-3 rounded-2xl ${w.color} text-white ${w.shadow} transition-transform group-hover/widget:rotate-12`}>
+                                    <w.icon size={20} />
+                                </div>
+                                <p className={`text-[10px] font-black uppercase tracking-widest ${textMuted} mb-1`}>{w.label}</p>
+                                <p className="text-xl font-black tracking-tight">{w.value}</p>
+                            </motion.div>
+                        ))}
                     </div>
                 </header>
 
