@@ -247,7 +247,7 @@ export default function Dashboard() {
                 </header>
 
                 {/* ── Continue Learning Card ── */}
-                {stats?.lastActiveCourse ? (
+                {stats?.stats?.lastActiveCourse ? (
                     <motion.div
                         initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -260,8 +260,8 @@ export default function Dashboard() {
                             </div>
                             <div>
                                 <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isDark ? 'text-cyan-400' : 'text-red-600'}`}>Continue Learning</p>
-                                <h3 className={`text-base font-black leading-tight mb-1 ${headingColor}`}>{stats.lastActiveCourse.title}</h3>
-                                <p className={`text-xs ${textMuted}`}>{stats.lastActiveCourse.progress ?? 0}% complete</p>
+                                <h3 className={`text-base font-black leading-tight mb-1 ${headingColor}`}>{stats.stats.lastActiveCourse.title}</h3>
+                                <p className={`text-xs ${textMuted}`}>{stats.stats.lastActiveCourse.progress ?? 0}% complete</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-4 w-full sm:w-auto">
@@ -269,12 +269,12 @@ export default function Dashboard() {
                                 <div className={`w-full h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-white/10' : 'bg-slate-200'}`}>
                                     <div
                                         className={`h-full rounded-full transition-all duration-700 ${isDark ? 'bg-cyan-400' : 'bg-red-500'}`}
-                                        style={{ width: `${stats.lastActiveCourse.progress ?? 0}%` }}
+                                        style={{ width: `${stats.stats.lastActiveCourse.progress ?? 0}%` }}
                                     />
                                 </div>
                             </div>
                             <button
-                                onClick={() => navigate(`/courses/${stats.lastActiveCourse._id || stats.lastActiveCourse.id}`)}
+                                onClick={() => navigate(`/courses/${stats.stats.lastActiveCourse._id || stats.stats.lastActiveCourse.id}`)}
                                 className={`shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all hover:scale-105 ${isDark ? 'bg-cyan-500 text-black hover:bg-cyan-400' : 'bg-red-600 text-white hover:bg-red-500'}`}
                             >
                                 Resume <ArrowRight size={14} />

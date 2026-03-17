@@ -11,7 +11,7 @@ export const getDashboardStats = async (req, res) => {
     await pool.query("UPDATE users SET last_active_at = NOW() WHERE id = $1", [userId]);
 
     // 2. Fetch parallel data
-    const [streak, userRes, activityRes, onlineRes, contribStatsRes, cohortPercentileRes, completedNamesRes, activity7WeeksRes, skillsRes, lastInterviewRes, projectStatsRes, recentActivityRes] = await Promise.all([
+    const [streak, userRes, activityRes, onlineRes, contribStatsRes, cohortPercentileRes, completedNamesRes, activity7WeeksRes, skillsRes, lastInterviewRes, projectStatsRes, recentActivityRes, lastActiveCourseRes] = await Promise.all([
       validateStreak(userId).catch(e => { console.error("Streak validation failed:", e.message); return 0; }),
       pool.query("SELECT streak_last_active_date, name, year, semester, dream_job FROM users WHERE id = $1", [userId]).catch(e => { console.error("UserRes failed:", e.message); return { rows: [{ streak_last_active_date: null, name: null, year: null, semester: null, dream_job: null }] }; }),
       pool.query(`WITH last_7_days AS (
@@ -112,12 +112,21 @@ export const getDashboardStats = async (req, res) => {
         JOIN creator_projects p ON r.project_id = p.id 
         WHERE (p.owner_id = $1 OR r.user_id = $1) AND r.status = 'accepted'
         ORDER BY r.created_at DESC LIMIT 3
+      `, [userId]).catch(() => ({ rows: [] })),
+      pool.query(`
+        SELECT c.id, c.name as title, 
+        ROUND(COALESCE((SELECT COUNT(*) FROM user_topic_progress utp JOIN topics t ON utp.topic_id = t.id WHERE t.course_id = c.id AND utp.user_id = $1 AND utp.completed = true)::numeric / NULLIF((SELECT COUNT(*) FROM topics WHERE course_id = c.id), 0) * 100, 0)) as progress
+        FROM user_courses uc
+        JOIN courses c ON uc.course_id = c.id
+        WHERE uc.user_id = $1 AND uc.status = 'in_progress'
+        ORDER BY uc.enrolled_at DESC LIMIT 1
       `, [userId]).catch(() => ({ rows: [] }))
     ]);
 
     const lastInterview = lastInterviewRes.rows[0] || null;
     const projectStats = projectStatsRes.rows[0] || { joined_projects: 0, owned_projects: 0 };
     const recentActivity = recentActivityRes.rows || [];
+    const lastActiveCourse = lastActiveCourseRes.rows[0] || null;
 
     // 2.1 Fetch basic counts separately or reusing original but ensuring counts are accurate
     const courseStatsRes = await pool.query(`SELECT
@@ -293,7 +302,8 @@ export const getDashboardStats = async (req, res) => {
         reviews: parseInt(contribStats.reviews) || 0,
         lastInterview,
         projectStats,
-        recentActivity
+        recentActivity,
+        lastActiveCourse
       },
       careerOracle
     });
