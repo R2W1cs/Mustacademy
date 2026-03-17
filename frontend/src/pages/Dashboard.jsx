@@ -190,27 +190,26 @@ export default function Dashboard() {
                     </div>
 
                     {/* Restored Balanced Quick Stats */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                        {[
-                            { label: "Brain Power", value: `${Math.round(asc / 10)}%`, icon: Brain, color: "text-cyan-500", bg: "bg-cyan-500/10" },
-                            { label: "Focus Vibe", value: streak > 0 ? "On Fire" : "Ready", icon: Coffee, color: "text-orange-500", bg: "bg-orange-500/10" },
-                            { label: "Daily Love", value: streak, icon: Heart, color: "text-pink-500", bg: "bg-pink-500/10" },
-                            { label: "Elite Rank", value: "Alpha", icon: Star, color: "text-indigo-500", bg: "bg-indigo-500/10" }
-                        ].map((w, i) => (
-                            <motion.div
-                                key={i}
-                                whileHover={{ y: -4 }}
-                                className={`${cardClass} p-4 flex items-center space-x-4 cursor-pointer`}
-                            >
-                                <div className={`p-2.5 rounded-xl ${w.bg} ${w.color}`}>
-                                    <w.icon size={18} />
-                                </div>
-                                <div>
-                                    <p className={`text-[9px] font-black uppercase tracking-widest ${textMuted}`}>{w.label}</p>
-                                    <p className="text-lg font-black tracking-tight">{w.value}</p>
-                                </div>
-                            </motion.div>
-                        ))}
+                    <div className={`mb-8 flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] font-black uppercase tracking-widest ${textMuted}`}>
+                        <div className="flex items-center gap-2">
+                            <Brain size={14} className="text-cyan-500" />
+                            <span>Brain Power: <span className={headingColor}>{Math.round(asc / 10)}%</span></span>
+                        </div>
+                        <span className="opacity-30">|</span>
+                        <div className="flex items-center gap-2">
+                            <Coffee size={14} className="text-orange-500" />
+                            <span>Focus Vibe: <span className={headingColor}>{streak > 0 ? "On Fire" : "Ready"}</span></span>
+                        </div>
+                        <span className="opacity-30">|</span>
+                        <div className="flex items-center gap-2">
+                            <Heart size={14} className="text-pink-500" />
+                            <span>Daily Love: <span className={headingColor}>{streak}</span></span>
+                        </div>
+                        <span className="opacity-30">|</span>
+                        <div className="flex items-center gap-2">
+                            <Star size={14} className="text-indigo-500" />
+                            <span>Elite Rank: <span className={headingColor}>Alpha</span></span>
+                        </div>
                     </div>
                 </header>
 
