@@ -252,7 +252,7 @@ export const getDashboardStats = async (req, res) => {
       .filter(gs => gs.total > 0) // Only show categories where the user has at least one associated topic
       .map(gs => ({
         skill: gs.skill,
-        value: Math.round((gs.value / gs.total) * 100)
+        value: Math.round(gs.value / gs.total)
       }))
       .sort((a, b) => b.value - a.value);
 

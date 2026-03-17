@@ -494,7 +494,7 @@ export default function Dashboard() {
                                     <p className={`text-xs ${textMuted}`}>Session construct</p>
                                 </div>
                             </div>
-                            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-lg"></span>
+                            <span className="w-2 h-2 bg-green-500 rounded-full shadow-lg"></span>
                         </div>
                         <p className={`text-xs mb-6 leading-relaxed ${isDark ? 'text-purple-200/70' : 'text-slate-600'}`}>
                             "Build momentum and unlock new protocols. Your advisor is ready."
