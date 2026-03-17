@@ -5,8 +5,7 @@ import api from "../api/axios";
 import {
     Bell, Search, ArrowRight, Brain,
     Activity, TrendingUp, ChevronLeft, PenTool,
-    Target, Sparkles, Briefcase, MessageSquare,
-    Heart, Star, Coffee
+    Target, Sparkles, Briefcase, MessageSquare
 } from "lucide-react";
 import { useTheme } from "../auth/ThemeContext";
 import { 
@@ -39,14 +38,6 @@ const timeAgo = (date) => {
 // Lazy Loaded Components
 const AiMentorModal = lazy(() => import("../components/AiMentorModal"));
 
-const QuizModal = lazy(() => import("../components/QuizModal"));
-
-const DailyPlanModal = lazy(() => import("../components/DailyPlanModal"));
-const InterviewPrepModal = lazy(() => import("../components/InterviewPrepModal"));
-const MultiplayerQuizModal = lazy(() => import("../components/MultiplayerQuizModal"));
-import StreakWidget from "../components/StreakWidget";
-
-const DashboardSkeleton = lazy(() => import("../components/DashboardSkeleton"));
 const LeaderboardModal = lazy(() => import("../components/LeaderboardModal"));
 
 export default function Dashboard() {
@@ -64,7 +55,6 @@ export default function Dashboard() {
     const [showMentor, setShowMentor] = useState(false);
     const [showSubmit, setShowSubmit] = useState(false);
     const [showQuiz, setShowQuiz] = useState(false);
-    const [showResume, setShowResume] = useState(false);
     const [showFeedback, setShowFeedback] = useState(false);
     const [showInterview, setShowInterview] = useState(false);
     const [showMultiplayer, setShowMultiplayer] = useState(false);
@@ -553,13 +543,6 @@ export default function Dashboard() {
                         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
                             <Suspense fallback={<div className="text-white">Loading Quiz...</div>}>
                                 <QuizModal onClose={() => setShowQuiz(false)} />
-                            </Suspense>
-                        </div>
-                    )}
-                    {showResume && (
-                        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                            <Suspense fallback={<div className="text-white">Loading Scanner...</div>}>
-                                <ResumeAnalysisModal onClose={() => setShowResume(false)} />
                             </Suspense>
                         </div>
                     )}

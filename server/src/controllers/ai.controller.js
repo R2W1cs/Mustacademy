@@ -55,8 +55,11 @@ export const chatWithMentor = async (req, res) => {
         let shouldForceExercise = false;
 
         try {
-            // Stateless AI: Focus on current message, ignore past chat logs as per user request
-            history = []; 
+            const historyRes = await pool.query(
+                "SELECT role, message FROM chat_messages WHERE user_id = $1 AND chat_type = 'mentor' ORDER BY created_at DESC LIMIT 10",
+                [userId]
+            );
+            history = historyRes.rows.reverse();
 
             const topicRes = await pool.query(
                 "SELECT title, content FROM topics WHERE $1 ILIKE '%' || title || '%' AND content IS NOT NULL LIMIT 1",
@@ -151,8 +154,14 @@ export const chatWithMentorStream = async (req, res) => {
         if (!message) return res.status(400).json({ message: "Message required" });
 
         // 1. Save User History immediately (to allow instant UI refresh)
-        // Stateless AI: Do NOT save to DB to avoid persistent history/sessions UI clutter
-        // console.log("[Stream AI] Stateless session active for:", userId);
+        try {
+            await pool.query(
+                "INSERT INTO chat_messages (user_id, chat_type, role, message, conversation_id) VALUES ($1, 'mentor', 'user', $2, $3)",
+                [userId, message, conversationId]
+            );
+        } catch (dbErr) {
+            console.warn("[Stream AI] User Message Save Error:", dbErr.message);
+        }
 
         // Header for SSE
         res.setHeader('Content-Type', 'text/event-stream');
@@ -192,7 +201,15 @@ export const chatWithMentorStream = async (req, res) => {
             }
         }
 
-        // Stateless Assistant: Skip history save
+        // 4. Save Assistant History after stream ends
+        try {
+            await pool.query(
+                "INSERT INTO chat_messages (user_id, chat_type, role, message, conversation_id) VALUES ($1, 'mentor', 'assistant', $2, $3)",
+                [userId, fullContent, conversationId]
+            );
+        } catch (dbErr) {
+            console.warn("[Stream AI] Assistant Message Save Error:", dbErr.message);
+        }
 
         res.write('data: [DONE]\n\n');
         res.end();
