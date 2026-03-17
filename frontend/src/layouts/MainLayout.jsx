@@ -40,17 +40,13 @@ const MainLayout = ({ children }) => {
   const isCelestialRoute = location.pathname.startsWith('/library') || location.pathname.startsWith('/courses') || location.pathname.startsWith('/topics');
 
   return (
-    <div className={`min-h-screen relative overflow-hidden transition-colors duration-500 ${isDark ? 'bg-[#050810] text-slate-100' : 'bg-[#FAFAFF] text-slate-900'}`}>
+    <div className={`flex min-h-screen relative overflow-hidden transition-colors duration-500 ${isDark ? 'bg-[#050810] text-slate-100' : 'bg-[#FAFAFF] text-slate-900'}`}>
       {/* Global Cute Glows */}
       <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-indigo-500/5 blur-[120px] rounded-full pointer-events-none"></div>
       <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-pink-500/5 blur-[100px] rounded-full pointer-events-none"></div>
       <Sidebar isDark={isDark} toggleTheme={toggleTheme} isCollapsed={isCollapsed} toggleSidebar={toggleSidebar} />
       <main
-        style={{
-          marginLeft: isCollapsed ? 80 : 256,
-          transition: 'margin-left 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
-        }}
-        className={`relative z-10 min-h-screen transition-colors duration-500 w-full ${isImmersiveRoute ? 'p-0' : 'px-4 md:px-6 lg:px-10 py-10'} ${isDark ? (isCelestialRoute ? 'mesh-bg' : 'bg-[#050810]') : 'bg-white'}`}
+        className={`flex-1 relative z-10 min-h-screen transition-all duration-300 ${isImmersiveRoute ? 'p-0' : 'px-4 md:px-6 lg:px-10 py-10'} ${isDark ? (isCelestialRoute ? 'mesh-bg' : 'bg-[#050810]') : 'bg-white'}`}
       >
         <AnimatePresence mode="wait">
           <motion.div
