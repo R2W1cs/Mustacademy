@@ -119,7 +119,7 @@ export const getDashboardStats = async (req, res) => {
         FROM user_courses uc
         JOIN courses c ON uc.course_id = c.id
         WHERE uc.user_id = $1 AND uc.status = 'in_progress'
-        ORDER BY uc.enrolled_at DESC LIMIT 1
+        ORDER BY uc.started_at DESC LIMIT 1
       `, [userId]).catch(() => ({ rows: [] }))
     ]);
 
