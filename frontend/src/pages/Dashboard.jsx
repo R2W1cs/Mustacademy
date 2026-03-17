@@ -147,17 +147,54 @@ export default function Dashboard() {
             <div className={`absolute bottom-[20%] right-[-10%] w-[35%] h-[50%] ${isDark ? 'bg-cyan-500/10' : 'bg-blue-400/10'} blur-[150px] rounded-full pointer-events-none transition-colors duration-1000`}></div>
                       <div className="max-w-7xl mx-auto px-4 md:px-8 relative z-10">
                 {/* Header Section */}
-                <header className="mb-6 animate-fade-in relative z-20">
-                    <div className="flex items-center justify-between mb-4">
-                        <div>
-                            <h1 className={`text-2xl font-black mb-1 ${headingColor}`}>Welcome back, {userName.split(' ')[0]}! 👋</h1>
-                            <p className={`text-xs ${textMuted}`}>Ready to continue your precision learning journey?</p>
+                <header className="mb-10 animate-fade-in relative z-20">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                        {/* Welcome & Metrics Group */}
+                        <div className="flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-8">
+                            <div>
+                                <h1 className={`text-2xl font-black mb-1 ${headingColor}`}>Welcome back, {userName.split(' ')[0]}! 👋</h1>
+                                <p className={`text-xs ${textMuted}`}>Ready to continue your precision learning journey?</p>
+                            </div>
+
+                            {/* Repositioned Metrics */}
+                            <div className={`flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] font-black uppercase tracking-widest ${textMuted}`}>
+                                <div className="flex items-center gap-2">
+                                    <Brain size={14} className="text-cyan-500" />
+                                    <span>Brain Power: <span className={headingColor}>{Math.round(asc / 10)}%</span></span>
+                                </div>
+                                <span className="opacity-30">|</span>
+                                <div className="flex items-center gap-2">
+                                    <Coffee size={14} className="text-orange-500" />
+                                    <span>Focus Vibe: <span className={headingColor}>{streak > 0 ? "On Fire" : "Ready"}</span></span>
+                                </div>
+                                <span className="opacity-30">|</span>
+                                <div className="flex items-center gap-2">
+                                    <Heart size={14} className="text-pink-500" />
+                                    <span>Daily Love: <span className={headingColor}>{streak}</span></span>
+                                </div>
+                                <span className="opacity-30">|</span>
+                                <div className="flex items-center gap-2">
+                                    <Star size={14} className="text-indigo-500" />
+                                    <span>Elite Rank: <span className={headingColor}>Alpha</span></span>
+                                </div>
+                            </div>
                         </div>
-                        <div className="flex items-center space-x-4 relative">
-                            {/* Simple Search/Command Button */}
+
+                        {/* Actions Group (Notifications + Search) */}
+                        <div className="flex items-center space-x-3">
+                            <button
+                                onClick={() => setShowNotifications(!showNotifications)}
+                                className={`group/notif p-2.5 rounded-xl transition-all relative ${isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-100 hover:bg-gray-200'}`}
+                            >
+                                <Bell className={isDark ? "text-gray-400 group-hover/notif:text-amber-400" : "text-gray-600"} size={18} />
+                                {notifications.length > 0 && (
+                                    <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-[#050810]"></span>
+                                )}
+                            </button>
+
                             <button
                                 onClick={() => window.dispatchEvent(new CustomEvent('open-command-palette'))}
-                                className={`group/search p-2.5 rounded-xl transition flex items-center gap-3 ${isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-100 hover:bg-gray-200'}`}
+                                className={`group/search p-2.5 rounded-xl transition-all flex items-center gap-3 ${isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-100 hover:bg-gray-200'}`}
                             >
                                 <Search className={isDark ? "text-gray-400 group-hover/search:text-cyan-400" : "text-gray-600"} size={18} />
                                 <div className={`hidden md:flex items-center gap-1 px-1.5 py-0.5 rounded border text-[9px] font-black transition-colors ${isDark ? 'bg-black/20 border-white/10 text-gray-500' : 'bg-white border-gray-200 text-gray-400'}`}>
@@ -167,52 +204,8 @@ export default function Dashboard() {
                             </button>
                         </div>
                     </div>
-
-                    {/* Compact Soft Gradient Banner */}
-                    <div className={`rounded-[2.5rem] p-6 mb-8 relative overflow-hidden shadow-2xl transition-all duration-500 glass-border ${isDark ? 'bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 shadow-indigo-900/20' : 'bg-gradient-to-br from-[#FF4D6D] to-[#FF8FA3] shadow-red-900/10'}`}>
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl"></div>
-                        <div className="relative z-10 flex items-center justify-between">
-                            <div>
-                                <p className="text-white/80 text-[10px] mb-1 font-black uppercase tracking-[0.2em]">Mission Control</p>
-                                <h2 className="text-2xl font-black mb-4 text-white italic tracking-tighter">Mission: Study Sphere</h2>
-                                <button
-                                    onClick={() => navigate('/courses')}
-                                    className={`bg-white px-6 py-2 rounded-xl font-black transition-all flex items-center space-x-2 shadow-xl hover:scale-105 active:scale-95 text-xs ${isDark ? 'text-indigo-600' : 'text-[#FF4D6D]'}`}
-                                >
-                                    <span className="uppercase tracking-widest">Launch protocol</span>
-                                    <ArrowRight size={16} />
-                                </button>
-                            </div>
-                            <div className="hidden lg:block opacity-40">
-                                <Sparkles className="text-white" size={60} />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Restored Balanced Quick Stats */}
-                    <div className={`mb-8 flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] font-black uppercase tracking-widest ${textMuted}`}>
-                        <div className="flex items-center gap-2">
-                            <Brain size={14} className="text-cyan-500" />
-                            <span>Brain Power: <span className={headingColor}>{Math.round(asc / 10)}%</span></span>
-                        </div>
-                        <span className="opacity-30">|</span>
-                        <div className="flex items-center gap-2">
-                            <Coffee size={14} className="text-orange-500" />
-                            <span>Focus Vibe: <span className={headingColor}>{streak > 0 ? "On Fire" : "Ready"}</span></span>
-                        </div>
-                        <span className="opacity-30">|</span>
-                        <div className="flex items-center gap-2">
-                            <Heart size={14} className="text-pink-500" />
-                            <span>Daily Love: <span className={headingColor}>{streak}</span></span>
-                        </div>
-                        <span className="opacity-30">|</span>
-                        <div className="flex items-center gap-2">
-                            <Star size={14} className="text-indigo-500" />
-                            <span>Elite Rank: <span className={headingColor}>Alpha</span></span>
-                        </div>
-                    </div>
                 </header>
-
+                
                 {/* Bento Grid Layout */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                     {/* 1. Skill Overview (2/3) */}
