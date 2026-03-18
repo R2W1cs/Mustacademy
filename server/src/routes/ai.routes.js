@@ -7,7 +7,8 @@ import {
     startInterview, chatWithInterviewer, generateFiller, generateLibraryLecture, verifyLibraryAnswer, interactWithProfessor,
     synthesizeTopic, createMission, generateTopicExercises,
     generateTopicPodcast, askPodcastQuestion, generatePodcastSpeech,
-    getMasterclassEpisodes, getMasterclassEpisode
+    getMasterclassEpisodes, getMasterclassEpisode,
+    getChatSessions, getSessionMessages
 } from "../controllers/ai.controller.js";
 
 
@@ -15,6 +16,8 @@ const router = express.Router();
 
 router.post("/chat", protect, chatWithMentor);
 router.post("/chat/stream", protect, chatWithMentorStream);
+router.get("/chat/sessions", protect, getChatSessions);
+router.get("/chat/session/:conversationId", protect, getSessionMessages);
 router.get("/goals", protect, getGoals);
 
 router.post("/complete", protect, completeGoal);

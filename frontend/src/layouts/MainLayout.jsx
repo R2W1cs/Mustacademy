@@ -46,7 +46,7 @@ const MainLayout = ({ children }) => {
       <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-pink-500/5 blur-[100px] rounded-full pointer-events-none"></div>
       <Sidebar isDark={isDark} toggleTheme={toggleTheme} isCollapsed={isCollapsed} toggleSidebar={toggleSidebar} />
       <main
-        className={`flex-1 min-w-0 max-w-full relative z-10 overflow-y-auto transition-all duration-300 ${isImmersiveRoute ? 'p-0' : 'px-4 md:px-6 lg:px-10 py-10'} ${isDark ? (isCelestialRoute ? 'mesh-bg' : 'bg-[#050810]') : 'bg-white'}`}
+        className={`flex-1 min-w-0 max-w-full relative z-10 overflow-x-hidden ${isImmersiveRoute ? 'overflow-y-auto' : 'overflow-y-auto px-4 md:px-6 lg:px-10 py-10'} transition-all duration-300 ${isDark ? (isCelestialRoute ? 'mesh-bg' : 'bg-[#050810]') : 'bg-white'}`}
       >
         <AnimatePresence mode="wait">
           <motion.div

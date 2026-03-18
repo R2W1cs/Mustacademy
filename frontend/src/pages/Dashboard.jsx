@@ -274,14 +274,38 @@ export default function Dashboard() {
                                 </div>
                             </div>
                             <button
-                                onClick={() => navigate(`/courses/${stats.stats.lastActiveCourse._id || stats.stats.lastActiveCourse.id}`)}
+                                onClick={() => navigate(`/courses/${stats.stats.lastActiveCourse.id}/roadmap`)}
                                 className={`shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all hover:scale-105 ${isDark ? 'bg-cyan-500 text-black hover:bg-cyan-400' : 'bg-red-600 text-white hover:bg-red-500'}`}
                             >
                                 Resume <ArrowRight size={14} />
                             </button>
                         </div>
                     </motion.div>
-                ) : null}
+                ) : (
+                    <motion.div
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.1 }}
+                        className={`mb-8 p-6 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 ${cardClass}`}
+                    >
+                        <div className="flex items-center gap-5">
+                            <div className={`w-14 h-14 shrink-0 rounded-2xl flex items-center justify-center border ${isDark ? 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400' : 'bg-red-500/5 border-red-500/10 text-red-600'}`}>
+                                <TrendingUp size={24} />
+                            </div>
+                            <div>
+                                <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isDark ? 'text-cyan-400' : 'text-red-600'}`}>Continue Learning</p>
+                                <h3 className={`text-base font-black leading-tight mb-1 ${headingColor}`}>Pick up where you left off</h3>
+                                <p className={`text-xs ${textMuted}`}>Enroll in a course to get started</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => navigate('/courses')}
+                            className={`shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all hover:scale-105 ${isDark ? 'bg-cyan-500 text-black hover:bg-cyan-400' : 'bg-red-600 text-white hover:bg-red-500'}`}
+                        >
+                            Browse Courses <ArrowRight size={14} />
+                        </button>
+                    </motion.div>
+                )}
 
                 {/* Bento Grid Layout */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">

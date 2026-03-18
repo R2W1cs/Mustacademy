@@ -118,7 +118,7 @@ export const getDashboardStats = async (req, res) => {
         ROUND(COALESCE((SELECT COUNT(*) FROM user_topic_progress utp JOIN topics t ON utp.topic_id = t.id WHERE t.course_id = c.id AND utp.user_id = $1 AND utp.completed = true)::numeric / NULLIF((SELECT COUNT(*) FROM topics WHERE course_id = c.id), 0) * 100, 0)) as progress
         FROM user_courses uc
         JOIN courses c ON uc.course_id = c.id
-        WHERE uc.user_id = $1 AND uc.status = 'in_progress'
+        WHERE uc.user_id = $1
         ORDER BY uc.started_at DESC LIMIT 1
       `, [userId]).catch(() => ({ rows: [] }))
     ]);
