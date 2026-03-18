@@ -184,6 +184,8 @@ export default function GlobalAIPilot() {
                 }
             }
 
+            // Refresh history to include new/updated session
+            fetchHistory();
         } catch (err) {
             console.error("Stream Error", err);
             setMessages(prev => {
@@ -191,6 +193,7 @@ export default function GlobalAIPilot() {
                 let errorMessage = 'Intelligence feed interrupted. Please retry.';
                 if (err.message?.includes('401')) errorMessage = 'Session expired. Please re-login.';
                 else if (err.name === 'AbortError') errorMessage = 'Connection timed out. The server may be waking up — please retry in a moment.';
+                else if (err.message === 'Failed to fetch') errorMessage = 'Neural uplink unreachable. Please verify that the backend system is active (Port 3001).';
                 next[next.length - 1] = { role: 'ai', text: errorMessage };
                 return next;
             });

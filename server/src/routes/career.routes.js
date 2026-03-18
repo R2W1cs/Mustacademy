@@ -1,5 +1,5 @@
 import express from "express";
-import { generateCareerArchitecture, getCareerRoadmap, scanResume } from "../controllers/career.controller.js";
+import { generateCareerArchitecture, getCareerRoadmap } from "../controllers/career.controller.js";
 import { protect } from "../middleware/auth.middleware.js";
 import multer from "multer";
 

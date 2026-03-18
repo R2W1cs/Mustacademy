@@ -19,6 +19,8 @@ const MainLayout = ({ children }) => {
   const location = useLocation();
 
   useEffect(() => {
+    // Lock body scroll for app shell
+    document.documentElement.classList.add('app-shell-lock');
 
     // Load sidebar state
     const savedSidebar = localStorage.getItem('sidebarCollapsed');
@@ -26,7 +28,9 @@ const MainLayout = ({ children }) => {
       setIsCollapsed(true);
     }
 
-
+    return () => {
+      document.documentElement.classList.remove('app-shell-lock');
+    };
   }, []);
 
   const toggleSidebar = () => {
@@ -46,7 +50,7 @@ const MainLayout = ({ children }) => {
       <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-pink-500/5 blur-[100px] rounded-full pointer-events-none"></div>
       <Sidebar isDark={isDark} toggleTheme={toggleTheme} isCollapsed={isCollapsed} toggleSidebar={toggleSidebar} />
       <main
-        className={`flex-1 min-w-0 max-w-full relative z-10 overflow-x-hidden ${isImmersiveRoute ? 'overflow-y-auto' : 'overflow-y-auto px-4 md:px-6 lg:px-10 py-10'} transition-all duration-300 ${isDark ? (isCelestialRoute ? 'mesh-bg' : 'bg-[#050810]') : 'bg-white'}`}
+        className={`flex-1 min-w-0 max-w-full relative z-10 overflow-x-hidden overscroll-y-none ${isImmersiveRoute ? 'overflow-y-auto' : 'overflow-y-auto px-4 md:px-6 lg:px-10 py-10'} transition-all duration-300 ${isDark ? (isCelestialRoute ? 'mesh-bg' : 'bg-[#050810]') : 'bg-white'}`}
       >
         <AnimatePresence mode="wait">
           <motion.div

@@ -143,6 +143,17 @@ export default function Dashboard() {
     const headingColor = isDark ? "text-white tracking-tight" : "text-slate-900";
     const accentColor = isDark ? "#00f2ff" : "#FF4D6D"; // Softer Red/Pink for "cute"
     const accentGlow = isDark ? "rgba(0, 242, 255, 0.4)" : "rgba(255, 77, 109, 0.2)";
+    
+    // Dynamic Rank Logic
+    const getRank = (count) => {
+        if (count >= 31) return "Zenith";
+        if (count >= 16) return "Omega";
+        if (count >= 6) return "Sigma";
+        if (count >= 1) return "Alpha";
+        return "Novice";
+    };
+    const eliteRank = getRank(stats.completed_topics || 0);
+    const totalWeeklyHours = stats.weeklyProgress?.reduce((acc, w) => acc + (w.hours || 0), 0) || 0;
 
     return (
         <div className={`animate-fade-in group relative overflow-hidden ${themeClass}`}>
@@ -179,7 +190,7 @@ export default function Dashboard() {
                                 <span className="opacity-30">|</span>
                                 <div className="flex items-center gap-2">
                                     <Star size={14} className="text-indigo-500" />
-                                    <span>Elite Rank: <span className={headingColor}>Alpha</span></span>
+                                    <span>Elite Rank: <span className={headingColor}>{eliteRank}</span></span>
                                 </div>
                             </div>
                         </div>
@@ -294,8 +305,8 @@ export default function Dashboard() {
                             </div>
                             <div>
                                 <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isDark ? 'text-cyan-400' : 'text-red-600'}`}>Continue Learning</p>
-                                <h3 className={`text-base font-black leading-tight mb-1 ${headingColor}`}>Pick up where you left off</h3>
-                                <p className={`text-xs ${textMuted}`}>Enroll in a course to get started</p>
+                                <h3 className={`text-base font-black leading-tight mb-1 ${headingColor}`}>Continue Learning</h3>
+                                <p className={`text-xs ${textMuted}`}>Select a roadmap to begin your journey</p>
                             </div>
                         </div>
                         <button
@@ -388,7 +399,7 @@ export default function Dashboard() {
                             )}
                         </div>
                         <ResponsiveContainer width="100%" height={240}>
-                            {stats?.weeklyProgress?.length > 0 ? (
+                            {totalWeeklyHours > 0 ? (
                                 <AreaChart
                                     data={selectedWeek ? selectedWeek.days : stats.weeklyProgress}
                                     onClick={(e) => {
@@ -429,9 +440,12 @@ export default function Dashboard() {
                                     />
                                 </AreaChart>
                             ) : (
-                                <div className="h-full flex items-center justify-center text-sm text-gray-500">
-                                    <TrendingUp className="w-5 h-5 mr-3 opacity-50" />
-                                    No learning activity recorded yet.
+                                <div className="h-full flex flex-col items-center justify-center text-center py-6">
+                                    <TrendingUp className="w-12 h-12 text-gray-400 mb-4 opacity-50" />
+                                    <p className={`text-sm font-bold ${headingColor} mb-2`}>Precision Learning Engine Calibrating</p>
+                                    <p className={`text-xs ${textMuted} max-w-[280px]`}>
+                                        Complete your first session to initialize your weekly performance analytics.
+                                    </p>
                                 </div>
                             )}
                         </ResponsiveContainer>
