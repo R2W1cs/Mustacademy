@@ -102,15 +102,6 @@
     color: var(--foreground);
   }
 
-  /* Force scroll lock for the application shell */
-  .app-shell-lock, 
-  .app-shell-lock body {
-    overflow: hidden !important;
-    height: 100vh !important;
-    position: fixed;
-    width: 100%;
-  }
-
   html {
     font-size: var(--font-size);
   }
