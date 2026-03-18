@@ -854,7 +854,7 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
                         <div className={`flex-1 flex flex-col ${isDark ? 'bg-transparent' : 'bg-white'} relative z-10 p-4`}>
                             <div className={`flex-1 flex flex-col ${isDark ? 'bg-slate-950/60 border border-white/5' : 'bg-white border-gray-100'} rounded-[3rem] overflow-hidden shadow-3xl backdrop-blur-2xl`}>
                             {scorecard ? (
-                                    <div className="flex-1 p-16 overflow-y-auto custom-scrollbar flex flex-col items-center justify-center text-center relative">
+                                    <div className="flex-1 p-16 flex flex-col items-center justify-center text-center relative">
                                         {/* Scorecard Background Accents */}
                                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(99,102,241,0.05),transparent_70%)] pointer-events-none" />
                                         
@@ -927,7 +927,7 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
                                             </div>
                                         </div>
                                     </div>
-                                    <div ref={scrollRef} className="flex-1 overflow-y-auto p-12 space-y-10 custom-scrollbar relative">
+                                    <div ref={scrollRef} className="flex-1 overflow-y-auto p-12 space-y-10 relative">
                                         {/* Cinematic Background Detail */}
                                         <div className="absolute top-0 right-0 p-20 opacity-[0.02] pointer-events-none">
                                             <Cpu size={400} />

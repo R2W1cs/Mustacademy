@@ -156,7 +156,7 @@ const CognitiveConstellation = () => {
             <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:20px_20px] opacity-20" />
 
             {/* The Knowledge Map (With Panning Container) */}
-            <div className="relative z-10 w-full h-full p-10 overflow-auto custom-scrollbar">
+            <div className="relative z-10 w-full h-full p-10 overflow-auto">
                 <div className="relative min-w-[1200px] min-h-[800px] overflow-visible mx-auto">
 
                     {/* Constellation Lines (Clean blue/grey paths) */}

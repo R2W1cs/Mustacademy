@@ -260,7 +260,7 @@ export default function GlobalAIPilot() {
                                         </div>
 
                                         {/* Session list */}
-                                        <div className="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar">
+                                        <div className="space-y-1.5 max-h-48 overflow-y-auto">
                                             {schedule.map((b, i) => {
                                                 const done = !!b.completed_at;
                                                 const active = b === currentBlock;
@@ -362,7 +362,7 @@ export default function GlobalAIPilot() {
 
                         {/* TAB CONTENT: PLAN */}
                         {activeTab === 'plan' && (
-                            <div className="flex-1 overflow-y-auto px-5 py-6 space-y-6 custom-scrollbar">
+                            <div className="flex-1 overflow-y-auto px-5 py-6 space-y-6">
                                 {schedule.length === 0 ? (
                                     <div className="h-full flex flex-col items-center justify-center gap-4 py-12 opacity-80">
                                         <div className={`w-16 h-16 rounded-[2rem] flex items-center justify-center ${isDark ? 'bg-indigo-500/10' : 'bg-red-50'}`}>
@@ -423,7 +423,7 @@ export default function GlobalAIPilot() {
                         {/* TAB CONTENT: CHAT */}
                         {activeTab === 'chat' && (
                             <>
-                                <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3 custom-scrollbar">
+                                <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
                                     {messages.length === 0 && (
                                         <div className="h-full flex flex-col items-center justify-center gap-3 py-6 opacity-60">
                                             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isDark ? 'bg-indigo-500/10' : 'bg-red-50'}`}>
@@ -495,7 +495,7 @@ export default function GlobalAIPilot() {
 
                         {/* TAB CONTENT: HISTORY (Sessions) */}
                         {activeTab === 'history' && (
-                            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 custom-scrollbar">
+                            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
                                 <button
                                     onClick={startNewChat}
                                     className={`w-full py-3 mb-2 rounded-xl border-2 border-dashed flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all ${isDark ? 'border-white/10 text-slate-500 hover:border-indigo-500/40 hover:text-indigo-400' : 'border-slate-200 text-slate-400 hover:border-red-300 hover:text-red-600'}`}

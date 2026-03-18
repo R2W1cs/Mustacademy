@@ -409,7 +409,7 @@ const Profile = () => {
             </div>
 
             {badges.length > 0 ? (
-              <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar">
+              <div className="flex gap-4 overflow-x-auto pb-4">
                 {badges.map((badge) => (
                   <div key={badge.key} className="min-w-[200px]">
                     <Badge badge={badge} />

@@ -99,7 +99,7 @@ const AiMentorModal = ({ isOpen, onClose, context }) => {
             {/* Chat Window */}
             <div
                 ref={scrollRef}
-                className="flex-1 overflow-y-auto space-y-4 mb-4 p-2 custom-scrollbar pr-4"
+                className="flex-1 overflow-y-auto space-y-4 mb-4 p-2 pr-4"
             >
                 {messages.length === 0 && !loading && (
                     <div className="text-center py-10">

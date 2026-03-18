@@ -173,7 +173,7 @@ const Navbar = () => {
                                             </button>
                                         )}
                                     </div>
-                                    <div className="max-h-96 overflow-y-auto custom-scrollbar">
+                                    <div className="max-h-96 overflow-y-auto">
                                         {notifications.length > 0 ? (
                                             notifications.map(notif => (
                                                 <div

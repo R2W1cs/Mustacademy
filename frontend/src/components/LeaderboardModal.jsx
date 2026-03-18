@@ -53,7 +53,7 @@ export default function LeaderboardModal({ onClose, isDark }) {
                 </div>
             </div>
 
-            <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+            <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
                 {loading ? (
                     [...Array(5)].map((_, i) => (
                         <div key={i} className={`h-16 rounded-2xl animate-pulse ${isDark ? 'bg-white/5' : 'bg-slate-100'}`} />

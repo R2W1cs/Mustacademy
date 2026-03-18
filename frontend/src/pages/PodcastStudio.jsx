@@ -525,7 +525,7 @@ export default function CsPodcastStudio() {
                                     <AnimatePresence>
                                         {isExpanded && (
                                             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="p-5 overflow-hidden">
-                                                <div className="flex gap-4 overflow-x-auto pb-3 custom-scrollbar snap-x">
+                                                <div className="flex gap-4 overflow-x-auto pb-3 snap-x">
                                                     {chapter.topics.map((t, idx) => (
                                                         <EpisodeCard key={t.id} topic={t} idx={idx} isDark={isDark} netflixRed={netflixRed} chapterColor={chapter.color} onPlay={() => { generateStory(t); }} />
                                                     ))}

@@ -100,7 +100,7 @@ export default function SynapticChatView({ roomId, roomName, isDark }) {
                 </div>
 
                 {/* Messages Area */}
-                <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+                <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6">
                     {messages.length === 0 && (
                         <div className="h-full flex flex-col items-center justify-center opacity-20 grayscale">
                             <Zap size={48} className="mb-4" />

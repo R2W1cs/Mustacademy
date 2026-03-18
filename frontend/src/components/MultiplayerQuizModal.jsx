@@ -264,7 +264,7 @@ const MultiplayerQuizModal = ({ onClose, topic, action, joinCode }) => {
                                                 <span className="text-[10px] text-emerald-500 font-bold">{onlineUsers.length}</span>
                                             </div>
                                         </div>
-                                        <div className="flex-1 space-y-4 overflow-y-auto pr-2 custom-scrollbar">
+                                        <div className="flex-1 space-y-4 overflow-y-auto pr-2">
                                             {onlineUsers.filter(u => u.id !== userId).length > 0 ? (
                                                 onlineUsers.filter(u => u.id !== userId).map((u, i) => (
                                                     <div key={i} className="flex items-center gap-3 p-3 bg-white/5 rounded-2xl hover:bg-white/10 transition-colors border border-transparent hover:border-white/10 group">
@@ -449,7 +449,7 @@ const MultiplayerQuizModal = ({ onClose, topic, action, joinCode }) => {
                                     </div>
                                 </div>
 
-                                <div className="flex-1 space-y-4 pr-4 custom-scrollbar overflow-y-auto">
+                                <div className="flex-1 space-y-4 pr-4 overflow-y-auto">
                                     {leaderboard.map((p, i) => (
                                         <motion.div
                                             key={p.id}

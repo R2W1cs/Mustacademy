@@ -114,7 +114,7 @@ const CommandPalette = () => {
                         </div>
 
                         {/* Results */}
-                        <div className="max-h-[400px] overflow-y-auto p-4 space-y-4 cyber-scrollbar">
+                        <div className="max-h-[400px] overflow-y-auto p-4 space-y-4">
                             {filteredActions.length > 0 ? (
                                 <div className="space-y-1">
                                     {filteredActions.map((action, index) => (
