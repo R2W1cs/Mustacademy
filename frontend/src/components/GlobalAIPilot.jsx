@@ -112,7 +112,8 @@ export default function GlobalAIPilot() {
         // Add a placeholder message for the AI
         setMessages(prev => [...prev, { role: 'ai', text: '' }]);
 
-        const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+        const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+        const apiBase = import.meta.env.VITE_API_URL || (isProduction ? 'https://mustacademy-backend.onrender.com/api' : 'http://localhost:3001/api');
         const token = localStorage.getItem('token');
 
         try {

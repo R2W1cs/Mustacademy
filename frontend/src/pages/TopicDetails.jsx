@@ -217,7 +217,7 @@ const TopicDetails = () => {
     }
 
     return (
-        <div className="min-h-screen overflow-x-hidden mesh-bg relative">
+        <div className="overflow-x-hidden mesh-bg relative">
             {/* AMBIENT BACKGROUND ELEMENTS */}
             <div className={`absolute top-[-10%] left-[-10%] w-[40%] h-[40%] ${isDark ? 'bg-indigo-500/10' : 'bg-indigo-500/5'} blur-[120px] rounded-full animate-nebula-float pointer-events-none`} />
             <div className={`absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] ${isDark ? 'bg-violet-500/10' : 'bg-violet-500/5'} blur-[120px] rounded-full animate-nebula-float pointer-events-none`} style={{ animationDelay: '-5s' }} />
