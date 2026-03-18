@@ -322,7 +322,7 @@ export default function ExamSession() {
                 </nav>
 
                 {/* Main Content Area */}
-                <main className="flex-1 overflow-y-auto p-12 bg-[#050505]">
+                <main className="flex-1 p-12 bg-[#050505]">
                     {exam?.error || exam?.reply ? (
                         <div className="max-w-xl mx-auto mt-20 p-8 border border-red-900/30 bg-red-900/5 rounded-3xl text-center">
                             <ShieldAlert className="mx-auto text-red-500 mb-4" size={48} />
@@ -409,7 +409,7 @@ export default function ExamSession() {
                             <p className="text-gray-500 text-xs font-bold uppercase mb-12 italic border-b border-gray-900 pb-4 tracking-widest">Individual industrial crisis simulation. Your architecture will be audited for Staff-Engineer level signal.</p>
 
                             <div className="flex flex-col lg:flex-row gap-8 flex-1">
-                                <div className="lg:w-1/2 p-8 bg-gray-900/30 border border-gray-800/50 rounded-3xl overflow-y-auto">
+                                <div className="lg:w-1/2 p-8 bg-gray-900/30 border border-gray-800/50 rounded-3xl">
                                     <h3 className="text-purple-400 font-black uppercase text-xs tracking-widest mb-6">Industrial Scenario</h3>
                                     <div className="prose prose-invert prose-sm">
                                         <p className="text-gray-300 leading-relaxed font-medium whitespace-pre-wrap">{exam.case_study?.scenario}</p>

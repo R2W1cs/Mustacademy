@@ -523,7 +523,7 @@ const MethodologyVisualizer = ({ type = 'waterfall' }) => {
 
                         </motion.div>
                     ) : (
-                        <motion.div key="prin" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex-1 p-12 overflow-y-auto custom-scrollbar min-h-[600px]">
+                        <motion.div key="prin" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex-1 p-12 min-h-[600px]">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {config.steps.map((s, i) => (
                                     <div key={i} className="p-8 rounded-[2rem] border border-white/5 bg-white/[0.02] flex flex-col gap-4 group hover:border-white/10 transition-all">

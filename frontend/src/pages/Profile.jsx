@@ -378,7 +378,7 @@ const Profile = () => {
           </BentoCard>
 
           {/* 4. RECENT TRANSMISSIONS (Data Feed) */}
-          <BentoCard className="md:col-span-3 lg:col-span-4 row-span-2 overflow-y-auto custom-scrollbar" delay={0.3}>
+          <BentoCard className="md:col-span-3 lg:col-span-4 row-span-2" delay={0.3}>
             <div className="sticky top-0 bg-[#0f1729]/95 backdrop-blur-md z-10 pb-4 mb-2 border-b border-white/5 flex justify-between items-center">
               <h3 className="text-xs font-bold text-white/60 uppercase tracking-[0.2em]">Transmission Log</h3>
               <span className="text-[10px] font-mono text-white/30">{recentHistory.length} ENTRIES</span>

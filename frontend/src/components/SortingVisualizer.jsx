@@ -290,7 +290,7 @@ const SortingVisualizer = () => {
                 </div>
 
                 {/* Sidebar */}
-                <div className="w-full md:w-[350px] bg-background/40 backdrop-blur-xl p-8 flex flex-col gap-8">
+                <div className="w-full lg:w-[400px] border-t lg:border-t-0 lg:border-l border-white/5 p-12 flex flex-col gap-12 bg-white/[0.01] backdrop-blur-3xl">
                     <section>
                         <div className="flex items-center gap-2 mb-4">
                             <Zap className="text-indigo-400" size={16} />
@@ -327,7 +327,7 @@ const SortingVisualizer = () => {
                         </div>
                     </section>
 
-                    <section className="mt-auto p-6 bg-indigo-500/5 rounded-2xl border border-indigo-500/10 max-h-[250px] overflow-y-auto custom-scrollbar">
+                    <section className="mt-auto p-6 bg-indigo-500/5 rounded-2xl border border-indigo-500/10">
                         <div className="flex items-center gap-2 mb-4">
                             <Brain className="text-indigo-400" size={14} />
                             <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Mastery Protocol</span>

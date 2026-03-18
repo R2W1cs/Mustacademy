@@ -228,7 +228,7 @@ export default function TopicPodcastPlayer({ topic }) {
                             <p className={`mt-2 text-sm ${mutedText}`}>{episode.summary}</p>
                         </div>
 
-                        <div className="px-10 py-6 space-y-4 max-h-[400px] overflow-y-auto custom-scrollbar flex-1">
+                        <div className="px-10 py-6 space-y-4 flex-1">
                             {episode.segments?.map((seg, i) => {
                                 const isHost = seg.speaker === "host";
                                 const isActive = activeSegment === i;

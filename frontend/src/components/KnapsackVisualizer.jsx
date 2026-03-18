@@ -71,7 +71,7 @@ const KnapsackVisualizer = () => {
     };
 
     return (
-        <div className="w-full bg-foreground/[0.02] border border-foreground/10 rounded-[3rem] overflow-hidden flex flex-col h-[700px] hover:border-indigo-500/20 transition-all duration-500">
+        <div className="w-full bg-foreground/[0.02] border border-foreground/10 rounded-[3rem] overflow-hidden flex flex-col hover:border-indigo-500/20 transition-all duration-500">
             {/* Header */}
             <div className="p-8 border-b border-foreground/10 flex justify-between items-center bg-indigo-500/5">
                 <div className="flex items-center gap-4">
@@ -91,7 +91,7 @@ const KnapsackVisualizer = () => {
 
             <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
                 {/* Matrix View */}
-                <div className="flex-1 overflow-auto p-8 border-r border-foreground/10 custom-scrollbar">
+                <div className="flex-1 p-8 border-r border-foreground/10">
                     <div className="min-w-[500px]">
                         <table className="w-full border-separate border-spacing-2">
                             <thead>
@@ -137,7 +137,7 @@ const KnapsackVisualizer = () => {
                 </div>
 
                 {/* Explanation Side panel */}
-                <div className="w-full md:w-[350px] bg-background/40 backdrop-blur-xl p-8 flex flex-col gap-8 overflow-y-auto">
+                <div className="w-full md:w-[350px] bg-background/40 backdrop-blur-xl p-8 flex flex-col gap-8">
                     <section>
                         <div className="flex items-center gap-2 mb-4">
                             <Brain className="text-indigo-400" size={16} />

@@ -637,7 +637,7 @@ const DataWarehouseVisualizer = ({ type = 'etl' }) => {
                             </div>
                         </motion.div>
                     ) : (
-                        <motion.div key="logic" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="flex-1 p-16 overflow-y-auto custom-scrollbar min-h-[650px]">
+                        <motion.div key="logic" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="flex-1 p-16 min-h-[650px]">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                                 {steps.map((s, i) => (
                                     <div key={i} className="p-10 rounded-[3rem] border border-white/5 bg-white/[0.02] flex flex-col gap-6 group hover:border-indigo-500/20 transition-all hover:-translate-y-2">

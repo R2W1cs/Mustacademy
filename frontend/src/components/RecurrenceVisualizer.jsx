@@ -142,7 +142,7 @@ const RecurrenceVisualizer = () => {
 
             <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
                 {/* Main Dynamic View */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-12 bg-gradient-to-br from-indigo-500/[0.02] to-transparent">
+                <div className="flex-1 p-12 bg-gradient-to-br from-indigo-500/[0.02] to-transparent">
                     <AnimatePresence mode="wait">
                         {expansionMode === 'substitution' ? (
                             <motion.div

@@ -428,7 +428,7 @@ export default function CsPodcastStudio() {
                                 </div>
 
                                 {/* Right Panel — Script */}
-                                <div className="p-10 lg:col-span-2 h-[480px] overflow-y-auto custom-scrollbar bg-black/5">
+                                <div className="p-10 lg:col-span-2 bg-black/5">
                                     <div className="space-y-6">
                                         {episode.segments?.map((seg, i) => {
                                             const isActive = activeSegment === i;

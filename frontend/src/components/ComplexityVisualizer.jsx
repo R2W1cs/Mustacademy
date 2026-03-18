@@ -85,7 +85,7 @@ const ComplexityVisualizer = () => {
 
             <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
                 {/* Main Interactive Stage */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-8 bg-gradient-to-br from-blue-500/[0.01] to-transparent leading-relaxed">
+                <div className="flex-1 p-8 bg-gradient-to-br from-blue-500/[0.01] to-transparent leading-relaxed">
                     <AnimatePresence mode="wait">
                         {view === 'curves' ? (
                             <motion.div

@@ -216,7 +216,7 @@ export default function Dashboard() {
                                                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                className={`absolute right-0 mt-3 w-80 max-h-[400px] overflow-y-auto p-4 rounded-3xl border shadow-2xl z-50 ${isDark ? 'bg-[#0d1222] border-white/10' : 'bg-white border-slate-200'}`}
+                                                className={`absolute right-0 mt-3 w-80 p-4 rounded-3xl border shadow-2xl z-50 ${isDark ? 'bg-[#0d1222] border-white/10' : 'bg-white border-slate-200'}`}
                                             >
                                                 <div className="flex items-center justify-between mb-4 px-2">
                                                     <h4 className={`text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-white' : 'text-slate-900'}`}>Pulse Feed</h4>
