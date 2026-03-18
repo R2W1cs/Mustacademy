@@ -107,7 +107,7 @@ const DataWarehouseVisualizer = ({ type = 'etl' }) => {
     };
 
     const renderArchitecture = () => (
-        <div className="flex flex-col items-center justify-center h-full w-full py-16 px-6">
+        <div className="flex flex-col items-center justify-center min-h-[500px] w-full py-16 px-6">
             <div className="flex items-center justify-between w-full max-w-6xl relative">
                 {/* Connection lines */}
                 <div className="absolute left-0 right-0 h-px bg-white/5 top-1/2 -z-10" />
@@ -169,7 +169,7 @@ const DataWarehouseVisualizer = ({ type = 'etl' }) => {
     );
 
     const renderComparison = () => (
-        <div className="flex flex-col items-center justify-center h-full w-full py-10 px-6 gap-10">
+        <div className="flex flex-col items-center justify-center min-h-[500px] w-full py-10 px-6 gap-10">
             <div className="grid grid-cols-2 w-full max-w-5xl gap-12 relative">
                 {/* Mid Line */}
                 <div className="absolute left-1/2 top-0 bottom-0 w-px bg-white/10 hidden lg:block" />
@@ -256,7 +256,7 @@ const DataWarehouseVisualizer = ({ type = 'etl' }) => {
     );
 
     const renderETL = () => (
-        <div className="flex flex-col items-center justify-center h-full w-full py-10 relative">
+        <div className="flex flex-col items-center justify-center min-h-[500px] w-full py-10 relative">
             <div className="flex items-center justify-between w-full max-w-5xl gap-4 px-10">
                 {/* Source Systems */}
                 <div className="flex flex-col gap-4">
@@ -359,7 +359,7 @@ const DataWarehouseVisualizer = ({ type = 'etl' }) => {
     );
 
     const renderModeling = () => (
-        <div className="flex flex-col items-center justify-center h-full w-full py-10 px-4 relative">
+        <div className="flex flex-col items-center justify-center min-h-[500px] w-full py-10 px-4 relative">
             <div className="relative w-full max-w-4xl aspect-video flex items-center justify-center">
 
                 {/* Fact Table (Center) */}
@@ -463,7 +463,7 @@ const DataWarehouseVisualizer = ({ type = 'etl' }) => {
     );
 
     const renderMart = () => (
-        <div className="flex flex-col items-center justify-center h-full w-full py-10 px-4">
+        <div className="flex flex-col items-center justify-center min-h-[500px] w-full py-10 px-4">
             <div className="flex items-center justify-between w-full max-w-5xl gap-8">
 
                 {/* Central DW */}
@@ -547,7 +547,7 @@ const DataWarehouseVisualizer = ({ type = 'etl' }) => {
     );
 
     return (
-        <div className="w-full bg-[#0a0a0c] border border-white/10 rounded-[3rem] overflow-hidden flex flex-col shadow-lg selection:bg-indigo-500/30">
+        <div className="w-full bg-[#0a0a0c] border border-white/10 rounded-[3rem] flex flex-col shadow-lg selection:bg-indigo-500/30">
             {/* Header */}
             <div className="p-10 border-b border-white/5 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 bg-gradient-to-b from-white/[0.04] to-transparent">
                 <div className="flex items-center gap-6">
