@@ -1238,41 +1238,40 @@ export const generatePodcastSpeech = async (req, res) => {
         try {
             const __dirname = path.resolve();
             
-            // Comprehensive folder mapping for complexity topics
-            const folderMap = {
-                // BFS Variations
-                "Breadth First Search": "BFS",
-                "BFS": "BFS",
-                "Breadth-First Search": "BFS",
-                "Searching Algorithms": "BFS",
-                
-                // DFS Variations
-                "Depth First Search": "DFS",
-                "DFS": "DFS",
-                "Depth-First Search": "DFS",
-                "Recursive Search": "DFS",
-                "Graph Traversal": "DFS"
+            // Comprehensive fuzzy folder mapping
+            const getFolderName = (title) => {
+                const t = title.toLowerCase();
+                if (t.includes("breadth") || t.includes("bfs")) return "BFS";
+                if (t.includes("depth") || t.includes("dfs")) return "DFS";
+                return null;
             };
 
-            // Case-insensitive lookup
-            const normalizedTitle = topicTitle.trim();
-            const folderName = folderMap[normalizedTitle] || 
-                             Object.keys(folderMap).find(key => key.toLowerCase() === normalizedTitle.toLowerCase()) ? 
-                             folderMap[Object.keys(folderMap).find(key => key.toLowerCase() === normalizedTitle.toLowerCase())] : null;
+            const folderName = getFolderName(topicTitle);
             
             if (folderName) {
                 // Pre-rendered files are named "download (X).wav"
                 // BFS: download(1-4), DFS: download(5-8)
                 const offset = folderName === 'DFS' ? 5 : 1;
-                const fileName = folderName === 'DFS' && parseInt(index) === 0 ? 'best one.wav' : `download (${parseInt(index) + offset}).wav`;
-                const filePath = path.join(__dirname, 'tts-service', 'podcasts', 'complexity', folderName, fileName);
+                const fileIndex = parseInt(index);
                 
-                if (fs.existsSync(filePath)) {
-                    console.log(`[Neural-TTS] Found pre-rendered studio file for ${topicTitle} (Index: ${index}) -> ${fileName}`);
-                    res.setHeader('Content-Type', 'audio/wav');
-                    res.setHeader('X-Studio-Source', 'Pre-rendered');
-                    const fileStream = fs.createReadStream(filePath);
-                    return fileStream.pipe(res);
+                // For BFS, we only have 4 files (0,1,2,3 -> 1,2,3,4)
+                // For DFS, we have 4 files (0,1,2,3 -> best one,6,7,8)
+                let fileName = null;
+                if (folderName === 'BFS' && fileIndex < 4) {
+                    fileName = `download (${fileIndex + offset}).wav`;
+                } else if (folderName === 'DFS' && fileIndex < 4) {
+                    fileName = fileIndex === 0 ? 'best one.wav' : `download (${fileIndex + offset}).wav`;
+                }
+
+                if (fileName) {
+                    const filePath = path.join(__dirname, 'tts-service', 'podcasts', 'complexity', folderName, fileName);
+                    if (fs.existsSync(filePath)) {
+                        console.log(`[Neural-TTS] Found pre-rendered studio file for ${topicTitle} (Index: ${index}) -> ${fileName}`);
+                        res.setHeader('Content-Type', 'audio/wav');
+                        res.setHeader('X-Studio-Source', 'Pre-rendered');
+                        const fileStream = fs.createReadStream(filePath);
+                        return fileStream.pipe(res);
+                    }
                 }
             }
         } catch (e) {
@@ -1296,27 +1295,28 @@ export const generatePodcastSpeech = async (req, res) => {
         res.setHeader('Content-Type', 'audio/mpeg');
         res.setHeader('X-Neural-Voice', voiceName);
 
-        const communicate = new Communicate(text, { voice: voiceName });
+        // Switch to msedge-tts which handles streaming and Rate Limiting better
+        const tts = new MsEdgeTTS();
+        await tts.setMetadata(voiceName, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
+        
+        const readable = tts.toStream(text);
         const buffers = [];
         
-        for await (const chunk of communicate.stream()) {
-            if (chunk.type === 'audio' && chunk.data) {
-                const buffer = Buffer.from(chunk.data);
-                buffers.push(buffer);
-                res.write(buffer);
+        readable.on('data', (chunk) => {
+            buffers.push(chunk);
+        });
+
+        readable.on('end', () => {
+            if (ttsCache.size < 500) {
+                const fullBuffer = Buffer.concat(buffers);
+                if (fullBuffer.length > 500) {
+                    ttsCache.set(cacheKey, fullBuffer);
+                }
             }
-        }
+            console.log(`[Neural-TTS] SUCCESS: Streamed ${voiceName} for speaker="${speaker}".`);
+        });
 
-        res.end();
-
-        if (ttsCache.size < 500) {
-            const fullBuffer = Buffer.concat(buffers);
-            if (fullBuffer.length > 500) {
-                ttsCache.set(cacheKey, fullBuffer);
-            }
-        }
-
-        console.log(`[Neural-TTS] SUCCESS: Streamed ${voiceName} for speaker="${speaker}".`);
+        readable.pipe(res);
 
     } catch (err) {
         console.error(`[Neural-TTS] FAIL: ${err.message}`);
