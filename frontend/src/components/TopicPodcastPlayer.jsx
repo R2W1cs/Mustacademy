@@ -38,16 +38,25 @@ export default function TopicPodcastPlayer({ topic }) {
 
     useEffect(() => {
 
+        let timeoutId;
+
         // Cleanup function for stopping all audio
         const stopAllAudio = () => {
+            if (timeoutId) clearTimeout(timeoutId);
             if (audioRef.current) {
                 audioRef.current.pause();
                 audioRef.current.onended = null;
                 audioRef.current.onerror = null;
+                audioRef.current.src = "";
                 audioRef.current = null;
             }
             // Only cancel if we are explicitly stopping playback (not just moving segments)
-            if (!isPlaying && window.speechSynthesis.speaking) {
+            // This condition is important for when the effect re-runs due to dependencies changing,
+            // but we don't want to cancel speech if it's still playing and we're just moving segments.
+            // However, for the cleanup function itself, it should stop everything.
+            // The original logic for `!isPlaying` here was likely intended for the initial check,
+            // not necessarily for the cleanup return. Let's simplify for the cleanup.
+            if (window.speechSynthesis.speaking) {
                 window.speechSynthesis.cancel();
             }
         };
@@ -62,16 +71,15 @@ export default function TopicPodcastPlayer({ topic }) {
             setIsPlaying(false);
             return;
         }
-
-
+        
         const playSegment = async () => {
             const currentIdx = activeSegment;
             const segment = episode.segments[currentIdx];
             if (!segment) return;
 
-            const delay = currentIdx === 0 ? 0 : 400; // Reduced delay
+            const delay = currentIdx === 0 ? 0 : 400; 
             
-            setTimeout(async () => {
+            timeoutId = setTimeout(async () => {
                 try {
                     const apiBase = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : 'https://mustacademy-backend.onrender.com/api');
                     
@@ -79,7 +87,7 @@ export default function TopicPodcastPlayer({ topic }) {
                     const nextIdx = currentIdx + 1;
                     if (nextIdx < episode.segments.length) {
                         const nextSeg = episode.segments[nextIdx];
-                        const nextUrl = `${apiBase}/ai/podcast/speech?text=${encodeURIComponent(nextSeg.text)}&speaker=${nextSeg.speaker}`;
+                        const nextUrl = `${apiBase}/ai/podcast/speech?text=${encodeURIComponent(nextSeg.text)}&speaker=${nextSeg.speaker}&topicTitle=${encodeURIComponent(topic.title)}&index=${nextIdx}`;
                         const preFetchAudio = new Audio();
                         preFetchAudio.preload = "auto";
                         preFetchAudio.src = nextUrl;
@@ -107,6 +115,7 @@ export default function TopicPodcastPlayer({ topic }) {
                     };
 
                     audio.onerror = () => {
+                        console.error("[Neural-Audio] Source load error for:", url);
                         if (activeSegment < episode.segments.length - 1) setActiveSegment(prev => prev + 1);
                         else setIsPlaying(false);
                     };
@@ -114,9 +123,7 @@ export default function TopicPodcastPlayer({ topic }) {
                     const playPromise = audio.play();
                     if (playPromise !== undefined) {
                         playPromise.catch(error => {
-                            if (error.name === 'AbortError') {
-                                // Ignore abort errors (usually from skip/pause)
-                            } else {
+                            if (error.name !== 'AbortError') {
                                 console.error("[Neural-Audio] Playback error:", error.message);
                             }
                         });

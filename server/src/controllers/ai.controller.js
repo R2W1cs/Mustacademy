@@ -11,6 +11,9 @@ import {
 import { getNextPhase, updateInterviewSession, startInterviewSession } from "../services/interview.service.js";
 import { callOllama, callGroq, callAI, repairJson, streamAI, groq } from "../utils/aiClient.js";
 import { MsEdgeTTS, OUTPUT_FORMAT } from "msedge-tts";
+import { Communicate } from 'edge-tts-universal';
+import path from 'path';
+import fs from 'fs';
 
 // In-memory cache for frequently requested TTS segments
 const ttsCache = new Map();
@@ -1233,18 +1236,29 @@ export const generatePodcastSpeech = async (req, res) => {
     // Map topics to their pre-rendered folders (e.g., BFS, DFS)
     if (topicTitle && index !== undefined) {
         try {
-            const path = await import('path');
-            const fs = await import('fs');
             const __dirname = path.resolve();
             
-            // Clean topic title for folder mapping
+            // Comprehensive folder mapping for complexity topics
             const folderMap = {
+                // BFS Variations
                 "Breadth First Search": "BFS",
                 "BFS": "BFS",
+                "Breadth-First Search": "BFS",
+                "Searching Algorithms": "BFS",
+                
+                // DFS Variations
                 "Depth First Search": "DFS",
-                "DFS": "DFS"
+                "DFS": "DFS",
+                "Depth-First Search": "DFS",
+                "Recursive Search": "DFS",
+                "Graph Traversal": "DFS"
             };
-            const folderName = folderMap[topicTitle] || folderMap[topicTitle.trim()];
+
+            // Case-insensitive lookup
+            const normalizedTitle = topicTitle.trim();
+            const folderName = folderMap[normalizedTitle] || 
+                             Object.keys(folderMap).find(key => key.toLowerCase() === normalizedTitle.toLowerCase()) ? 
+                             folderMap[Object.keys(folderMap).find(key => key.toLowerCase() === normalizedTitle.toLowerCase())] : null;
             
             if (folderName) {
                 // Pre-rendered files are named "download (X).wav"
@@ -1279,8 +1293,6 @@ export const generatePodcastSpeech = async (req, res) => {
     console.log(`[Neural-TTS] Synthesizing with ${voiceName} for speaker="${speaker}"...`);
 
     try {
-        const { Communicate } = await import('edge-tts-universal');
-        
         res.setHeader('Content-Type', 'audio/mpeg');
         res.setHeader('X-Neural-Voice', voiceName);
 
