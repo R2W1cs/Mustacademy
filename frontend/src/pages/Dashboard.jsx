@@ -12,7 +12,7 @@ import { useTheme } from "../auth/ThemeContext";
 import { 
     ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, 
     PolarRadiusAxis, Radar, AreaChart, CartesianGrid, XAxis, 
-    YAxis, Tooltip, Area, Defs, LinearGradient, Stop 
+    YAxis, Tooltip, Area 
 } from 'recharts';
 
 // Mock data removed (fetching real data now)

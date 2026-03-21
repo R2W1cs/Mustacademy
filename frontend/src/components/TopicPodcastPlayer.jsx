@@ -10,8 +10,8 @@ import api from "../api/axios";
 import { useTheme } from "../auth/ThemeContext";
 
 const SPEAKERS = {
-    host: { name: "Dr. Aria (Sonia)", color: "indigo", label: "AI Host" },
-    expert: { name: "Prof. Nova (Brian)", color: "amber", label: "AI Expert" }
+    host: { name: "The Pragmatist (Aria)", color: "indigo", label: "Pragmatic Host" },
+    expert: { name: "The Theorist (Dr. Nova)", color: "amber", label: "Theoretical Expert" }
 };
 
 export default function TopicPodcastPlayer({ topic }) {
@@ -65,25 +65,40 @@ export default function TopicPodcastPlayer({ topic }) {
 
 
         const playSegment = async () => {
-            const segment = episode.segments[activeSegment];
+            const currentIdx = activeSegment;
+            const segment = episode.segments[currentIdx];
             if (!segment) return;
 
-            // Neural TTS from Backend for BOTH speakers
-            const delay = activeSegment === 0 ? 0 : 800;
+            const delay = currentIdx === 0 ? 0 : 400; // Reduced delay
             
             setTimeout(async () => {
                 try {
-                    const response = await api.post("/ai/podcast/speech",
-                        { text: segment.text, speaker: segment.speaker },
-                        { responseType: 'blob' }
-                    );
+                    const apiBase = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : 'https://mustacademy-backend.onrender.com/api');
+                    
+                    // Pre-fetch next segment
+                    const nextIdx = currentIdx + 1;
+                    if (nextIdx < episode.segments.length) {
+                        const nextSeg = episode.segments[nextIdx];
+                        const nextUrl = `${apiBase}/ai/podcast/speech?text=${encodeURIComponent(nextSeg.text)}&speaker=${nextSeg.speaker}`;
+                        const preFetchAudio = new Audio();
+                        preFetchAudio.preload = "auto";
+                        preFetchAudio.src = nextUrl;
+                        window._topicAudioCache = window._topicAudioCache || {};
+                        window._topicAudioCache[nextIdx] = nextUrl;
+                    }
 
-                    const url = URL.createObjectURL(response.data);
+                    let url;
+                    if (window._topicAudioCache && window._topicAudioCache[currentIdx]) {
+                        url = window._topicAudioCache[currentIdx];
+                    } else {
+                        url = `${apiBase}/ai/podcast/speech?text=${encodeURIComponent(segment.text)}&speaker=${segment.speaker}`;
+                    }
+
                     const audio = new Audio(url);
                     audioRef.current = audio;
 
                     audio.onended = () => {
-                        URL.revokeObjectURL(url);
+                        if (window._topicAudioCache) delete window._topicAudioCache[currentIdx];
                         if (activeSegment < episode.segments.length - 1) {
                             setActiveSegment(prev => prev + 1);
                         } else {
@@ -92,7 +107,6 @@ export default function TopicPodcastPlayer({ topic }) {
                     };
 
                     audio.onerror = () => {
-                        URL.revokeObjectURL(url);
                         if (activeSegment < episode.segments.length - 1) setActiveSegment(prev => prev + 1);
                         else setIsPlaying(false);
                     };
@@ -100,14 +114,10 @@ export default function TopicPodcastPlayer({ topic }) {
                     await audio.play();
                 } catch (err) {
                     console.error("[Neural-Audio] Synthesis Failure:", err.message);
-                    
                     setTimeout(() => {
-                        if (activeSegment < episode.segments.length - 1) {
-                            setActiveSegment(prev => prev + 1);
-                        } else {
-                            setIsPlaying(false);
-                        }
-                    }, 1500); 
+                        if (activeSegment < episode.segments.length - 1) setActiveSegment(prev => prev + 1);
+                        else setIsPlaying(false);
+                    }, 500); 
                 }
             }, delay);
         };

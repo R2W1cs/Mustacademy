@@ -184,22 +184,21 @@ export default function CsPodcastStudio() {
             const speaker = segment.speaker; // 'host' or 'expert'
             
             try {
+                const apiBase = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : 'https://mustacademy-backend.onrender.com/api');
+                
                 // Pre-fetch next segment immediately
                 const nextIdx = currentIdx + 1;
                 if (nextIdx < episode.segments.length) {
                     const nextSeg = episode.segments[nextIdx];
-                    // We don't await this, let it run in background
-                    api.post("/ai/podcast/speech",
-                        { text: nextSeg.text, speaker: nextSeg.speaker },
-                        { responseType: 'blob' }
-                    ).then(response => {
-                        const url = URL.createObjectURL(response.data);
-                        // Store in a global-ish or ref-based cache if needed, 
-                        // but for now we just rely on browser/axios cache if any,
-                        // or we could use a dedicated state/ref.
-                        window._podcastAudioCache = window._podcastAudioCache || {};
-                        window._podcastAudioCache[nextIdx] = url;
-                    }).catch(e => console.warn("Pre-fetch failed", e));
+                    const nextUrl = `${apiBase}/ai/podcast/speech?text=${encodeURIComponent(nextSeg.text)}&speaker=${nextSeg.speaker}`;
+                    
+                    // Simple pre-fetch: Create a background audio element to start buffering
+                    const preFetchAudio = new Audio();
+                    preFetchAudio.preload = "auto";
+                    preFetchAudio.src = nextUrl;
+                    
+                    window._podcastAudioCache = window._podcastAudioCache || {};
+                    window._podcastAudioCache[nextIdx] = nextUrl;
                 }
 
                 // Play current segment
@@ -207,18 +206,13 @@ export default function CsPodcastStudio() {
                 if (window._podcastAudioCache && window._podcastAudioCache[currentIdx]) {
                     url = window._podcastAudioCache[currentIdx];
                 } else {
-                    const response = await api.post("/ai/podcast/speech",
-                        { text: segment.text, speaker: speaker },
-                        { responseType: 'blob' }
-                    );
-                    url = URL.createObjectURL(response.data);
+                    url = `${apiBase}/ai/podcast/speech?text=${encodeURIComponent(segment.text)}&speaker=${speaker}`;
                 }
 
                 const audio = new Audio(url);
                 audioRef.current = audio;
 
                 audio.onended = () => {
-                    URL.revokeObjectURL(url);
                     if (window._podcastAudioCache) delete window._podcastAudioCache[currentIdx];
                     if (activeSegment < episode.segments.length - 1) {
                         setActiveSegment(prev => prev + 1);
@@ -228,7 +222,6 @@ export default function CsPodcastStudio() {
                 };
 
                 audio.onerror = () => {
-                    URL.revokeObjectURL(url);
                     if (activeSegment < episode.segments.length - 1) setActiveSegment(prev => prev + 1);
                     else setIsPlaying(false);
                 };

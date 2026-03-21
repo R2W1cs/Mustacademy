@@ -308,7 +308,7 @@ export const callAI = async (prompt, expectJson = true) => {
             reply: "⚠️ [OFFLINE MODE] " + mockReply,
             segments: [
                 { speaker: "host", text: "Dr. Aria here. We're experiencing some technical interference with our primary neural link." },
-                { speaker: "expert", text: "Prof. Nova confirming. I'll provide a simplified overview until full synthesis is restored." },
+                { speaker: "expert", text: "Dr. Nova confirming. I'll provide a simplified overview until full synthesis is restored." },
                 { speaker: "host", text: mockReply }
             ],
             title: "Neural Link Interrupted",

@@ -41,6 +41,7 @@ router.post("/topics/exercises", protect, generateTopicExercises);
 router.post("/topics/podcast", protect, generateTopicPodcast);
 router.post("/topics/podcast/question", protect, askPodcastQuestion);
 router.post("/podcast/speech", protect, generatePodcastSpeech);
+router.get("/podcast/speech", generatePodcastSpeech); // Allow GET for direct streaming
 router.get("/masterclass/all", protect, getMasterclassEpisodes);
 router.get("/masterclass/:id", protect, getMasterclassEpisode);
 router.post("/create-mission", protect, createMission);

@@ -6,7 +6,7 @@ import {
     PROFESSOR_THEORY_DEEP_PROMPT, PROFESSOR_PROGRAMMING_DEEP_PROMPT,
     FILLER_PROMPT, PROFESSOR_LECTURE_PROMPT, ELITE_PLAN_PROMPT,
     BOARDROOM_SYSTEM_PROMPT, SCORECARD_PROMPT, RIGOROUS_QUIZ_PROMPT,
-    PROFESSOR_IQ_160_PROMPT, MASTERCLASS_EPISODE_PROMPT
+    PROFESSOR_IQ_160_PROMPT, MASTERCLASS_EPISODE_PROMPT, ULTIMATE_PODCAST_PROMPT
 } from "../utils/aiRules.js";
 import { getNextPhase, updateInterviewSession, startInterviewSession } from "../services/interview.service.js";
 import { callOllama, callGroq, callAI, repairJson, streamAI, groq } from "../utils/aiClient.js";
@@ -89,7 +89,7 @@ export const chatWithMentor = async (req, res) => {
         // 2. Determine Complexity & Prepare Prompt
         const isComplex = message.length > 50 || /explain|how|why|deep dive|protocol|architecture|design/i.test(message);
         const dynamicInstruction = isComplex
-            ? "\n\n--- INSTRUCTION: Use the FULL Professor's Method for this deep technical query. ---"
+            ? "\n\n--- INSTRUCTION: Use the FULL Professor's Method for this specific topic to give the student the most elite, high-level perspective. Keep it extremely technical, research-backed, and direct. Dr. Nova, what do you think? \n\nDr. Nova: Well..."
             : "\n\n--- INSTRUCTION: Provide a CONCISE, brilliant response. Skip the 9-point lecture structure. ---";
 
         const systemPrompt = PROFESSOR_IQ_160_PROMPT
@@ -284,7 +284,7 @@ export const submitWork = async (req, res) => {
         const goalResult = await pool.query("SELECT description FROM daily_goals WHERE id = $1 AND user_id = $2", [goalId, userId]);
         if (goalResult.rows.length === 0) return res.status(404).json({ message: "Goal not found" });
         const goalDescription = goalResult.rows[0].description;
-        const prompt = `You are a strict and critical AI Grader. 
+        const prompt = `You are a strict and critical AI Grader.
 Goal: "${goalDescription}"
 Student's Work: "${submissionText}"
 Instructions:
@@ -334,7 +334,7 @@ export const getGoals = async (req, res) => {
             `SELECT g.*, s.ai_grade, s.ai_feedback, s.submitted_at, s.submission_text
              FROM daily_goals g
              LEFT JOIN goal_submissions s ON g.id = s.goal_id
-             WHERE g.user_id = $1 
+             WHERE g.user_id = $1
              ORDER BY g.is_completed ASC, g.created_at DESC LIMIT 10`,
             [userId]
         );
@@ -382,7 +382,7 @@ export const generateQuiz = async (req, res) => {
         await incrementStreak(userId).catch(e => console.warn("Streak increment failed:", e.message));
         // 1. Fetch Deep Context for Grounding
         const topicRes = await pool.query(
-            `SELECT first_principles, learning_objectives, structural_breakdown, failure_analysis 
+            `SELECT first_principles, learning_objectives, structural_breakdown, failure_analysis
              FROM topics WHERE title = $1 LIMIT 1`,
             [topic]
         );
@@ -546,8 +546,8 @@ export const generateDailyPlan = async (req, res) => {
 
             // Fetch pending missions
             const missionsRes = await pool.query(`
-                SELECT description, deadline 
-                FROM daily_goals 
+                SELECT description, deadline
+                FROM daily_goals
                 WHERE user_id::text = $1::text AND is_completed = false
                 ORDER BY deadline ASC LIMIT 3
             `, [userId]);
@@ -560,7 +560,7 @@ export const generateDailyPlan = async (req, res) => {
 
             // Fetch current topic
             const progressRes = await pool.query(`
-                SELECT t.title 
+                SELECT t.title
                 FROM user_topic_progress p
                 JOIN topics t ON p.topic_id = t.id
                 WHERE p.user_id::text = $1::text
@@ -853,7 +853,7 @@ export const generateLibraryLecture = async (req, res) => {
             if (aiData.LECTURE_NOTE || aiData.forge_protocol) {
                 // We update first_principles and architectural_logic if they were missing or if we just want to promote high-IQ synthesis
                 await pool.query(`
-                    UPDATE topics SET 
+                    UPDATE topics SET
                     content = COALESCE(content, $1),
                     first_principles = COALESCE(first_principles, $2),
                     architectural_logic = COALESCE(architectural_logic, $3),
@@ -962,7 +962,7 @@ export const synthesizeTopic = async (req, res) => {
     try {
         // 1. Get Topic Title and Course Name
         const topicRes = await pool.query(`
-            SELECT t.title, c.name as course_name 
+            SELECT t.title, c.name as course_name
             FROM topics t
             JOIN courses c ON t.course_id = c.id
             WHERE t.id = $1
@@ -1031,8 +1031,8 @@ export const synthesizeTopic = async (req, res) => {
         const deepContent = deepData.content_deep_markdown;
 
         await pool.query(`
-            UPDATE topics 
-            SET 
+            UPDATE topics
+            SET
                 breadcrumb_path = $1,
                 difficulty = $2,
                 estimated_time = $3,
@@ -1098,7 +1098,7 @@ export const generateTopicExercises = async (req, res) => {
            Solution Guide: A comprehensive rubric of the correct trade-offs.`;
 
     const prompt = `You are a Senior CS Professor. Create a rigorous "Mastery Crucible" for the topic: "${topicTitle}".
-      
+
 Return EXCLUSIVELY a JSON object with this exact structure:
 {
   "mcq": [
@@ -1154,42 +1154,14 @@ export const generateTopicPodcast = async (req, res) => {
     const { topicId, topicTitle } = req.body;
     if (!topicTitle) return res.status(400).json({ message: 'Topic title required' });
 
-    console.log(`[generateTopicPodcast] Synthesizing audio script for "${topicTitle}"...`);
-
-    const prompt = `You are an AI podcast generator for the CSM Roadmap platform.
-You must create a deeply technical and engaging podcast script about "${topicTitle}".
-
-CHARACTERS:
-1. "Dr. Aria" (speaker ID: "host"): She is the moderator. She introduces the episode, asks probing questions, and ensures the conversation stays on track. She uses the browser's default voice.
-2. "Dr. Nova" (speaker ID: "expert"): She is the domain expert with a PhD in Computer Science. She provides the technical depth, implementation details, and architectural trade-offs. She uses high-quality cloud audio.
-
-SEGMENT REQUIREMENTS:
-The conversation MUST cover:
-1. WHAT: The fundamental concept and core mechanics of "${topicTitle}".
-2. WHEN: Real-world use cases, business value, and architectural context.
-3. HOW: Low-level implementation details, algorithms, or practical setup.
-
-JSON STRUCTURE (Return EXCLUSIVELY this):
-{
-  "title": "Episode title",
-  "summary": "1-2 sentence overview",
-  "segments": [
-    { "speaker": "host", "text": "Intriguing intro..." },
-    { "speaker": "expert", "text": "Technical response..." },
-    { "speaker": "host", "text": "Follow-up question about implementation..." }
-  ]
-}
-
-STRICT RULES:
-- The "speaker" field MUST be either "host" or "expert".
-- Every segment from Dr. Aria must be labeled "host". (Uses en-US-AriaNeural)
-- Every segment from Dr. Nova must be labeled "expert". (Uses en-US-JennyNeural)
-- Alternate between speakers naturally. Include 8-12 segments.
-- STUDIO PURITY: DO NOT include any speech fillers like "uh", "um", "well", "ah", or "I mean". The audio must be clean, professional, and high-fidelity studio quality.
-- STOCHASTIC FLOW: Use varying sentence lengths. Aria should sometimes interrupt with a "Wait, wait..." if the technical point is too important to wait.
-- Return ONLY valid JSON. No conversational filler outside the JSON.`;
-
     try {
+        const userRes = await pool.query("SELECT name FROM users WHERE id = $1", [req.user.id]);
+        const userName = userRes.rows[0]?.name?.split(' ')[0] || "Scholar";
+
+        const prompt = ULTIMATE_PODCAST_PROMPT
+            .replace(/{topic}/g, topicTitle)
+            .replace(/{USER_NAME}/g, userName);
+
         const aiData = await callAI(prompt);
 
         if (!aiData || !Array.isArray(aiData.segments) || aiData.segments.length === 0) {
@@ -1200,7 +1172,8 @@ STRICT RULES:
                     title: `Deep Dive: ${topicTitle}`,
                     summary: `An expert conversation exploring ${topicTitle} from fundamentals to production use cases.`,
                     segments: [
-                        { speaker: "host", text: `Welcome to the CSM Roadmap Podcast! Today we're exploring ${topicTitle}. I'm Dr. Aria, your host, and with me is the brilliant Prof. Nova. Prof. Nova, let's start from the top — what exactly is ${topicTitle}?` },
+                        // Intro host segment
+                        { speaker: "host", text: `Welcome back to the Studio. I'm Dr. Aria, and joined as always by Dr. Nova. Today we're diving into ${topicTitle}. Dr. Nova, why don't you start us off?` },
                         { speaker: "expert", text: `Great question, Dr. Aria. ${topicTitle} is a foundational concept in computer science that every engineer needs to understand. At its core, it defines how data is stored, processed, and retrieved efficiently.` },
                         { speaker: "host", text: `Fascinating! And when should engineers actually reach for this in a real system?` },
                         { speaker: "expert", text: `You'd use it when you need reliability and performance at scale. Think large-scale distributed systems, high-throughput pipelines, or any scenario where consistency and latency matter.` },
@@ -1249,7 +1222,9 @@ Keep it under 3 paragraphs.`;
 };
 
 export const generatePodcastSpeech = async (req, res) => {
-    const { text, speaker } = req.body;
+    const text = req.body.text || req.query.text;
+    const speaker = req.body.speaker || req.query.speaker;
+    
     if (!text) return res.status(400).json({ message: 'Text required' });
 
     // Use cache if same text and speaker
