@@ -83,6 +83,9 @@ export default function InteractivePodcastPlayer({ topic }) {
         }
     };
 
+    const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+    const baseURL = import.meta.env.VITE_API_URL || (isProduction ? "https://mustacademy-backend.onrender.com" : "http://localhost:5000");
+
     const handleSubmit = async (e) => {
         if (e) e.preventDefault();
         if (!inputValue.trim() || isGenerating) return;
@@ -97,7 +100,7 @@ export default function InteractivePodcastPlayer({ topic }) {
         setError(null);
 
         try {
-            const res = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/ai/interactive-podcast`, {
+            const res = await axios.post(`${baseURL}/api/ai/interactive-podcast`, {
                 topicTitle: topic?.title,
                 history: updatedMessages
             });
@@ -122,7 +125,7 @@ export default function InteractivePodcastPlayer({ topic }) {
         try {
             const encodedText = encodeURIComponent(text);
             const encodedTopic = encodeURIComponent(topic?.title || '');
-            const url = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/ai/podcast/speech?text=${encodedText}&speaker=${speaker}&topicTitle=${encodedTopic}&index=0`;
+            const url = `${baseURL}/api/ai/podcast/speech?text=${encodedText}&speaker=${speaker}&topicTitle=${encodedTopic}&index=0`;
             
             const audio = new Audio(url);
             audioRef.current = audio;

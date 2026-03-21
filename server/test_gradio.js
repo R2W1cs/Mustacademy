@@ -1,22 +1,30 @@
-import { client } from "@gradio/client";
+import axios from "axios";
+import fs from "fs";
 import dotenv from "dotenv";
 dotenv.config();
 
-const hfToken = process.env.HF_TOKEN;
-
-async function test(space) {
+async function test() {
     try {
-        console.log(`Connecting to ${space}...`);
-        const app = await client(space, { hf_token: hfToken });
-        const apiInfo = await app.view_api();
-        console.log(`--- ${space} ---`);
-        console.log(JSON.stringify(apiInfo, null, 2));
+        const hfToken = process.env.HF_TOKEN;
+        console.log("Testing HF token:", hfToken ? "Exists" : "Missing");
+        
+        const response = await axios.post(
+            "https://api-inference.huggingface.co/models/coqui/XTTS-v2",
+            { inputs: "Hello, this is a test of the Hugging Face API." },
+            { 
+                headers: { 'Authorization': `Bearer ${hfToken}` },
+                responseType: 'arraybuffer' 
+            }
+        );
+        console.log("Status:", response.status);
+        console.log("Length:", response.data.byteLength);
+        fs.writeFileSync("out.flac", Buffer.from(response.data, 'binary'));
+        console.log("Saved out.flac");
     } catch (e) {
-        console.error(`Error with ${space}:`, e.message);
+        console.error("Error:", e.response ? e.response.status : e.message);
+        if (e.response && e.response.data) {
+            console.error("Data:", Buffer.from(e.response.data).toString('utf-8'));
+        }
     }
 }
-async function run() {
-    await test("mrfakename/Kokoclone");
-    await test("coqui/xtts");
-}
-run();
+test();
