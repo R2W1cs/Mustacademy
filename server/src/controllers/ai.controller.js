@@ -1224,10 +1224,46 @@ Keep it under 3 paragraphs.`;
 export const generatePodcastSpeech = async (req, res) => {
     const text = req.body.text || req.query.text;
     const speaker = req.body.speaker || req.query.speaker;
+    const topicTitle = req.body.topicTitle || req.query.topicTitle;
+    const index = req.body.index || req.query.index;
     
     if (!text) return res.status(400).json({ message: 'Text required' });
 
-    // Use cache if same text and speaker
+    // 1. Check for Pre-rendered Podcast File (NEW)
+    // Map topics to their pre-rendered folders (e.g., BFS, DFS)
+    if (topicTitle && index !== undefined) {
+        try {
+            const path = await import('path');
+            const fs = await import('fs');
+            const __dirname = path.resolve();
+            
+            // Clean topic title for folder mapping
+            const folderMap = {
+                "Breadth First Search": "BFS",
+                "BFS": "BFS",
+                "Depth First Search": "DFS",
+                "DFS": "DFS"
+            };
+            const folderName = folderMap[topicTitle] || folderMap[topicTitle.trim()];
+            
+            if (folderName) {
+                // Pre-rendered files are named "download (X).wav" where X = (index + 1)
+                const filePath = path.join(__dirname, 'tts-service', 'podcasts', 'complexity', folderName, `download (${parseInt(index) + 1}).wav`);
+                
+                if (fs.existsSync(filePath)) {
+                    console.log(`[Neural-TTS] Found pre-rendered studio file for ${topicTitle} (Index: ${index})`);
+                    res.setHeader('Content-Type', 'audio/wav');
+                    res.setHeader('X-Studio-Source', 'Pre-rendered');
+                    const fileStream = fs.createReadStream(filePath);
+                    return fileStream.pipe(res);
+                }
+            }
+        } catch (e) {
+            console.warn("[Neural-TTS] Local file check failed, falling back to synthesis:", e.message);
+        }
+    }
+
+    // 2. Real-time Synthesis
     const cacheKey = `${speaker}:${text}`;
     if (ttsCache.has(cacheKey)) {
         const cached = ttsCache.get(cacheKey);
@@ -1235,17 +1271,15 @@ export const generatePodcastSpeech = async (req, res) => {
         return res.send(cached);
     }
 
-    const voiceName = speaker === "host" ? "en-US-AvaNeural" : "en-US-BrianNeural";
-    const fallbackVoice = speaker === "host" ? "en-US-SoniaNeural" : "en-US-ChristopherNeural";
+    // Updated Voices (Zephyr equivalent for Aria)
+    const voiceName = speaker === "host" ? "en-US-SoniaNeural" : "en-US-SteffanNeural";
     console.log(`[Neural-TTS] Synthesizing with ${voiceName} for speaker="${speaker}"...`);
 
     try {
         const { Communicate } = await import('edge-tts-universal');
         
-        // Set headers for streaming
         res.setHeader('Content-Type', 'audio/mpeg');
         res.setHeader('X-Neural-Voice', voiceName);
-        // We don't set Content-Length because we're streaming
 
         const communicate = new Communicate(text, { voice: voiceName });
         const buffers = [];
@@ -1254,13 +1288,12 @@ export const generatePodcastSpeech = async (req, res) => {
             if (chunk.type === 'audio' && chunk.data) {
                 const buffer = Buffer.from(chunk.data);
                 buffers.push(buffer);
-                res.write(buffer); // Stream chunk to client immediately
+                res.write(buffer);
             }
         }
 
         res.end();
 
-        // Cache the full buffer for future requests
         if (ttsCache.size < 500) {
             const fullBuffer = Buffer.concat(buffers);
             if (fullBuffer.length > 500) {
@@ -1272,11 +1305,9 @@ export const generatePodcastSpeech = async (req, res) => {
 
     } catch (err) {
         console.error(`[Neural-TTS] FAIL: ${err.message}`);
-        // If we haven't sent any data yet, we can send an error response
         if (!res.headersSent) {
             res.status(503).json({ message: 'High-fidelity synthesis failed', error: err.message });
         } else {
-            // If we already started streaming, we just end the connection
             res.end();
         }
     }

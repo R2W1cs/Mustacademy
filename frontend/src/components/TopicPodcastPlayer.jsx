@@ -91,7 +91,7 @@ export default function TopicPodcastPlayer({ topic }) {
                     if (window._topicAudioCache && window._topicAudioCache[currentIdx]) {
                         url = window._topicAudioCache[currentIdx];
                     } else {
-                        url = `${apiBase}/ai/podcast/speech?text=${encodeURIComponent(segment.text)}&speaker=${segment.speaker}`;
+                        url = `${apiBase}/ai/podcast/speech?text=${encodeURIComponent(segment.text)}&speaker=${segment.speaker}&topicTitle=${encodeURIComponent(topic.title)}&index=${currentIdx}`;
                     }
 
                     const audio = new Audio(url);
