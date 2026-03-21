@@ -11,6 +11,7 @@ export default function InteractivePodcastPlayer({ topic }) {
     const [isListening, setIsListening] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
+    const [hasStarted, setHasStarted] = useState(false);
     const [error, setError] = useState(null);
 
     const audioRef = useRef(null);
@@ -27,11 +28,6 @@ export default function InteractivePodcastPlayer({ topic }) {
     }, [messages, isGenerating]);
 
     useEffect(() => {
-        // Initial Greeting
-        const greeting = `Welcome to the studio. Today we're exploring ${topic?.title || "this topic"}. I'm Dr. Nova. What would you like to know?`;
-        setMessages([{ role: 'assistant', content: greeting }]);
-        playAudio(greeting, 'expert');
-        
         // Setup Speech Recognition
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognition) {
@@ -58,6 +54,13 @@ export default function InteractivePodcastPlayer({ topic }) {
 
         return stopAllAudio;
     }, [topic]);
+
+    const startSession = () => {
+        setHasStarted(true);
+        const greeting = `Welcome to the studio. Today we're exploring ${topic?.title || "this topic"}. I'm Dr. Nova. What would you like to know?`;
+        setMessages([{ role: 'assistant', content: greeting }]);
+        playAudio(greeting, 'expert');
+    };
 
     const stopAllAudio = () => {
         if (audioRef.current) {
@@ -227,7 +230,27 @@ export default function InteractivePodcastPlayer({ topic }) {
                 </div>
             </div>
 
-            {/* Chat History */}
+            {!hasStarted ? (
+                <div className="flex-1 flex flex-col items-center justify-center space-y-4">
+                    <div className={`p-6 rounded-full ${isDark ? 'bg-indigo-900/20 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>
+                        <Mic size={48} />
+                    </div>
+                    <div className="text-center max-w-sm">
+                        <h4 className={`text-lg font-semibold mb-2 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>Ready to talk?</h4>
+                        <p className={`text-sm mb-6 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                            Start your interactive tutoring session. You can type or use your microphone to ask questions.
+                        </p>
+                        <button
+                            onClick={startSession}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-xl font-semibold shadow-lg shadow-indigo-500/30 transition-all hover:scale-105 active:scale-95"
+                        >
+                            Start Session
+                        </button>
+                    </div>
+                </div>
+            ) : (
+                <>
+                    {/* Chat History */}
             <div className="flex-1 overflow-y-auto pr-2 space-y-6 mb-4 custom-scrollbar">
                 <AnimatePresence>
                     {messages.map((msg, idx) => (
@@ -317,6 +340,8 @@ export default function InteractivePodcastPlayer({ topic }) {
                     <Send size={20} className={inputValue.trim() && !isGenerating ? 'ml-1' : ''} />
                 </button>
             </form>
+            </>
+            )}
         </div>
     );
 }
