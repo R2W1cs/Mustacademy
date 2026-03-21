@@ -1316,8 +1316,41 @@ export const generatePodcastSpeech = async (req, res) => {
     const cacheKey = `${speaker}:${text}`;
     if (ttsCache.has(cacheKey)) {
         const cached = ttsCache.get(cacheKey);
-        res.set({ 'Content-Type': 'audio/mpeg', 'Content-Length': cached.length });
+        res.set({ 'Content-Type': cached.slice(0, 4).toString() === 'RIFF' ? 'audio/wav' : 'audio/mpeg', 'Content-Length': cached.length });
         return res.send(cached);
+    }
+
+    // 3. Check for external Kokoro Voice Cloning Microservice (Option B Hosted)
+    const kokoroUrl = process.env.KOKORO_API_URL;
+    if (kokoroUrl) {
+        try {
+            console.log(`[Neural-TTS] Delegating to Kokoro Microservice at ${kokoroUrl}...`);
+            const axios = (await import('axios')).default;
+            const response = await axios.post(`${kokoroUrl}/generate`, {
+                text: text,
+                speaker: speaker
+            }, { responseType: 'arraybuffer' });
+            
+            const buffer = Buffer.from(response.data, 'binary');
+            res.set({
+                'Content-Type': 'audio/wav',
+                'Content-Length': buffer.length,
+                'Accept-Ranges': 'bytes',
+                'X-Neural-Voice': 'Kokoro-Cloned',
+                'X-Premium-Class': 'Neural-Human-Hosted',
+                'Cache-Control': 'public, max-age=3600'
+            });
+            
+            res.send(buffer);
+            
+            if (ttsCache.size < 500 && buffer.length > 500) {
+                ttsCache.set(cacheKey, buffer);
+            }
+            console.log(`[Neural-TTS] SUCCESS: Kokoro cloned audio served.`);
+            return;
+        } catch (e) {
+            console.warn(`[Neural-TTS] Kokoro Microservice failed or unresponsive: ${e.message}. Falling back to Premium Edge TTS.`);
+        }
     }
 
     // Premium Human-like Voices (FALLBACK CHAIN)
