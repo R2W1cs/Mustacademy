@@ -9,7 +9,7 @@ async function test() {
         console.log("Testing HF token:", hfToken ? "Exists" : "Missing");
         
         const response = await axios.post(
-            "https://api-inference.huggingface.co/models/espnet/kan-bayashi_ljspeech_vits",
+            "https://router.huggingface.co/models/facebook/mms-tts-eng",
             { inputs: "Welcome to the studio. Today we're exploring Breadth-First Search." },
             { 
                 headers: { 'Authorization': `Bearer ${hfToken}` },

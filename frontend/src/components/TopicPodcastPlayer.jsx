@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Pause, AlertCircle, Mic, MicOff, Send, Bot } from 'lucide-react';
-import axios from 'axios';
+import { Pause, AlertCircle, Mic, MicOff, Send, Bot, Loader2 } from 'lucide-react';
+import api from '../api/axios';
 import { useTheme } from '../auth/ThemeContext';
 
 export default function InteractivePodcastPlayer({ topic }) {
@@ -11,6 +11,7 @@ export default function InteractivePodcastPlayer({ topic }) {
     const [isListening, setIsListening] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
+    const [isAudioLoading, setIsAudioLoading] = useState(false);
     const [hasStarted, setHasStarted] = useState(false);
     const [error, setError] = useState(null);
 
@@ -86,8 +87,7 @@ export default function InteractivePodcastPlayer({ topic }) {
         }
     };
 
-    const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
-    const baseURL = import.meta.env.VITE_API_URL || (isProduction ? "https://mustacademy-backend.onrender.com" : "http://localhost:5000");
+    const baseURL = import.meta.env.VITE_API_URL || (window.location.hostname !== 'localhost' ? "https://mustacademy-backend.onrender.com" : "http://localhost:5000");
 
     const handleSubmit = async (e) => {
         if (e) e.preventDefault();
@@ -103,7 +103,7 @@ export default function InteractivePodcastPlayer({ topic }) {
         setError(null);
 
         try {
-            const res = await axios.post(`${baseURL}/api/ai/interactive-podcast`, {
+            const res = await api.post(`/ai/interactive-podcast`, {
                 topicTitle: topic?.title,
                 history: updatedMessages
             });
@@ -123,7 +123,8 @@ export default function InteractivePodcastPlayer({ topic }) {
 
     const playAudio = async (text, speaker) => {
         stopAllAudio();
-        setIsPlaying(true);
+        setIsAudioLoading(true);
+        setIsPlaying(false);
 
         try {
             const encodedText = encodeURIComponent(text);
@@ -133,22 +134,30 @@ export default function InteractivePodcastPlayer({ topic }) {
             const audio = new Audio(url);
             audioRef.current = audio;
 
-            audio.onended = () => setIsPlaying(false);
+            audio.oncanplaythrough = () => {
+                setIsAudioLoading(false);
+                setIsPlaying(true);
+                audio.play().catch(e => {
+                    if (e.name !== 'NotAllowedError') {
+                        console.warn("Autoplay blocked, attempting fallback...");
+                        playBrowserFallback(text);
+                    }
+                });
+            };
+            
+            audio.onended = () => {
+                setIsPlaying(false);
+                setIsAudioLoading(false);
+            };
             
             audio.onerror = () => {
+                setIsAudioLoading(false);
                 console.warn("[Neural-Audio] Hosted Audio failed, falling back to browser synthesis.");
                 playBrowserFallback(text);
             };
 
-            const playPromise = audio.play();
-            if (playPromise !== undefined) {
-                playPromise.catch(error => {
-                    if (error.name !== 'AbortError') {
-                        playBrowserFallback(text);
-                    }
-                });
-            }
         } catch (err) {
+            setIsAudioLoading(false);
             playBrowserFallback(text);
         }
     };
@@ -207,7 +216,9 @@ export default function InteractivePodcastPlayer({ topic }) {
 
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-700">
-                        {isPlaying ? (
+                        {isAudioLoading ? (
+                            <Loader2 className="h-3 w-3 animate-spin text-indigo-500" />
+                        ) : isPlaying ? (
                             <span className="flex h-3 w-3 relative items-center justify-center">
                                 <span className="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-indigo-400 opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-indigo-500"></span>
@@ -216,14 +227,14 @@ export default function InteractivePodcastPlayer({ topic }) {
                             <span className={`h-2.5 w-2.5 rounded-full ${isDark ? 'bg-gray-600' : 'bg-gray-300'}`}></span>
                         )}
                         <span className={`text-xs font-semibold ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                            {isPlaying ? 'SPEAKING' : 'IDLE'}
+                            {isAudioLoading ? 'LOADING VOICE...' : isPlaying ? 'SPEAKING' : 'IDLE'}
                         </span>
                     </div>
                     
                     <button
                         onClick={stopAllAudio}
-                        disabled={!isPlaying}
-                        className={`p-2.5 rounded-full transition-all ${isPlaying ? 'bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 shadow-sm' : 'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-600 cursor-not-allowed hidden'}`}
+                        disabled={!isPlaying && !isAudioLoading}
+                        className={`p-2.5 rounded-full transition-all ${isPlaying || isAudioLoading ? 'bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 shadow-sm' : 'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-600 cursor-not-allowed hidden'}`}
                     >
                         <Pause size={18} fill="currentColor" />
                     </button>
