@@ -11,6 +11,20 @@ import {
 import '@xyflow/react/dist/style.css';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../auth/ThemeContext';
+import { 
+    RefreshCw, 
+    Target, 
+    RotateCcw, 
+    Info, 
+    Trophy, 
+    ListFilter, 
+    Brain, 
+    Settings2, 
+    Play, 
+    Search, 
+    Boxes, 
+    CheckCircle2 
+} from 'lucide-react';
 
 const nodeNames = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
