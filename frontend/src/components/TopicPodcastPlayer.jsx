@@ -29,8 +29,15 @@ export default function TopicPodcastPlayer({ topic }) {
     const [voices, setVoices] = useState([]);
 
     useEffect(() => {
-        // Voice Auditor removed - Total Neural Lock active.
-        console.log("%c[Neural-Engine] Studio Audio Lock v7.0 Active.", "color: #10b981; font-weight: bold;");
+        const loadVoices = () => {
+            const v = window.speechSynthesis.getVoices();
+            setVoices(v);
+        };
+        loadVoices();
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+        return () => {
+            window.speechSynthesis.onvoiceschanged = null;
+        };
     }, []);
 
     const utteranceRef = useRef(null);
@@ -80,33 +87,24 @@ export default function TopicPodcastPlayer({ topic }) {
             const delay = currentIdx === 0 ? 0 : 400; 
             
             timeoutId = setTimeout(async () => {
-                try {
-                    const apiBase = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : 'https://mustacademy-backend.onrender.com/api');
-                    
-                    // Pre-fetch next segment
-                    const nextIdx = currentIdx + 1;
-                    if (nextIdx < episode.segments.length) {
-                        const nextSeg = episode.segments[nextIdx];
-                        const nextUrl = `${apiBase}/ai/podcast/speech?text=${encodeURIComponent(nextSeg.text)}&speaker=${nextSeg.speaker}&topicTitle=${encodeURIComponent(topic.title)}&index=${nextIdx}`;
-                        const preFetchAudio = new Audio();
-                        preFetchAudio.preload = "auto";
-                        preFetchAudio.src = nextUrl;
-                        window._topicAudioCache = window._topicAudioCache || {};
-                        window._topicAudioCache[nextIdx] = nextUrl;
-                    }
+                const apiBase = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : 'https://mustacademy-backend.onrender.com/api');
+                const url = `${apiBase}/ai/podcast/speech?text=${encodeURIComponent(segment.text)}&speaker=${segment.speaker}&topicTitle=${encodeURIComponent(topic.title)}&index=${currentIdx}`;
 
-                    let url;
-                    if (window._topicAudioCache && window._topicAudioCache[currentIdx]) {
-                        url = window._topicAudioCache[currentIdx];
+                const useBrowserTTS = () => {
+                    const utterance = new SpeechSynthesisUtterance(segment.text);
+                    // Try to find natural voices
+                    const allVoices = window.speechSynthesis.getVoices();
+                    if (segment.speaker === 'host') {
+                        utterance.voice = allVoices.find(v => v.name.includes('Google US English') || v.name.includes('Samantha') || v.lang === 'en-US') || allVoices[0];
+                        utterance.pitch = 1.1;
+                        utterance.rate = 1.05;
                     } else {
-                        url = `${apiBase}/ai/podcast/speech?text=${encodeURIComponent(segment.text)}&speaker=${segment.speaker}&topicTitle=${encodeURIComponent(topic.title)}&index=${currentIdx}`;
+                        utterance.voice = allVoices.find(v => v.name.includes('Google UK English Male') || v.name.includes('Daniel') || (v.lang.startsWith('en') && v.name.toLowerCase().includes('male'))) || allVoices[1] || allVoices[0];
+                        utterance.pitch = 0.9;
+                        utterance.rate = 0.95;
                     }
 
-                    const audio = new Audio(url);
-                    audioRef.current = audio;
-
-                    audio.onended = () => {
-                        if (window._topicAudioCache) delete window._topicAudioCache[currentIdx];
+                    utterance.onend = () => {
                         if (activeSegment < episode.segments.length - 1) {
                             setActiveSegment(prev => prev + 1);
                         } else {
@@ -114,26 +112,52 @@ export default function TopicPodcastPlayer({ topic }) {
                         }
                     };
 
-                    audio.onerror = () => {
-                        console.error("[Neural-Audio] Source load error for:", url);
+                    utterance.onerror = (e) => {
+                        console.error("[Neural-Fallback] SpeechSynthesis error:", e);
                         if (activeSegment < episode.segments.length - 1) setActiveSegment(prev => prev + 1);
                         else setIsPlaying(false);
                     };
 
-                    const playPromise = audio.play();
-                    if (playPromise !== undefined) {
-                        playPromise.catch(error => {
-                            if (error.name !== 'AbortError') {
-                                console.error("[Neural-Audio] Playback error:", error.message);
+                    utteranceRef.current = utterance;
+                    window.speechSynthesis.speak(utterance);
+                };
+
+                try {
+                    // Check if this is a pre-rendered topic first
+                    const isPreRenderedTopic = (topic.title || "").toLowerCase().includes("bfs") || (topic.title || "").toLowerCase().includes("dfs") || (topic.title || "").toLowerCase().includes("search");
+                    
+                    if (isPreRenderedTopic && currentIdx < 5) {
+                        const audio = new Audio(url);
+                        audioRef.current = audio;
+
+                        audio.onended = () => {
+                            if (activeSegment < episode.segments.length - 1) {
+                                setActiveSegment(prev => prev + 1);
+                            } else {
+                                setIsPlaying(false);
                             }
-                        });
+                        };
+
+                        audio.onerror = () => {
+                            console.warn("[Neural-Audio] Pre-rendered file bitstream failure, falling back to browser synthesis.");
+                            useBrowserTTS();
+                        };
+
+                        const playPromise = audio.play();
+                        if (playPromise !== undefined) {
+                            playPromise.catch(error => {
+                                if (error.name !== 'AbortError') {
+                                    useBrowserTTS();
+                                }
+                            });
+                        }
+                    } else {
+                        // For non-prerendered segments, use browser synthesis for instant response
+                        useBrowserTTS();
                     }
                 } catch (err) {
-                    console.error("[Neural-Audio] Synthesis Failure:", err.message);
-                    setTimeout(() => {
-                        if (activeSegment < episode.segments.length - 1) setActiveSegment(prev => prev + 1);
-                        else setIsPlaying(false);
-                    }, 500); 
+                    console.error("[Neural-Audio] Initial sequence failure:", err.message);
+                    useBrowserTTS();
                 }
             }, delay);
         };
