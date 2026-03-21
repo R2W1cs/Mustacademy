@@ -128,7 +128,7 @@ export default function InteractivePodcastPlayer({ topic }) {
         try {
             const encodedText = encodeURIComponent(text);
             const encodedTopic = encodeURIComponent(topic?.title || '');
-            const url = `${baseURL}/api/ai/podcast/speech?text=${encodedText}&speaker=${speaker}&topicTitle=${encodedTopic}&index=0`;
+            const url = `${baseURL}/api/ai/podcast/speech?text=${encodedText}&speaker=${speaker}&topicTitle=${encodedTopic}&index=0&interactive=true`;
             
             const audio = new Audio(url);
             audioRef.current = audio;

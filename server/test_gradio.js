@@ -9,8 +9,8 @@ async function test() {
         console.log("Testing HF token:", hfToken ? "Exists" : "Missing");
         
         const response = await axios.post(
-            "https://api-inference.huggingface.co/models/coqui/XTTS-v2",
-            { inputs: "Hello, this is a test of the Hugging Face API." },
+            "https://api-inference.huggingface.co/models/espnet/kan-bayashi_ljspeech_vits",
+            { inputs: "Welcome to the studio. Today we're exploring Breadth-First Search." },
             { 
                 headers: { 'Authorization': `Bearer ${hfToken}` },
                 responseType: 'arraybuffer' 

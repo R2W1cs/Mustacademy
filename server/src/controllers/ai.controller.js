@@ -1261,12 +1261,13 @@ export const generatePodcastSpeech = async (req, res) => {
     const speaker = req.body.speaker || req.query.speaker;
     const topicTitle = req.body.topicTitle || req.query.topicTitle;
     const index = req.body.index || req.query.index;
+    const interactive = req.body.interactive || req.query.interactive;
     
     if (!text) return res.status(400).json({ message: 'Text required' });
 
     // 1. Check for Pre-rendered Podcast File (NEW)
     // Map topics to their pre-rendered folders (e.g., BFS, DFS)
-    if (topicTitle && index !== undefined) {
+    if (topicTitle && index !== undefined && interactive !== 'true') {
         try {
             const __dirname = path.resolve();
             
@@ -1328,7 +1329,7 @@ export const generatePodcastSpeech = async (req, res) => {
             const axios = (await import('axios')).default;
             
             const response = await axios.post(
-                "https://api-inference.huggingface.co/models/coqui/XTTS-v2",
+                "https://api-inference.huggingface.co/models/espnet/kan-bayashi_ljspeech_vits",
                 { inputs: text },
                 { 
                     headers: { 'Authorization': `Bearer ${hfToken}` },
