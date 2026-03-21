@@ -123,37 +123,31 @@ export default function TopicPodcastPlayer({ topic }) {
                 };
 
                 try {
-                    // Check if this is a pre-rendered topic first
-                    const isPreRenderedTopic = (topic.title || "").toLowerCase().includes("bfs") || (topic.title || "").toLowerCase().includes("dfs") || (topic.title || "").toLowerCase().includes("search");
-                    
-                    if (isPreRenderedTopic && currentIdx < 5) {
-                        const audio = new Audio(url);
-                        audioRef.current = audio;
+                    // ALWAYS try Backend first for EVERY segment (to get Premium Human voices)
+                    const audio = new Audio(url);
+                    audioRef.current = audio;
 
-                        audio.onended = () => {
-                            if (activeSegment < episode.segments.length - 1) {
-                                setActiveSegment(prev => prev + 1);
-                            } else {
-                                setIsPlaying(false);
-                            }
-                        };
-
-                        audio.onerror = () => {
-                            console.warn("[Neural-Audio] Pre-rendered file bitstream failure, falling back to browser synthesis.");
-                            useBrowserTTS();
-                        };
-
-                        const playPromise = audio.play();
-                        if (playPromise !== undefined) {
-                            playPromise.catch(error => {
-                                if (error.name !== 'AbortError') {
-                                    useBrowserTTS();
-                                }
-                            });
+                    audio.onended = () => {
+                        if (activeSegment < episode.segments.length - 1) {
+                            setActiveSegment(prev => prev + 1);
+                        } else {
+                            setIsPlaying(false);
                         }
-                    } else {
-                        // For non-prerendered segments, use browser synthesis for instant response
+                    };
+
+                    audio.onerror = () => {
+                        console.warn("[Neural-Audio] Premium synthesis failed, falling back to browser synthesis.");
                         useBrowserTTS();
+                    };
+
+                    const playPromise = audio.play();
+                    if (playPromise !== undefined) {
+                        playPromise.catch(error => {
+                            if (error.name !== 'AbortError') {
+                                console.warn("[Neural-Audio] Playback blocked, trying browser fallback:", error.message);
+                                useBrowserTTS();
+                            }
+                        });
                     }
                 } catch (err) {
                     console.error("[Neural-Audio] Initial sequence failure:", err.message);
