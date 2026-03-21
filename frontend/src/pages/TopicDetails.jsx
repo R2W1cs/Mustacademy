@@ -318,9 +318,9 @@ const TopicDetails = () => {
                                 {(topic.title?.toLowerCase().includes("graph") || topic.title?.toLowerCase().includes("search") || topic.title?.toLowerCase().includes("bfs") || topic.title?.toLowerCase().includes("dfs") || topic.title?.toLowerCase().includes("path")) && <GraphVisualizer algorithm="BFS" />}
                                 {topic.title?.toLowerCase().includes("knapsack") && <KnapsackVisualizer />}
                                 {topic.title?.toLowerCase().includes("recurrence") && <RecurrenceVisualizer />}
-                                {(topic.title?.toLowerCase().includes("complexity") || topic.title?.toLowerCase().includes("big o")) && <ComplexityVisualizer />}
-                                {(topic.title?.toLowerCase().includes("olap") || topic.title?.toLowerCase().includes("warehouse")) && <DataWarehouseVisualizer type="comparison" />}
-                                {topic.title?.toLowerCase().includes("uml") && <UMLDiagramVisualizer type="class" />}
+                                 {(topic.title?.toLowerCase().includes("complexity") || topic.title?.toLowerCase().includes("big o") || topic.title?.toLowerCase().includes("asymptotic") || topic.title?.toLowerCase().includes("growth")) && <ComplexityVisualizer />}
+                                 {(topic.title?.toLowerCase().includes("olap") || topic.title?.toLowerCase().includes("warehouse")) && <DataWarehouseVisualizer type="comparison" />}
+                                 {(topic.title?.toLowerCase().includes("uml") || topic.title?.toLowerCase().includes("activity") || topic.title?.toLowerCase().includes("sequence") || topic.title?.toLowerCase().includes("use case")) && <UMLDiagramVisualizer type={topic.title?.toLowerCase().includes("activity") ? "activity" : topic.title?.toLowerCase().includes("sequence") ? "sequence" : "class"} />}
                                 {topic.title?.toLowerCase().includes("sdlc") && <MethodologyVisualizer type="waterfall" />}
                             </AnimatePresence>
                         </section>
