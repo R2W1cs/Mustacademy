@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Pause, AlertCircle, Mic, MicOff, Send, Bot } from 'lucide-react';
 import axios from 'axios';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme } from '../auth/ThemeContext';
 
 export default function InteractivePodcastPlayer({ topic }) {
     const { isDark } = useTheme();
