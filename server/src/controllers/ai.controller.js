@@ -143,7 +143,7 @@ export const chatWithMentor = async (req, res) => {
         console.error("CRITICAL AI CONTROLLER ERROR:", criticalErr);
         // Absolute final fallback if even the try block logic crashes
         res.json({
-            reply: "⚠️ [SYSTEM OFFLINE] " + getMockResponse('mentor'),
+            reply: "âš ï¸ [SYSTEM OFFLINE] " + getMockResponse('mentor'),
             goal: null
         });
     }
@@ -1217,7 +1217,7 @@ export const generateTopicPodcast = async (req, res) => {
                         { speaker: "host", text: `Any common pitfalls engineers should watch out for?` },
                         { speaker: "expert", text: `Absolutely. The biggest mistakes are premature optimization, ignoring failure modes, and not benchmarking under realistic load. Always measure before you optimize.` },
                         { speaker: "host", text: `Prof. Nova, this has been incredibly insightful. Any final advice for our listeners studying ${topicTitle}?` },
-                        { speaker: "expert", text: `Build something with it. Read the source code of real implementations. And remember — understanding the WHY behind a concept is always more valuable than memorizing the WHAT.` }
+                        { speaker: "expert", text: `Build something with it. Read the source code of real implementations. And remember â€” understanding the WHY behind a concept is always more valuable than memorizing the WHAT.` }
                     ]
                 }
             });
@@ -1367,8 +1367,8 @@ export const generatePodcastSpeech = async (req, res) => {
 
     // Premium Human-like Voices (FALLBACK CHAIN)
     // Using widely available high-quality Edge TTS default neural voices
-    const hostVoices = ["en-US-JennyNeural", "en-US-AriaNeural", "en-US-MichelleNeural"]; 
-    const expertVoices = ["en-US-ChristopherNeural", "en-US-GuyNeural", "en-US-EricNeural"];
+    const hostVoices = ["en-US-JennyNeural", "en-US-AriaNeural"]; 
+    const expertVoices = ["en-US-AndrewMultilingualNeural", "en-US-BrianMultilingualNeural", "en-US-ChristopherNeural"];
     
     const trySynthesize = async (voices, text) => {
         for (const voice of voices) {
@@ -1376,13 +1376,19 @@ export const generatePodcastSpeech = async (req, res) => {
                 console.log(`[Neural-TTS] Attempting ${voice}...`);
                 const tts = new MsEdgeTTS();
                 await tts.setMetadata(voice, OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3);
-                const buffer = await tts.toBuffer(text);
-                if (buffer && buffer.length > 1000) return { buffer, voice };
+                
+                // Add a robust timeout for cloud synthesis
+                const buffer = await Promise.race([
+                    tts.toBuffer(text),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error("Synthesis Timeout")), 12000))
+                ]);
+
+                if (buffer && buffer.length > 500) return { buffer, voice };
             } catch (e) {
                 console.warn(`[Neural-TTS] Voice ${voice} failed: ${e.message}`);
             }
         }
-        throw new Error("All neural voices failed for this segment");
+        throw new Error("All high-fidelity neural voices failed.");
     };
 
     try {
@@ -1534,3 +1540,4 @@ Speak entirely naturally, warmly, and eloquently. Do not use structural markdown
         return res.status(500).json({ success: false, message: "Failed to generate interactive response" });
     }
 };
+

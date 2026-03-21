@@ -39,12 +39,15 @@ export default function InteractivePodcastPlayer({ topic }) {
 
             recognitionRef.current.onresult = (event) => {
                 const transcript = event.results[0][0].transcript;
-                setInputValue(transcript);
+                setInputValue(prev => prev ? prev + " " + transcript : transcript);
                 setIsListening(false);
             };
 
             recognitionRef.current.onerror = (event) => {
                 console.error("Speech recognition error", event.error);
+                if (event.error === 'network') {
+                    setError("Microphone connection failed. Please check your internet.");
+                }
                 setIsListening(false);
             };
 
@@ -87,7 +90,11 @@ export default function InteractivePodcastPlayer({ topic }) {
         }
     };
 
-    const baseURL = import.meta.env.VITE_API_URL || (window.location.hostname !== 'localhost' ? "https://mustacademy-backend.onrender.com" : "http://localhost:5000");
+    const getBaseURL = () => {
+        const raw = import.meta.env.VITE_API_URL || (window.location.hostname !== 'localhost' ? "https://mustacademy-backend.onrender.com" : "http://localhost:5000");
+        return raw.endsWith('/api') ? raw.slice(0, -4) : raw;
+    };
+    const baseURL = getBaseURL();
 
     const handleSubmit = async (e) => {
         if (e) e.preventDefault();
