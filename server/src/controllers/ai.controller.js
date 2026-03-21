@@ -1287,64 +1287,50 @@ export const generatePodcastSpeech = async (req, res) => {
         return res.send(cached);
     }
 
-    // Premium Human-like Voices
-    const hostVoice = "en-US-AvaNeural"; 
-    const expertVoice = "en-US-AndrewNeural";
-    const voiceName = speaker === "host" ? hostVoice : expertVoice;
+    // Premium Human-like Voices (FALLBACK CHAIN)
+    const hostVoices = ["en-US-AvaNeural", "en-US-EmmaNeural", "en-US-SoniaNeural"]; 
+    const expertVoices = ["en-US-AndrewNeural", "en-US-BrianNeural", "en-US-SteffanNeural"];
     
-    console.log(`[Neural-TTS] Synthesizing PREMIUM ${voiceName} (Human) for speaker="${speaker}"...`);
+    const trySynthesize = async (voices, text) => {
+        for (const voice of voices) {
+            try {
+                console.log(`[Neural-TTS] Attempting ${voice}...`);
+                const tts = new MsEdgeTTS();
+                await tts.setMetadata(voice, OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3);
+                const buffer = await tts.toBuffer(text);
+                if (buffer && buffer.length > 1000) return { buffer, voice };
+            } catch (e) {
+                console.warn(`[Neural-TTS] Voice ${voice} failed: ${e.message}`);
+            }
+        }
+        throw new Error("All neural voices failed for this segment");
+    };
 
     try {
-        const tts = new MsEdgeTTS();
-        // Use a high-quality but stable output format
-        await tts.setMetadata(voiceName, OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3);
-        
-        const readable = tts.toStream(text);
-        const buffers = [];
-        
-        res.setHeader('Content-Type', 'audio/mpeg');
-        res.setHeader('X-Neural-Voice', voiceName);
-        res.setHeader('X-Premium-Class', 'Neural-Human');
+        const voicesToUse = speaker === "host" ? hostVoices : expertVoices;
+        const { buffer, voice } = await trySynthesize(voicesToUse, text);
 
-        readable.on('data', (chunk) => {
-            buffers.push(chunk);
-            // We pass through the data but also buffer for cache
-            res.write(chunk);
+        res.set({
+            'Content-Type': 'audio/mpeg',
+            'Content-Length': buffer.length,
+            'Accept-Ranges': 'bytes',
+            'X-Neural-Voice': voice,
+            'X-Premium-Class': 'Neural-Human-Buffered',
+            'Cache-Control': 'public, max-age=3600'
         });
 
-        readable.on('end', () => {
-            res.end();
-            if (ttsCache.size < 500) {
-                const fullBuffer = Buffer.concat(buffers);
-                if (fullBuffer.length > 500) {
-                    ttsCache.set(cacheKey, fullBuffer);
-                }
-            }
-            console.log(`[Neural-TTS] SUCCESS: Premium ${voiceName} streamed and cached.`);
-        });
+        res.send(buffer);
 
-        readable.on('error', (err) => {
-            console.error(`[Neural-TTS] Stream Error: ${err.message}`);
-            if (!res.headersSent) {
-                res.status(503).json({ message: 'Stream failed' });
-            } else {
-                res.end();
-            }
-        });
+        // Cache for future
+        if (ttsCache.size < 500 && buffer.length > 500) {
+            ttsCache.set(cacheKey, buffer);
+        }
+        console.log(`[Neural-TTS] SUCCESS: Premium ${voice} (Buffered) sent.`);
 
     } catch (err) {
-        console.error(`[Neural-TTS] FAIL: ${err.message}`);
-        // Fallback to simpler voices if premium ones are not available in this region/version
-        if (err.message.includes("voice") || err.message.includes("metadata")) {
-            console.log("[Neural-TTS] Premium voice failed, falling back to legacy Sonia/Steffan...");
-            const fallbackVoice = speaker === "host" ? "en-US-SoniaNeural" : "en-US-SteffanNeural";
-            const tts = new MsEdgeTTS();
-            await tts.setMetadata(fallbackVoice, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
-            tts.toStream(text).pipe(res);
-        } else if (!res.headersSent) {
-            res.status(503).json({ message: 'High-fidelity synthesis failed', error: err.message });
-        } else {
-            res.end();
+        console.error(`[Neural-TTS] TITAN FAIL: ${err.message}`);
+        if (!res.headersSent) {
+            res.status(503).json({ message: 'High-fidelity synthesis unavailable', error: err.message });
         }
     }
 };

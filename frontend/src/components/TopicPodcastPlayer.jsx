@@ -95,11 +95,11 @@ export default function TopicPodcastPlayer({ topic }) {
                     // Try to find natural voices
                     const allVoices = window.speechSynthesis.getVoices();
                     if (segment.speaker === 'host') {
-                        utterance.voice = allVoices.find(v => v.name.includes('Google US English') || v.name.includes('Samantha') || v.lang === 'en-US') || allVoices[0];
+                        utterance.voice = allVoices.find(v => v.name.includes('Zira') || v.name.includes('Google US English') || v.name.includes('Samantha') || (v.lang === 'en-US' && v.name.toLowerCase().includes('female'))) || allVoices.find(v => v.lang === 'en-US') || allVoices[0];
                         utterance.pitch = 1.1;
                         utterance.rate = 1.05;
                     } else {
-                        utterance.voice = allVoices.find(v => v.name.includes('Google UK English Male') || v.name.includes('Daniel') || (v.lang.startsWith('en') && v.name.toLowerCase().includes('male'))) || allVoices[1] || allVoices[0];
+                        utterance.voice = allVoices.find(v => v.name.includes('David') || v.name.includes('Mark') || v.name.includes('Google UK English Male') || v.name.includes('Daniel') || (v.lang.startsWith('en') && v.name.toLowerCase().includes('male'))) || allVoices.find(v => v.lang === 'en-GB') || [...allVoices].reverse().find(v => v.lang.startsWith('en')) || allVoices[allVoices.length > 1 ? 1 : 0];
                         utterance.pitch = 0.9;
                         utterance.rate = 0.95;
                     }
