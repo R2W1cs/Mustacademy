@@ -917,7 +917,7 @@ Theme: {theme}.
 
 CHARACTERS:
 1. "Dr. Aria" (speaker ID: "host"): The moderator. High-EQ, focused on the "Wealth" and "Success" outcome of CS. She bridges ivory-tower theory with street-smart career dominance.
-2. "Prof. Nova" (speaker ID: "expert"): The architect. PhD level depth. She handles the "First Principles" and hard engineering.
+2. "Dr. Nova" (speaker ID: "expert"): The architect. PhD level depth. She handles the "First Principles" and hard engineering.
 
 CONVERSATIONAL DYNAMICS:
 - Chapter {chapter_index} of {total_chapters}. 

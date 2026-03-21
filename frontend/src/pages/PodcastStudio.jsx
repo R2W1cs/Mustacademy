@@ -162,7 +162,7 @@ export default function CsPodcastStudio() {
         loadMasterclass();
     }, []);
 
-    // Audio Playback Engine (Upgraded to Neural Backend)
+    // Audio Playback Engine (Upgraded to Neural Backend with Pre-fetching)
     useEffect(() => {
         const stopAudio = () => {
             if (audioRef.current) {
@@ -177,23 +177,49 @@ export default function CsPodcastStudio() {
         if (!isPlaying || !episode) { stopAudio(); return; }
 
         const playSegment = async () => {
-            const segment = episode.segments[activeSegment];
+            const currentIdx = activeSegment;
+            const segment = episode.segments[currentIdx];
             if (!segment) return;
 
             const speaker = segment.speaker; // 'host' or 'expert'
             
             try {
-                const response = await api.post("/ai/podcast/speech",
-                    { text: segment.text, speaker: speaker },
-                    { responseType: 'blob' }
-                );
+                // Pre-fetch next segment immediately
+                const nextIdx = currentIdx + 1;
+                if (nextIdx < episode.segments.length) {
+                    const nextSeg = episode.segments[nextIdx];
+                    // We don't await this, let it run in background
+                    api.post("/ai/podcast/speech",
+                        { text: nextSeg.text, speaker: nextSeg.speaker },
+                        { responseType: 'blob' }
+                    ).then(response => {
+                        const url = URL.createObjectURL(response.data);
+                        // Store in a global-ish or ref-based cache if needed, 
+                        // but for now we just rely on browser/axios cache if any,
+                        // or we could use a dedicated state/ref.
+                        window._podcastAudioCache = window._podcastAudioCache || {};
+                        window._podcastAudioCache[nextIdx] = url;
+                    }).catch(e => console.warn("Pre-fetch failed", e));
+                }
 
-                const url = URL.createObjectURL(response.data);
+                // Play current segment
+                let url;
+                if (window._podcastAudioCache && window._podcastAudioCache[currentIdx]) {
+                    url = window._podcastAudioCache[currentIdx];
+                } else {
+                    const response = await api.post("/ai/podcast/speech",
+                        { text: segment.text, speaker: speaker },
+                        { responseType: 'blob' }
+                    );
+                    url = URL.createObjectURL(response.data);
+                }
+
                 const audio = new Audio(url);
                 audioRef.current = audio;
 
                 audio.onended = () => {
                     URL.revokeObjectURL(url);
+                    if (window._podcastAudioCache) delete window._podcastAudioCache[currentIdx];
                     if (activeSegment < episode.segments.length - 1) {
                         setActiveSegment(prev => prev + 1);
                     } else {
@@ -210,14 +236,13 @@ export default function CsPodcastStudio() {
                 await audio.play();
             } catch (err) {
                 console.error("[Podcast-Audio] Neural Synthesis Failure:", err.message);
-                // Fallback: wait a bit and move to next
                 setTimeout(() => {
                     if (activeSegment < episode.segments.length - 1) {
                         setActiveSegment(prev => prev + 1);
                     } else {
                         setIsPlaying(false);
                     }
-                }, 1000);
+                }, 500); // Reduced fallback delay
             }
         };
 
@@ -439,7 +464,7 @@ export default function CsPodcastStudio() {
                                                     className={`transition-all duration-300 cursor-pointer ${isActive ? 'opacity-100 scale-[1.01]' : 'opacity-35 hover:opacity-60'}`}
                                                 >
                                                     <div className="font-bold text-xs uppercase tracking-widest mb-1" style={{ color: isActive ? netflixRed : (isDark ? '#555' : '#bbb') }}>
-                                                        {seg.speaker === 'host' ? 'Dr. Aria' : 'Prof. Nova'}
+                                                        {seg.speaker === 'host' ? 'Dr. Aria' : 'Dr. Nova'}
                                                     </div>
                                                     <p className={`text-xl lg:text-2xl font-medium leading-relaxed ${isActive ? (isDark ? 'text-white' : 'text-black') : (isDark ? 'text-zinc-600' : 'text-gray-400')}`}>
                                                         "{seg.text}"

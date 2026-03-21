@@ -1161,7 +1161,7 @@ You must create a deeply technical and engaging podcast script about "${topicTit
 
 CHARACTERS:
 1. "Dr. Aria" (speaker ID: "host"): She is the moderator. She introduces the episode, asks probing questions, and ensures the conversation stays on track. She uses the browser's default voice.
-2. "Prof. Nova" (speaker ID: "expert"): She is the domain expert with a PhD in Computer Science. She provides the technical depth, implementation details, and architectural trade-offs. She uses high-quality cloud audio.
+2. "Dr. Nova" (speaker ID: "expert"): She is the domain expert with a PhD in Computer Science. She provides the technical depth, implementation details, and architectural trade-offs. She uses high-quality cloud audio.
 
 SEGMENT REQUIREMENTS:
 The conversation MUST cover:
@@ -1183,7 +1183,7 @@ JSON STRUCTURE (Return EXCLUSIVELY this):
 STRICT RULES:
 - The "speaker" field MUST be either "host" or "expert".
 - Every segment from Dr. Aria must be labeled "host". (Uses en-US-AriaNeural)
-- Every segment from Prof. Nova must be labeled "expert". (Uses en-US-JennyNeural)
+- Every segment from Dr. Nova must be labeled "expert". (Uses en-US-JennyNeural)
 - Alternate between speakers naturally. Include 8-12 segments.
 - STUDIO PURITY: DO NOT include any speech fillers like "uh", "um", "well", "ah", or "I mean". The audio must be clean, professional, and high-fidelity studio quality.
 - STOCHASTIC FLOW: Use varying sentence lengths. Aria should sometimes interrupt with a "Wait, wait..." if the technical point is too important to wait.
@@ -1264,47 +1264,46 @@ export const generatePodcastSpeech = async (req, res) => {
     const fallbackVoice = speaker === "host" ? "en-US-SoniaNeural" : "en-US-ChristopherNeural";
     console.log(`[Neural-TTS] Synthesizing with ${voiceName} for speaker="${speaker}"...`);
 
-    const synthesize = async (voice) => {
+    try {
         const { Communicate } = await import('edge-tts-universal');
-        const communicate = new Communicate(text, { voice });
+        
+        // Set headers for streaming
+        res.setHeader('Content-Type', 'audio/mpeg');
+        res.setHeader('X-Neural-Voice', voiceName);
+        // We don't set Content-Length because we're streaming
+
+        const communicate = new Communicate(text, { voice: voiceName });
         const buffers = [];
+        
         for await (const chunk of communicate.stream()) {
             if (chunk.type === 'audio' && chunk.data) {
-                buffers.push(Buffer.from(chunk.data));
+                const buffer = Buffer.from(chunk.data);
+                buffers.push(buffer);
+                res.write(buffer); // Stream chunk to client immediately
             }
         }
-        return Buffer.concat(buffers);
-    };
 
-    try {
-        let audioBuffer = null;
-        try {
-            audioBuffer = await synthesize(voiceName);
-        } catch (err) {
-            console.warn(`[Neural-TTS] Primary voice ${voiceName} failed (${err.message}), trying fallback...`);
-            audioBuffer = await synthesize(fallbackVoice);
-        }
+        res.end();
 
-        if (!audioBuffer || audioBuffer.length < 500) {
-            throw new Error('Synthesis produced no audio data');
-        }
-
-        console.log(`[Neural-TTS] SUCCESS: ${audioBuffer.length} bytes delivered for ${voiceName}.`);
-
+        // Cache the full buffer for future requests
         if (ttsCache.size < 500) {
-            ttsCache.set(cacheKey, audioBuffer);
+            const fullBuffer = Buffer.concat(buffers);
+            if (fullBuffer.length > 500) {
+                ttsCache.set(cacheKey, fullBuffer);
+            }
         }
 
-        res.set({
-            'Content-Type': 'audio/mpeg',
-            'Content-Length': audioBuffer.length,
-            'X-Neural-Voice': voiceName,
-        });
-        return res.send(audioBuffer);
+        console.log(`[Neural-TTS] SUCCESS: Streamed ${voiceName} for speaker="${speaker}".`);
 
     } catch (err) {
         console.error(`[Neural-TTS] FAIL: ${err.message}`);
-        res.status(503).json({ message: 'High-fidelity synthesis failed', error: err.message });
+        // If we haven't sent any data yet, we can send an error response
+        if (!res.headersSent) {
+            res.status(503).json({ message: 'High-fidelity synthesis failed', error: err.message });
+        } else {
+            // If we already started streaming, we just end the connection
+            res.end();
+        }
     }
 };
 
