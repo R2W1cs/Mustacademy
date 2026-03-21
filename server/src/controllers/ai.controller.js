@@ -1165,6 +1165,38 @@ export const generateTopicPodcast = async (req, res) => {
             .replace(/{topic}/g, topicTitle)
             .replace(/{USER_NAME}/g, userName);
 
+        if (topicTitle.toLowerCase().includes("bfs") || topicTitle.toLowerCase().includes("breadth")) {
+            return res.json({
+                success: true,
+                episode: {
+                    title: `Studio Masterclass: ${topicTitle}`,
+                    summary: `An exclusive pre-rendered studio recording covering the mechanics of ${topicTitle}.`,
+                    segments: [
+                        { speaker: "host", text: `[Studio Recording - Part 1] Welcome to the neural studio. Let's explore the strategic level-by-level approach of Breadth-First Search.` },
+                        { speaker: "expert", text: `[Studio Recording - Part 2] At its core, BFS utilizes a Queue data structure, ensuring nodes are visited in order of their proximity.` },
+                        { speaker: "host", text: `[Studio Recording - Part 3] This makes it exceptionally powerful for shortest-path algorithms in unweighted scenarios.` },
+                        { speaker: "expert", text: `[Studio Recording - Part 4] Let's analyze its computational boundaries. The time complexity scales with V plus E...` }
+                    ]
+                }
+            });
+        }
+
+        if (topicTitle.toLowerCase().includes("dfs") || topicTitle.toLowerCase().includes("depth")) {
+            return res.json({
+                success: true,
+                episode: {
+                    title: `Studio Masterclass: ${topicTitle}`,
+                    summary: `An exclusive pre-rendered studio recording covering the architecture of ${topicTitle}.`,
+                    segments: [
+                        { speaker: "host", text: `[Studio Recording - Part 1] Welcome back. Today we're diving deep into the recursive architecture of Depth-First Search.` },
+                        { speaker: "expert", text: `[Studio Recording - Part 2] Unlike BFS, DFS plunges to the deepest node before backtracking, utilizing a Stack mechanism.` },
+                        { speaker: "host", text: `[Studio Recording - Part 3] It's elegant, especially for topological sorting and maze generation algorithms.` },
+                        { speaker: "expert", text: `[Studio Recording - Part 4] However, one must be cautious of deep recursion limits and stack overflow vulnerabilities in production.` }
+                    ]
+                }
+            });
+        }
+
         const aiData = await callAI(prompt);
 
         if (!aiData || !Array.isArray(aiData.segments) || aiData.segments.length === 0) {
@@ -1264,7 +1296,8 @@ export const generatePodcastSpeech = async (req, res) => {
                 }
 
                 if (fileName) {
-                    const filePath = path.join(__dirname, 'tts-service', 'podcasts', 'complexity', folderName, fileName);
+                    // tts-service is located in the ROOT directory, not server/, so we step up one level with '..'
+                    const filePath = path.join(__dirname, '..', 'tts-service', 'podcasts', 'complexity', folderName, fileName);
                     if (fs.existsSync(filePath)) {
                         console.log(`[Neural-TTS] Found pre-rendered studio file for ${topicTitle} (Index: ${index}) -> ${fileName}`);
                         res.setHeader('Content-Type', 'audio/wav');
