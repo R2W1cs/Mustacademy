@@ -168,7 +168,7 @@ const TopicExercises = ({ topicId, topicTitle }) => {
 
     if (!exercises && !loading) {
         return (
-            <div className={`mt-20 p-16 rounded-[4rem] border relative overflow-hidden group ${isDark ? 'bg-foreground/[0.02] border-foreground/10 backdrop-blur-xl' : 'bg-white border-indigo-100 shadow-xl shadow-indigo-500/5'}`}>
+            <div className={`mt-20 p-16 rounded-[4rem] border relative overflow-hidden group ${isDark ? 'bg-zinc-950/50 border-white/5 backdrop-blur-2xl' : 'bg-white border-indigo-100 shadow-xl shadow-indigo-500/5'}`}>
                 <div className={`absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-transparent to-purple-500/5 ${isDark ? 'opacity-50' : 'opacity-80'}`} />
 
                 <div className="relative z-10 flex flex-col items-center text-center">
@@ -271,7 +271,7 @@ const TopicExercises = ({ topicId, topicTitle }) => {
 
                     <div className="grid grid-cols-1 gap-6">
                         {exercises.mcq.map((q, idx) => (
-                            <div key={idx} className="p-10 rounded-[2.5rem] glass-morphism border-indigo-500/5 transition-all hover:bg-white/[0.04] shadow-sm">
+                            <div key={idx} className={`p-10 rounded-[2.5rem] border transition-all hover:bg-white/[0.04] shadow-sm ${isDark ? 'bg-zinc-900/40 border-white/5' : 'glass-morphism border-indigo-500/5'}`}>
                                 <div className="flex gap-6 mb-10">
                                     <span className="text-xs font-black text-indigo-500/40 mt-1">{String(idx + 1).padStart(2, '0')}</span>
                                     <p className="text-xl font-bold text-foreground leading-snug">{q.q}</p>
@@ -346,7 +346,7 @@ const TopicExercises = ({ topicId, topicTitle }) => {
                                     <textarea
                                         rows="3"
                                         placeholder="Articulate your technical response..."
-                                        className="w-full bg-foreground/[0.01] border glass-border rounded-3xl p-8 text-foreground focus:border-purple-500/30 focus:bg-foreground/[0.03] transition-all outline-none resize-none placeholder:text-foreground/20 font-serif text-lg italic shadow-inner"
+                                        className={`w-full border rounded-3xl p-8 text-foreground transition-all outline-none resize-none font-serif text-lg italic shadow-inner ${isDark ? 'bg-zinc-950/80 border-white/10 focus:border-purple-500/40 focus:bg-zinc-950' : 'bg-foreground/[0.01] glass-border focus:border-purple-500/30 focus:bg-foreground/[0.03]'} placeholder:text-foreground/20`}
                                         value={answers[`short_${idx}`] || ''}
                                         onChange={(e) => setAnswers({ ...answers, [`short_${idx}`]: e.target.value })}
                                         disabled={checked[`short_${idx}`]}

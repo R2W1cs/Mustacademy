@@ -111,7 +111,16 @@ export default function TopicPodcastPlayer({ topic }) {
                         else setIsPlaying(false);
                     };
 
-                    await audio.play();
+                    const playPromise = audio.play();
+                    if (playPromise !== undefined) {
+                        playPromise.catch(error => {
+                            if (error.name === 'AbortError') {
+                                // Ignore abort errors (usually from skip/pause)
+                            } else {
+                                console.error("[Neural-Audio] Playback error:", error.message);
+                            }
+                        });
+                    }
                 } catch (err) {
                     console.error("[Neural-Audio] Synthesis Failure:", err.message);
                     setTimeout(() => {

@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Network, Database, User, ArrowRight, Package, Box, ArrowRightLeft, Spline, Zap, Play, RotateCcw, BoxSelect, Columns, Route } from 'lucide-react';
+import { useTheme } from '../auth/ThemeContext';
 
 const UMLDiagramVisualizer = ({ type = 'use case' }) => {
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
 
     const normalizedType = type.toLowerCase().includes('use case') ? 'usecase'
         : type.toLowerCase().includes('sequence') ? 'sequence'
@@ -426,7 +429,7 @@ const UMLDiagramVisualizer = ({ type = 'use case' }) => {
     const config = configs[normalizedType] || configs.usecase;
 
     return (
-        <div className="w-full bg-[#0a0a0c] border border-white/10 rounded-[2.5rem] overflow-hidden flex flex-col shadow-lg">
+        <div className={`w-full border rounded-[2.5rem] overflow-hidden flex flex-col shadow-lg transition-colors duration-500 ${isDark ? 'bg-zinc-950 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
             <div className="p-8 border-b border-white/5 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 bg-gradient-to-b from-white/[0.03] to-transparent">
                 <div className="flex items-center gap-5">
                     <div 

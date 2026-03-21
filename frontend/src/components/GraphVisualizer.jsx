@@ -9,8 +9,8 @@ import {
     MarkerType,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Zap, Play, RotateCcw, ChevronRight, Brain, Info, Target, RefreshCw, ListFilter, Trophy, HelpCircle, Settings2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTheme } from '../auth/ThemeContext';
 
 const nodeNames = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
@@ -83,6 +83,8 @@ const generateRandomGraph = (directed = false) => {
 };
 
 const GraphVisualizer = ({ algorithm: initialAlgorithm = 'BFS' }) => {
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
     const [algorithm, setAlgorithm] = useState(initialAlgorithm);
     const [isExercise, setIsExercise] = useState(false);
 
@@ -151,7 +153,11 @@ const GraphVisualizer = ({ algorithm: initialAlgorithm = 'BFS' }) => {
         if (isActive) return { background: '#6366f1', color: '#fff', border: '3px solid #1e293b', boxShadow: '0 0 20px rgba(99,102,241,0.5)' };
         if (isVisited) return { background: '#10b981', color: '#fff', border: '2px solid #1e293b', opacity: 0.8 };
         if (isInQueue) return { background: '#f59e0b', color: '#fff', border: '2px solid #1e293b', opacity: 1 };
-        return { background: '#fff', color: '#1e293b', border: '2px solid #1e293b' };
+        return { 
+            background: isDark ? '#1e293b' : '#fff', 
+            color: isDark ? '#f8fafc' : '#1e293b', 
+            border: isDark ? '2px solid #334155' : '2px solid #1e293b' 
+        };
     };
 
     useEffect(() => {
@@ -178,7 +184,7 @@ const GraphVisualizer = ({ algorithm: initialAlgorithm = 'BFS' }) => {
         setFeedback(null);
         setPointsRemaining(nodes.length - 1);
         setDistances({});
-        setEdges(eds => eds.map(e => ({ ...e, animated: false, style: { stroke: '#94a3b8', strokeWidth: 2 }, markerEnd: directed ? { type: MarkerType.ArrowClosed, color: '#94a3b8' } : undefined })));
+        setEdges(eds => eds.map(e => ({ ...e, animated: false, style: { stroke: isDark ? '#475569' : '#94a3b8', strokeWidth: 2 }, markerEnd: directed ? { type: MarkerType.ArrowClosed, color: isDark ? '#475569' : '#94a3b8' } : undefined })));
     };
 
     const regenerateGraph = () => {
@@ -635,31 +641,31 @@ const GraphVisualizer = ({ algorithm: initialAlgorithm = 'BFS' }) => {
     };
 
     return (
-        <div className="w-full bg-slate-50 border-2 border-slate-200 rounded-[3rem] overflow-hidden flex flex-col h-[850px] shadow-2xl">
+        <div className={`w-full border-2 rounded-[3rem] overflow-hidden flex flex-col h-[850px] shadow-2xl transition-colors duration-500 ${isDark ? 'bg-[#050810] border-white/5' : 'bg-slate-50 border-slate-200'}`}>
 
             {/* TOP BAR / NAVIGATION */}
-            <div className="bg-white border-b-2 border-slate-100 p-6 flex items-center justify-between">
+            <div className={`border-b-2 p-6 flex items-center justify-between transition-colors ${isDark ? 'bg-zinc-900 border-white/5' : 'bg-white border-slate-100'}`}>
                 <div className="flex gap-4">
-                    <button onClick={() => setIsExercise(false)} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${!isExercise ? 'bg-slate-800 text-white shadow-lg' : 'bg-slate-100 text-slate-400'}`}>
+                    <button onClick={() => setIsExercise(false)} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${!isExercise ? (isDark ? 'bg-indigo-600' : 'bg-slate-800') + ' text-white shadow-lg' : (isDark ? 'bg-white/5 text-slate-500' : 'bg-slate-100 text-slate-400')}`}>
                         Simulation mode
                     </button>
-                    <button onClick={() => { setIsExercise(true); reset(); }} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isExercise ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-slate-100 text-slate-400'}`}>
+                    <button onClick={() => { setIsExercise(true); reset(); }} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isExercise ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : (isDark ? 'bg-white/5 text-slate-500' : 'bg-slate-100 text-slate-400')}`}>
                         Interactive Exercise
                     </button>
                 </div>
 
                 {/* Algorithm Selector for MST/Greedy Topics */}
                 {initialAlgorithm === 'MST' || initialAlgorithm === 'Prim' || initialAlgorithm === 'Kruskal' ? (
-                    <div className="flex items-center bg-slate-100 p-1 rounded-xl">
+                    <div className={`flex items-center p-1 rounded-xl ${isDark ? 'bg-white/5' : 'bg-slate-100'}`}>
                         <button
                             onClick={() => { setAlgorithm('Prim'); reset(); }}
-                            className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${algorithm === 'Prim' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}
+                            className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${algorithm === 'Prim' ? (isDark ? 'bg-white/10 text-white' : 'bg-white text-indigo-600 shadow-sm') : 'text-slate-400'}`}
                         >
                             Prim's
                         </button>
                         <button
                             onClick={() => { setAlgorithm('Kruskal'); reset(); }}
-                            className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${algorithm === 'Kruskal' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}
+                            className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${algorithm === 'Kruskal' ? (isDark ? 'bg-white/10 text-white' : 'bg-white text-indigo-600 shadow-sm') : 'text-slate-400'}`}
                         >
                             Kruskal's
                         </button>
@@ -667,11 +673,11 @@ const GraphVisualizer = ({ algorithm: initialAlgorithm = 'BFS' }) => {
                 ) : null}
 
                 <div className="flex items-center gap-4">
-                    <button onClick={() => { setDirected(!directed); regenerateGraph(); }} className={`p-3 rounded-xl flex items-center gap-2 border-2 transition-all ${directed ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
+                    <button onClick={() => { setDirected(!directed); regenerateGraph(); }} className={`p-3 rounded-xl flex items-center gap-2 border-2 transition-all ${directed ? (isDark ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-300' : 'bg-indigo-50 border-indigo-200 text-indigo-600') : (isDark ? 'bg-white/5 border-white/10 text-slate-500' : 'bg-slate-50 border-slate-200 text-slate-400')}`}>
                         <Settings2 size={16} />
                         <span className="text-[10px] font-black uppercase">{directed ? 'Directed' : 'Undirected'}</span>
                     </button>
-                    <button onClick={reset} className="p-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-all active:scale-95 flex items-center gap-2 px-6 font-black uppercase text-[10px] tracking-widest">
+                    <button onClick={reset} className={`p-3 rounded-xl transition-all active:scale-95 flex items-center gap-2 px-6 font-black uppercase text-[10px] tracking-widest ${isDark ? 'bg-white/5 hover:bg-white/10 text-slate-400' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'}`}>
                         Reset
                     </button>
                 </div>
@@ -679,18 +685,18 @@ const GraphVisualizer = ({ algorithm: initialAlgorithm = 'BFS' }) => {
 
             <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
                 {/* 1. VISUALIZATION CANVAS */}
-                <div className="flex-1 relative bg-white border-r-2 border-slate-100">
+                <div className={`flex-1 relative border-r-2 transition-colors ${isDark ? 'bg-zinc-950 border-white/5' : 'bg-white border-slate-100'}`}>
 
                     {/* Exercise Instructions Overlay */}
                     <AnimatePresence>
                         {isExercise && (
                             <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="absolute top-6 left-6 right-6 z-20">
-                                <div className="bg-slate-50/90 backdrop-blur-sm p-6 rounded-[2rem] border-2 border-slate-200 shadow-xl">
+                                <div className={`p-6 rounded-[2rem] border-2 shadow-xl ${isDark ? 'bg-zinc-900/90 border-white/10 backdrop-blur-md' : 'bg-slate-50/90 border-slate-200'}`}>
                                     <div className="flex items-center gap-3 mb-2">
                                         <HelpCircle className="text-indigo-500" size={18} />
-                                        <h4 className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Exercise Instructions</h4>
+                                        <h4 className={`text-[11px] font-black uppercase tracking-widest ${isDark ? 'text-white' : 'text-slate-800'}`}>Exercise Instructions</h4>
                                     </div>
-                                    <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                                    <p className={`text-xs font-medium leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
                                         Reproduce the behavior of the <span className="font-black text-indigo-600 underline">{algorithm}</span> algorithm.
                                         Click on the <span className="font-black">Nodes</span> in the traversal order.
                                         Start with **Node A**. For ties, choose the node that comes first alphabetically.
@@ -739,14 +745,15 @@ const GraphVisualizer = ({ algorithm: initialAlgorithm = 'BFS' }) => {
                         onNodesDelete={() => { }}
                         onNodeClick={handleNodeClick}
                         fitView
-                        className="bg-white"
+                        className={isDark ? 'bg-[#050810]' : 'bg-white'}
+                        colorMode={isDark ? 'dark' : 'light'}
                         proOptions={{ hideAttribution: true }}
                     >
-                        <Background variant="dots" gap={25} size={1} color="#e2e8f0" />
+                        <Background variant="dots" gap={25} size={1} color={isDark ? '#334155' : '#e2e8f0'} />
                     </ReactFlow>
 
                     {!isExercise && (
-                        <div className="absolute bottom-10 left-10 right-10 z-10 flex items-center justify-between p-6 bg-white/80 backdrop-blur-md border-2 border-slate-200 rounded-[2.5rem] shadow-xl">
+                        <div className={`absolute bottom-10 left-10 right-10 z-10 flex items-center justify-between p-6 border-2 rounded-[2.5rem] shadow-xl ${isDark ? 'bg-zinc-900/80 border-white/10 backdrop-blur-md' : 'bg-white/80 border-slate-200'}`}>
                             <div className="flex items-center gap-4">
                                 <button disabled={isComplete} onClick={runStep} className="bg-slate-800 hover:bg-black text-white px-10 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-slate-200 transition-all active:scale-95 disabled:bg-slate-200">
                                     Next Cycle
@@ -771,7 +778,7 @@ const GraphVisualizer = ({ algorithm: initialAlgorithm = 'BFS' }) => {
                 </div>
 
                 {/* 2. STATE SIDEBAR */}
-                <div className="w-full lg:w-[450px] bg-slate-50 flex flex-col p-10 gap-10 border-l-2 border-slate-100">
+                <div className={`w-full lg:w-[450px] flex flex-col p-10 gap-10 border-l-2 transition-colors ${isDark ? 'bg-zinc-900/20 border-white/5' : 'bg-slate-50 border-slate-100'}`}>
                     <section>
                         <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-3">
@@ -784,8 +791,8 @@ const GraphVisualizer = ({ algorithm: initialAlgorithm = 'BFS' }) => {
                                 </div>
                             )}
                         </div>
-                        <div className="bg-white p-8 rounded-3xl border-2 border-slate-200 shadow-sm min-h-[140px] flex items-center relative overflow-hidden">
-                            <p className="text-sm font-medium text-slate-700 leading-relaxed italic relative z-10 transition-all">
+                        <div className={`p-8 rounded-3xl border-2 shadow-sm min-h-[140px] flex items-center relative overflow-hidden ${isDark ? 'bg-black/20 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-700'}`}>
+                            <p className="text-sm font-medium leading-relaxed italic relative z-10 transition-all">
                                 "{explanation}"
                             </p>
                             <div className="absolute right-[-20px] top-[-20px] p-10 bg-indigo-500/5 blur-3xl rounded-full" />

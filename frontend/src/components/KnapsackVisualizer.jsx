@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Package, Calculator, Brain, TrendingUp, Info } from 'lucide-react';
+import { useTheme } from '../auth/ThemeContext';
 
 const KnapsackVisualizer = () => {
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
     const items = [
         { name: 'Synaptic Core', weight: 1, value: 15 },
         { name: 'Data Shard', weight: 2, value: 10 },
@@ -71,7 +74,7 @@ const KnapsackVisualizer = () => {
     };
 
     return (
-        <div className="w-full bg-foreground/[0.02] border border-foreground/10 rounded-[3rem] overflow-hidden flex flex-col hover:border-indigo-500/20 transition-all duration-500">
+        <div className={`w-full border rounded-[3rem] overflow-hidden flex flex-col hover:border-indigo-500/20 transition-all duration-500 ${isDark ? 'bg-zinc-950/50 border-white/5' : 'bg-foreground/[0.02] border-foreground/10'}`}>
             {/* Header */}
             <div className="p-8 border-b border-foreground/10 flex justify-between items-center bg-indigo-500/5">
                 <div className="flex items-center gap-4">
@@ -91,7 +94,7 @@ const KnapsackVisualizer = () => {
 
             <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
                 {/* Matrix View */}
-                <div className="flex-1 p-8 border-r border-foreground/10">
+                <div className={`flex-1 p-8 border-r ${isDark ? 'border-white/5' : 'border-foreground/10'}`}>
                     <div className="min-w-[500px]">
                         <table className="w-full border-separate border-spacing-2">
                             <thead>
@@ -122,7 +125,7 @@ const KnapsackVisualizer = () => {
                                                     key={cIdx}
                                                     className={`p-6 text-center rounded-2xl border transition-all duration-300 ${isActive
                                                             ? 'bg-indigo-600 border-indigo-400 text-white scale-110 shadow-2xl z-10'
-                                                            : cell > 0 ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400' : 'bg-foreground/[0.02] border-foreground/5 text-foreground/20'
+                                                            : cell > 0 ? (isDark ? 'bg-indigo-500/20 border-indigo-500/30 text-indigo-300' : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400') : (isDark ? 'bg-white/5 border-white/5 text-foreground/20' : 'bg-foreground/[0.02] border-foreground/5 text-foreground/20')
                                                         }`}
                                                 >
                                                     <span className="text-xl font-black">{cell}</span>

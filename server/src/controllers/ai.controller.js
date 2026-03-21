@@ -1247,11 +1247,14 @@ export const generatePodcastSpeech = async (req, res) => {
             const folderName = folderMap[topicTitle] || folderMap[topicTitle.trim()];
             
             if (folderName) {
-                // Pre-rendered files are named "download (X).wav" where X = (index + 1)
-                const filePath = path.join(__dirname, 'tts-service', 'podcasts', 'complexity', folderName, `download (${parseInt(index) + 1}).wav`);
+                // Pre-rendered files are named "download (X).wav"
+                // BFS: download(1-4), DFS: download(5-8)
+                const offset = folderName === 'DFS' ? 5 : 1;
+                const fileName = folderName === 'DFS' && parseInt(index) === 0 ? 'best one.wav' : `download (${parseInt(index) + offset}).wav`;
+                const filePath = path.join(__dirname, 'tts-service', 'podcasts', 'complexity', folderName, fileName);
                 
                 if (fs.existsSync(filePath)) {
-                    console.log(`[Neural-TTS] Found pre-rendered studio file for ${topicTitle} (Index: ${index})`);
+                    console.log(`[Neural-TTS] Found pre-rendered studio file for ${topicTitle} (Index: ${index}) -> ${fileName}`);
                     res.setHeader('Content-Type', 'audio/wav');
                     res.setHeader('X-Studio-Source', 'Pre-rendered');
                     const fileStream = fs.createReadStream(filePath);

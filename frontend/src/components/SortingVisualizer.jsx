@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BarChart, Search, Zap, Play, RotateCcw, Brain, TrendingUp } from 'lucide-react';
+import { useTheme } from '../auth/ThemeContext';
 
 const SortingVisualizer = () => {
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
     const [array, setArray] = useState([64, 34, 25, 12, 22, 11, 90]);
     const [algorithm, setAlgorithm] = useState('Bubble Sort');
     const [activeIdx, setActiveIdx] = useState([]);
@@ -226,7 +229,7 @@ const SortingVisualizer = () => {
     };
 
     return (
-        <div className="w-full bg-foreground/[0.02] border border-foreground/10 rounded-[3rem] overflow-hidden flex flex-col h-[700px] hover:border-indigo-500/20 transition-all duration-500">
+        <div className={`w-full border rounded-[3rem] overflow-hidden flex flex-col h-[700px] hover:border-indigo-500/20 transition-all duration-500 ${isDark ? 'bg-zinc-950/50 border-white/5' : 'bg-foreground/[0.02] border-foreground/10'}`}>
             {/* Header */}
             <div className="p-8 border-b border-foreground/10 flex justify-between items-center bg-indigo-500/5">
                 <div className="flex items-center gap-4">
