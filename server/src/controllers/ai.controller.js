@@ -1320,36 +1320,47 @@ export const generatePodcastSpeech = async (req, res) => {
         return res.send(cached);
     }
 
-    // 3. Check for external Kokoro Voice Cloning Microservice (Option B Hosted)
-    const kokoroUrl = process.env.KOKORO_API_URL;
-    if (kokoroUrl) {
+    // 3. Check for external Kokoro Voice Cloning Microservice or HF Cloud
+    const hfToken = process.env.HF_TOKEN;
+    if (hfToken && speaker === "expert") {
         try {
-            console.log(`[Neural-TTS] Delegating to Kokoro Microservice at ${kokoroUrl}...`);
+            console.log(`[Neural-TTS] Delegating to Hugging Face Cloud Inference (XTTS-v2)...`);
             const axios = (await import('axios')).default;
-            const response = await axios.post(`${kokoroUrl}/generate`, {
-                text: text,
-                speaker: speaker
-            }, { responseType: 'arraybuffer' });
+            
+            const response = await axios.post(
+                "https://api-inference.huggingface.co/models/coqui/XTTS-v2",
+                { inputs: text },
+                { 
+                    headers: { 'Authorization': `Bearer ${hfToken}` },
+                    responseType: 'arraybuffer' 
+                }
+            );
             
             const buffer = Buffer.from(response.data, 'binary');
-            res.set({
-                'Content-Type': 'audio/wav',
-                'Content-Length': buffer.length,
-                'Accept-Ranges': 'bytes',
-                'X-Neural-Voice': 'Kokoro-Cloned',
-                'X-Premium-Class': 'Neural-Human-Hosted',
-                'Cache-Control': 'public, max-age=3600'
-            });
             
-            res.send(buffer);
-            
-            if (ttsCache.size < 500 && buffer.length > 500) {
-                ttsCache.set(cacheKey, buffer);
+            // Check if HF returned a valid API response or an error JSON instead of audio
+            if (buffer.length > 500) {
+                res.set({
+                    'Content-Type': 'audio/flac', /* HF Inference usually returns FLAC or WAV */
+                    'Content-Length': buffer.length,
+                    'Accept-Ranges': 'bytes',
+                    'X-Neural-Voice': 'HF-Cloud-XTTS',
+                    'X-Premium-Class': 'Neural-Human-Hosted',
+                    'Cache-Control': 'public, max-age=3600'
+                });
+                
+                res.send(buffer);
+                
+                if (ttsCache.size < 500) {
+                    ttsCache.set(cacheKey, buffer);
+                }
+                console.log(`[Neural-TTS] SUCCESS: HF Cloud cloned audio served.`);
+                return;
+            } else {
+                console.log(`[Neural-TTS] HF API returned invalid payload size, falling back...`);
             }
-            console.log(`[Neural-TTS] SUCCESS: Kokoro cloned audio served.`);
-            return;
         } catch (e) {
-            console.warn(`[Neural-TTS] Kokoro Microservice failed or unresponsive: ${e.message}. Falling back to Premium Edge TTS.`);
+            console.warn(`[Neural-TTS] HF Cloud Synthesis failed: ${e.message}. Falling back to Premium Edge TTS.`);
         }
     }
 
@@ -1488,3 +1499,37 @@ export const getMasterclassEpisode = async (req, res) => {
     }
 };
 
+// Interactive Podcast endpoint using Groq
+export const generateInteractivePodcast = async (req, res) => {
+    try {
+        const { topicTitle, history } = req.body;
+
+        if (!topicTitle || !history || !Array.isArray(history)) {
+            return res.status(400).json({ success: false, message: "Missing topicTitle or history" });
+        }
+
+        const systemPrompt = `You are Dr. Nova, an expert AI tutor offering an interactive 1-on-1 masterclass on the topic of "${topicTitle}". 
+Your job is to directly answer the user's questions or comments.
+Speak entirely naturally, warmly, and eloquently. Do not use structural markdown formatting like bold asterisks or code blocks because your response will be spoken aloud to the user via text-to-speech. Keep your response concise (usually 1 short paragraph, max 2) to ensure a fluid conversational back-and-forth rhythm.`;
+
+        // We assume we have the groq client from aiClient.js
+        const messages = [
+            { role: "system", content: systemPrompt },
+            ...history.map(msg => ({ role: msg.role || 'user', content: msg.content }))
+        ];
+
+        const completion = await groq.chat.completions.create({
+            messages,
+            model: "llama3-70b-8192", // Fast large model for excellent conversational flow
+            temperature: 0.7,
+            max_tokens: 300
+        });
+
+        const reply = completion.choices[0].message.content;
+
+        return res.json({ success: true, reply });
+    } catch (err) {
+        console.error("Interactive Podcast Error:", err);
+        return res.status(500).json({ success: false, message: "Failed to generate interactive response" });
+    }
+};

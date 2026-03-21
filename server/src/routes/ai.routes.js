@@ -6,7 +6,7 @@ import {
     generateDailyPlan, getDailyPlan, deleteDailyPlan, completeSession,
     startInterview, chatWithInterviewer, generateFiller, generateLibraryLecture, verifyLibraryAnswer, interactWithProfessor,
     synthesizeTopic, createMission, generateTopicExercises,
-    generateTopicPodcast, askPodcastQuestion, generatePodcastSpeech,
+    generateTopicPodcast, askPodcastQuestion, generatePodcastSpeech, generateInteractivePodcast,
     getMasterclassEpisodes, getMasterclassEpisode,
     getChatSessions, getSessionMessages
 } from "../controllers/ai.controller.js";
@@ -40,6 +40,7 @@ router.post("/topics/synthesize", protect, synthesizeTopic);
 router.post("/topics/exercises", protect, generateTopicExercises);
 router.post("/topics/podcast", protect, generateTopicPodcast);
 router.post("/topics/podcast/question", protect, askPodcastQuestion);
+router.post("/interactive-podcast", generateInteractivePodcast);
 router.post("/podcast/speech", protect, generatePodcastSpeech);
 router.get("/podcast/speech", generatePodcastSpeech); // Allow GET for direct streaming
 router.get("/masterclass/all", protect, getMasterclassEpisodes);

@@ -1,423 +1,319 @@
-import { useState, useEffect, useRef } from "react";
-// eslint-disable-next-line no-unused-vars
-import { motion, AnimatePresence } from "framer-motion";
-import {
-    Play, Pause, SkipForward, SkipBack,
-    Headphones, Radio, Sparkles,
-    Loader2, MessageCircle, User, Bot, Send
-} from "lucide-react";
-import api from "../api/axios";
-import { useTheme } from "../auth/ThemeContext";
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Pause, AlertCircle, Mic, MicOff, Send, Bot } from 'lucide-react';
+import axios from 'axios';
+import { useTheme } from '../contexts/ThemeContext';
 
-const SPEAKERS = {
-    host: { name: "The Pragmatist (Aria)", color: "indigo", label: "Pragmatic Host" },
-    expert: { name: "The Theorist (Dr. Nova)", color: "amber", label: "Theoretical Expert" }
-};
-
-export default function TopicPodcastPlayer({ topic }) {
-    const { theme } = useTheme();
-    const isDark = theme === "dark";
-
-    const [episode, setEpisode] = useState(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const [activeSegment, setActiveSegment] = useState(0);
+export default function InteractivePodcastPlayer({ topic }) {
+    const { isDark } = useTheme();
+    const [messages, setMessages] = useState([]);
+    const [inputValue, setInputValue] = useState("");
+    const [isListening, setIsListening] = useState(false);
+    const [isGenerating, setIsGenerating] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
-    const [question, setQuestion] = useState("");
-    const [questionAnswer, setQuestionAnswer] = useState(null);
-    const [askingQuestion, setAskingQuestion] = useState(false);
-    const [voices, setVoices] = useState([]);
+    const [error, setError] = useState(null);
 
-    useEffect(() => {
-        const loadVoices = () => {
-            const v = window.speechSynthesis.getVoices();
-            setVoices(v);
-        };
-        loadVoices();
-        window.speechSynthesis.onvoiceschanged = loadVoices;
-        return () => {
-            window.speechSynthesis.onvoiceschanged = null;
-        };
-    }, []);
-
-    const utteranceRef = useRef(null);
     const audioRef = useRef(null);
+    const messagesEndRef = useRef(null);
+    const recognitionRef = useRef(null);
+    const utteranceRef = useRef(null); 
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
 
     useEffect(() => {
+        scrollToBottom();
+    }, [messages, isGenerating]);
 
-        let timeoutId;
-
-        // Cleanup function for stopping all audio
-        const stopAllAudio = () => {
-            if (timeoutId) clearTimeout(timeoutId);
-            if (audioRef.current) {
-                audioRef.current.pause();
-                audioRef.current.onended = null;
-                audioRef.current.onerror = null;
-                audioRef.current.src = "";
-                audioRef.current = null;
-            }
-            // Only cancel if we are explicitly stopping playback (not just moving segments)
-            // This condition is important for when the effect re-runs due to dependencies changing,
-            // but we don't want to cancel speech if it's still playing and we're just moving segments.
-            // However, for the cleanup function itself, it should stop everything.
-            // The original logic for `!isPlaying` here was likely intended for the initial check,
-            // not necessarily for the cleanup return. Let's simplify for the cleanup.
-            if (window.speechSynthesis.speaking) {
-                window.speechSynthesis.cancel();
-            }
-        };
-
-        if (!isPlaying || !episode) {
-            stopAllAudio();
-            return;
-        }
-
-        const segment = episode.segments[activeSegment];
-        if (!segment) {
-            setIsPlaying(false);
-            return;
-        }
+    useEffect(() => {
+        // Initial Greeting
+        const greeting = `Welcome to the studio. Today we're exploring ${topic?.title || "this topic"}. I'm Dr. Nova. What would you like to know?`;
+        setMessages([{ role: 'assistant', content: greeting }]);
+        playAudio(greeting, 'expert');
         
-        const playSegment = async () => {
-            const currentIdx = activeSegment;
-            const segment = episode.segments[currentIdx];
-            if (!segment) return;
+        // Setup Speech Recognition
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            recognitionRef.current = new SpeechRecognition();
+            recognitionRef.current.continuous = false;
+            recognitionRef.current.interimResults = false;
+            recognitionRef.current.lang = 'en-US';
 
-            const delay = currentIdx === 0 ? 0 : 400; 
-            
-            timeoutId = setTimeout(async () => {
-                const apiBase = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : 'https://mustacademy-backend.onrender.com/api');
-                const url = `${apiBase}/ai/podcast/speech?text=${encodeURIComponent(segment.text)}&speaker=${segment.speaker}&topicTitle=${encodeURIComponent(topic.title)}&index=${currentIdx}`;
+            recognitionRef.current.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                setInputValue(transcript);
+                setIsListening(false);
+            };
 
-                const useBrowserTTS = () => {
-                    const utterance = new SpeechSynthesisUtterance(segment.text);
-                    // Try to find natural voices
-                    const allVoices = window.speechSynthesis.getVoices();
-                    if (segment.speaker === 'host') {
-                        utterance.voice = allVoices.find(v => v.name.includes('Zira') || v.name.includes('Google US English') || v.name.includes('Samantha') || (v.lang === 'en-US' && v.name.toLowerCase().includes('female'))) || allVoices.find(v => v.lang === 'en-US') || allVoices[0];
-                        utterance.pitch = 1.1;
-                        utterance.rate = 1.05;
-                    } else {
-                        utterance.voice = allVoices.find(v => v.name.includes('David') || v.name.includes('Mark') || v.name.includes('Google UK English Male') || v.name.includes('Daniel') || (v.lang.startsWith('en') && v.name.toLowerCase().includes('male'))) || allVoices.find(v => v.lang === 'en-GB') || [...allVoices].reverse().find(v => v.lang.startsWith('en')) || allVoices[allVoices.length > 1 ? 1 : 0];
-                        utterance.pitch = 0.9;
-                        utterance.rate = 0.95;
-                    }
+            recognitionRef.current.onerror = (event) => {
+                console.error("Speech recognition error", event.error);
+                setIsListening(false);
+            };
 
-                    utterance.onend = () => {
-                        if (activeSegment < episode.segments.length - 1) {
-                            setActiveSegment(prev => prev + 1);
-                        } else {
-                            setIsPlaying(false);
-                        }
-                    };
-
-                    utterance.onerror = (e) => {
-                        console.error("[Neural-Fallback] SpeechSynthesis error:", e);
-                        if (activeSegment < episode.segments.length - 1) setActiveSegment(prev => prev + 1);
-                        else setIsPlaying(false);
-                    };
-
-                    utteranceRef.current = utterance;
-                    window.speechSynthesis.speak(utterance);
-                };
-
-                try {
-                    // ALWAYS try Backend first for EVERY segment (to get Premium Human voices)
-                    const audio = new Audio(url);
-                    audioRef.current = audio;
-
-                    audio.onended = () => {
-                        if (activeSegment < episode.segments.length - 1) {
-                            setActiveSegment(prev => prev + 1);
-                        } else {
-                            setIsPlaying(false);
-                        }
-                    };
-
-                    audio.onerror = () => {
-                        console.warn("[Neural-Audio] Premium synthesis failed, falling back to browser synthesis.");
-                        useBrowserTTS();
-                    };
-
-                    const playPromise = audio.play();
-                    if (playPromise !== undefined) {
-                        playPromise.catch(error => {
-                            if (error.name !== 'AbortError') {
-                                console.warn("[Neural-Audio] Playback blocked, trying browser fallback:", error.message);
-                                useBrowserTTS();
-                            }
-                        });
-                    }
-                } catch (err) {
-                    console.error("[Neural-Audio] Initial sequence failure:", err.message);
-                    useBrowserTTS();
-                }
-            }, delay);
-        };
-
-        playSegment();
+            recognitionRef.current.onend = () => {
+                setIsListening(false);
+            };
+        }
 
         return stopAllAudio;
-    }, [isPlaying, activeSegment, episode]);
+    }, [topic]);
 
-    const generateEpisode = async () => {
-        if (!topic) return;
-        setLoading(true);
-        setError(null);
-        setEpisode(null);
-        setActiveSegment(0);
+    const stopAllAudio = () => {
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.src = "";
+            audioRef.current = null;
+        }
+        window.speechSynthesis.cancel();
         setIsPlaying(false);
-        setQuestionAnswer(null);
+    };
+
+    const toggleListening = () => {
+        if (!recognitionRef.current) {
+            alert("Your browser does not support Speech Recognition.");
+            return;
+        }
+
+        if (isListening) {
+            recognitionRef.current.stop();
+        } else {
+            recognitionRef.current.start();
+            setIsListening(true);
+        }
+    };
+
+    const handleSubmit = async (e) => {
+        if (e) e.preventDefault();
+        if (!inputValue.trim() || isGenerating) return;
+
+        const userMsg = inputValue.trim();
+        setInputValue("");
+        stopAllAudio();
+
+        const updatedMessages = [...messages, { role: 'user', content: userMsg }];
+        setMessages(updatedMessages);
+        setIsGenerating(true);
+        setError(null);
 
         try {
-            const res = await api.post("/ai/topics/podcast", {
-                topicId: topic.id,
-                topicTitle: topic.title
+            const res = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/ai/interactive-podcast`, {
+                topicTitle: topic?.title,
+                history: updatedMessages
             });
-            setEpisode(res.data.episode);
+
+            const replyText = res.data.reply;
+            setMessages([...updatedMessages, { role: 'assistant', content: replyText }]);
+            
+            await playAudio(replyText, 'expert');
+
         } catch (err) {
-            setError(err.response?.data?.message || "Failed to generate podcast episode.");
+            console.error("Failed to fetch interactive response:", err);
+            setError("Failed to generate response. Please try again.");
         } finally {
-            setLoading(false);
+            setIsGenerating(false);
         }
     };
 
-    // Make sure we stop speaking when user manually navigates segments
-    const handleSegmentClick = (index) => {
-        setActiveSegment(index);
-    };
+    const playAudio = async (text, speaker) => {
+        stopAllAudio();
+        setIsPlaying(true);
 
-    const handleAskQuestion = async () => {
-        if (!question.trim() || !topic) return;
-        setAskingQuestion(true);
-        setQuestionAnswer(null);
         try {
-            const res = await api.post("/ai/topics/podcast/question", {
-                topicTitle: topic.title,
-                question: question.trim()
-            });
-            setQuestionAnswer(res.data.answer);
-        } catch {
-            setQuestionAnswer("I couldn't process that question. Please try again.");
-        } finally {
-            setAskingQuestion(false);
+            const encodedText = encodeURIComponent(text);
+            const encodedTopic = encodeURIComponent(topic?.title || '');
+            const url = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/ai/podcast/speech?text=${encodedText}&speaker=${speaker}&topicTitle=${encodedTopic}&index=0`;
+            
+            const audio = new Audio(url);
+            audioRef.current = audio;
+
+            audio.onended = () => setIsPlaying(false);
+            
+            audio.onerror = () => {
+                console.warn("[Neural-Audio] Hosted Audio failed, falling back to browser synthesis.");
+                playBrowserFallback(text);
+            };
+
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    if (error.name !== 'AbortError') {
+                        playBrowserFallback(text);
+                    }
+                });
+            }
+        } catch (err) {
+            playBrowserFallback(text);
         }
     };
 
-    const cardBg = isDark
-        ? "bg-foreground/[0.02] border border-foreground/10 backdrop-blur-xl"
-        : "bg-white border-indigo-100 shadow-xl shadow-indigo-500/5";
-    const mutedText = isDark ? "text-foreground/50" : "text-slate-500";
-    const primaryText = isDark ? "text-white" : "text-slate-900";
+    const playBrowserFallback = (text) => {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        
+        const setVoice = () => {
+            const voices = window.speechSynthesis.getVoices();
+            if (voices.length > 0) {
+                const maleVoices = voices.filter(v => 
+                    v.name.includes('David') || 
+                    v.name.includes('Google UK English Male') ||
+                    v.name.includes('Mark')
+                );
+
+                utterance.voice = maleVoices[0] || voices[0];
+                utterance.rate = 1.05;
+                utterance.pitch = 1.0;
+                utteranceRef.current = utterance;
+                window.speechSynthesis.speak(utterance);
+            }
+        };
+
+        if (window.speechSynthesis.getVoices().length > 0) {
+            setVoice();
+        } else {
+            window.speechSynthesis.onvoiceschanged = setVoice;
+        }
+
+        utterance.onend = () => setIsPlaying(false);
+        utterance.onerror = (e) => {
+            console.error("Speech fallback failed:", e);
+            setIsPlaying(false);
+        };
+    };
 
     return (
-        <section className="max-w-6xl mx-auto px-6 animate-in fade-in slide-in-from-bottom-10 duration-1000 mt-16 mb-24">
-            <div className="flex items-center gap-4 mb-8">
-                <div className="w-1.5 h-10 bg-indigo-500 rounded-full shadow-lg" />
-                <div>
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-500 mb-1">Interactive Studio</h3>
-                    <h2 className={`text-3xl font-black ${primaryText} tracking-tight uppercase`}>Topic Podcast</h2>
+        <div className={`mt-8 rounded-xl border p-6 flex flex-col h-[600px] shadow-[0_8px_30px_rgb(0,0,0,0.12)] overflow-hidden transition-all duration-300
+            ${isDark ? 'bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700' : 'bg-gradient-to-br from-white to-gray-50 border-gray-100'}`}>
+            
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center space-x-3">
+                    <div className={`p-2 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center`}>
+                        <Bot size={24} />
+                    </div>
+                    <div>
+                        <h3 className={`font-semibold text-lg flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                            Interactive Tutor
+                        </h3>
+                        <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Dr. Nova</p>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-700">
+                        {isPlaying ? (
+                            <span className="flex h-3 w-3 relative items-center justify-center">
+                                <span className="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-indigo-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-indigo-500"></span>
+                            </span>
+                        ) : (
+                            <span className={`h-2.5 w-2.5 rounded-full ${isDark ? 'bg-gray-600' : 'bg-gray-300'}`}></span>
+                        )}
+                        <span className={`text-xs font-semibold ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                            {isPlaying ? 'SPEAKING' : 'IDLE'}
+                        </span>
+                    </div>
+                    
+                    <button
+                        onClick={stopAllAudio}
+                        disabled={!isPlaying}
+                        className={`p-2.5 rounded-full transition-all ${isPlaying ? 'bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 shadow-sm' : 'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-600 cursor-not-allowed hidden'}`}
+                    >
+                        <Pause size={18} fill="currentColor" />
+                    </button>
                 </div>
             </div>
 
-            {!episode && !loading && (
-                <div className={`rounded-[3rem] p-12 text-center flex flex-col items-center border ${cardBg}`}>
-                    <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mb-6 shadow-sm border ${isDark ? 'bg-indigo-500/10 border-indigo-500/20 shadow-lg' : 'bg-indigo-50 border-indigo-200'}`}>
-                        <Headphones size={32} className="text-indigo-500" />
-                    </div>
-                    <h3 className={`text-2xl font-black uppercase tracking-[0.2em] mb-4 ${primaryText}`}>Audio Deep Dive</h3>
-                    <p className={`mb-8 max-w-md mx-auto leading-relaxed font-medium ${mutedText}`}>
-                        Generate a dual-host podcast episode explaining what {topic.title} is, when to use it, and how to use it. Listen while exploring the topic visualizer.
-                    </p>
-                    <button
-                        onClick={generateEpisode}
-                        className={`group relative px-10 py-4 font-black uppercase tracking-widest text-xs rounded-2xl transition-all hover:scale-105 active:scale-95 overflow-hidden flex items-center gap-3 ${isDark ? 'bg-indigo-500 text-white shadow-lg' : 'bg-indigo-600 text-white shadow-xl shadow-indigo-500/30'}`}
-                    >
-                        <Radio size={16} />
-                        Generate AI Podcast
-                        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/0 via-white/20 to-indigo-500/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-                    </button>
-                    {error && <p className="mt-4 text-xs font-bold text-red-500">{error}</p>}
-                </div>
-            )}
-
-            {loading && (
-                <div className={`rounded-[3rem] p-16 text-center border relative overflow-hidden ${cardBg}`}>
-                    <div className={`absolute top-0 left-0 w-full h-1 ${isDark ? "bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent" : "bg-gradient-to-r from-transparent via-indigo-400/50 to-transparent"} animate-shimmer`} />
-                    <Loader2 size={40} className="text-indigo-500 animate-spin mx-auto mb-6" />
-                    <p className={`text-[11px] font-black uppercase tracking-[0.4em] ${isDark ? "text-indigo-400" : "text-indigo-600"} animate-pulse`}>
-                        Synthesizing Studio Audio...
-                    </p>
-                    <p className={`text-xs mt-2 ${mutedText}`}>Analyzing "{topic.title}" mechanics and use cases.</p>
-                </div>
-            )}
-
-            {episode && !loading && (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Player Component */}
-                    <div className={`lg:col-span-2 rounded-[3rem] border overflow-hidden flex flex-col ${cardBg}`}>
-                        <div className={`px-10 py-8 border-b ${isDark ? "border-white/5 bg-gradient-to-r from-indigo-500/5 to-transparent" : "border-slate-100 bg-gradient-to-r from-indigo-50/50 to-transparent"}`}>
-                            <div className="flex items-center gap-3 mb-2">
-                                <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${isDark ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20" : "bg-indigo-50 text-indigo-600 border border-indigo-200"}`}>
-                                    LIVE
-                                </span>
-                                <span className={`text-[10px] font-black uppercase tracking-[0.4em] ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>
-                                    {topic.title}
-                                </span>
+            {/* Chat History */}
+            <div className="flex-1 overflow-y-auto pr-2 space-y-6 mb-4 custom-scrollbar">
+                <AnimatePresence>
+                    {messages.map((msg, idx) => (
+                        <motion.div
+                            key={idx}
+                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                        >
+                            <div className={`max-w-[85%] rounded-2xl px-5 py-3.5 shadow-sm ${
+                                msg.role === 'user' 
+                                ? 'bg-indigo-600 text-white rounded-br-none' 
+                                : isDark ? 'bg-gray-800 text-gray-200 border border-gray-700 rounded-bl-none' : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none'
+                            }`}>
+                                <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                             </div>
-                            <h2 className={`text-2xl font-black tracking-tight ${primaryText}`}>
-                                {episode.title}
-                            </h2>
-                            <p className={`mt-2 text-sm ${mutedText}`}>{episode.summary}</p>
-                        </div>
-
-                        <div className="px-10 py-6 space-y-4 flex-1">
-                            {episode.segments?.map((seg, i) => {
-                                const isHost = seg.speaker === "host";
-                                const isActive = activeSegment === i;
-                                return (
-                                    <motion.div
-                                        key={i}
-                                        onClick={() => handleSegmentClick(i)}
-                                        className={`flex gap-4 cursor-pointer transition-all rounded-3xl p-5 -mx-4
-                                            ${isActive
-                                                ? (isDark ? "bg-white/5 shadow-inner" : "bg-slate-50 shadow-sm border border-slate-100")
-                                                : "hover:bg-white/[0.02]"
-                                            }`}
-                                    >
-                                        <div className={`w-10 h-10 rounded-2xl shrink-0 flex items-center justify-center text-sm font-black mt-0.5
-                                            ${isHost
-                                                ? (isDark ? "bg-indigo-500/20 text-indigo-300" : "bg-indigo-100 text-indigo-700")
-                                                : (isDark ? "bg-amber-500/20 text-amber-300" : "bg-amber-100 text-amber-700")
-                                            }`}
-                                        >
-                                            {isHost ? <User size={16} /> : <Bot size={16} />}
-                                        </div>
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-3 mb-2">
-                                                <span className={`text-[11px] font-black uppercase tracking-widest
-                                                    ${isHost
-                                                        ? (isDark ? "text-indigo-400" : "text-indigo-600")
-                                                        : (isDark ? "text-amber-400" : "text-amber-600")
-                                                    }`}
-                                                >
-                                                    {isHost ? SPEAKERS.host.name : SPEAKERS.expert.name}
-                                                </span>
-                                                {isActive && isPlaying && (
-                                                    <div className="flex gap-1 items-end h-3">
-                                                        {[0, 1, 2, 3].map(d => (
-                                                            <div key={d} className={`w-0.5 rounded-full ${isHost ? "bg-indigo-500" : "bg-amber-500"} animate-bounce`}
-                                                                style={{ height: `${6 + d * 3}px`, animationDelay: `${d * 0.15}s` }} />
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <p className={`text-sm leading-relaxed ${isActive ? (isDark ? "text-white" : "text-slate-900 font-medium") : mutedText}`}>
-                                                {seg.text}
-                                            </p>
-                                        </div>
-                                    </motion.div>
-                                );
-                            })}
-                        </div>
-
-                        {/* Audio Controls */}
-                        <div className={`px-10 py-6 border-t flex items-center gap-6 ${isDark ? "border-white/5 bg-black/20" : "border-slate-100 bg-slate-50/50"}`}>
-                            <button
-                                onClick={() => handleSegmentClick(Math.max(0, activeSegment - 1))}
-                                disabled={activeSegment === 0}
-                                className={`p-3 rounded-2xl transition-all disabled:opacity-20 ${isDark ? "hover:bg-white/10 text-white/60 hover:text-white" : "hover:bg-slate-200 text-slate-500 bg-white"}`}
-                            >
-                                <SkipBack size={18} />
-                            </button>
-                            <button
-                                onClick={() => {
-                                    setIsPlaying(!isPlaying);
-                                }}
-                                className={`w-14 h-14 rounded-full flex items-center justify-center font-black transition-all shadow-lg active:scale-95
-                                    ${isPlaying
-                                        ? "bg-rose-500 hover:bg-rose-600 shadow-rose-500/30"
-                                        : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/30"
-                                    } text-white`}
-                            >
-                                {isPlaying ? <Pause size={24} /> : <Play size={24} className="ml-1" />}
-                            </button>
-                            <button
-                                onClick={() => handleSegmentClick(Math.min(episode.segments.length - 1, activeSegment + 1))}
-                                disabled={activeSegment === episode.segments?.length - 1}
-                                className={`p-3 rounded-2xl transition-all disabled:opacity-20 ${isDark ? "hover:bg-white/10 text-white/60 hover:text-white" : "hover:bg-slate-200 text-slate-500 bg-white"}`}
-                            >
-                                <SkipForward size={18} />
-                            </button>
-
-                            <div className="flex-1 flex items-center gap-4">
-                                <div className={`flex-1 h-2 rounded-full overflow-hidden ${isDark ? "bg-white/10" : "bg-slate-200"}`}>
-                                    <motion.div
-                                        animate={{ width: `${((activeSegment + 1) / episode.segments?.length) * 100}%` }}
-                                        className="h-full bg-indigo-500 rounded-full"
-                                        transition={{ duration: 0.3 }}
-                                    />
+                        </motion.div>
+                    ))}
+                    {isGenerating && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="flex justify-start"
+                        >
+                            <div className={`rounded-2xl px-5 py-4 rounded-bl-none border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'}`}>
+                                <div className="flex space-x-1.5">
+                                    <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                                    <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                                    <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce"></div>
                                 </div>
-                                <span className={`text-[11px] font-black tabular-nums tracking-widest ${mutedText}`}>
-                                    {episode?.segments?.length > 0 ? `${activeSegment + 1}/${episode.segments.length}` : "0/0"}
-                                </span>
                             </div>
-                        </div>
-                    </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+                <div ref={messagesEndRef} />
+            </div>
 
-                    {/* Ask a Question */}
-                    <div className={`lg:col-span-1 rounded-[3rem] border p-8 flex flex-col ${cardBg}`}>
-                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-6 shadow-sm border ${isDark ? 'bg-amber-500/10 border-amber-500/20 shadow-lg' : 'bg-amber-50 border-amber-200'}`}>
-                            <MessageCircle size={20} className="text-amber-500" />
-                        </div>
-                        <h3 className={`text-lg font-black uppercase tracking-widest mb-2 ${primaryText}`}>Ask the Studio</h3>
-                        <p className={`text-xs ${mutedText} mb-6 leading-relaxed font-medium`}>
-                            Puzzled by a concept? Submit a question and the AI hosts will address it on air.
-                        </p>
-
-                        <div className="flex flex-col gap-4 mb-4 flex-1">
-                            <textarea
-                                rows={4}
-                                placeholder={`Ask Dr. Aria about ${topic.title}...`}
-                                value={question}
-                                onChange={e => setQuestion(e.target.value)}
-                                className={`w-full rounded-2xl p-4 text-sm resize-none outline-none transition-all flex-1
-                                    ${isDark
-                                        ? "bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:border-indigo-500/40 focus:bg-white/10"
-                                        : "bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-indigo-400 focus:bg-white"
-                                    }`}
-                            />
-                            <button
-                                onClick={handleAskQuestion}
-                                disabled={!question.trim() || askingQuestion}
-                                className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all disabled:opacity-40 shadow-lg active:scale-95 flex items-center justify-center gap-2"
-                            >
-                                {askingQuestion ? <Loader2 size={16} className="animate-spin" /> : <><Send size={16} /> Send Question</>}
-                            </button>
-                        </div>
-
-                        <AnimatePresence>
-                            {questionAnswer && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className={`p-6 rounded-2xl ${isDark ? "bg-indigo-500/5 border border-indigo-500/20" : "bg-indigo-50 border border-indigo-200"}`}
-                                >
-                                    <div className={`text-[9px] font-black uppercase tracking-widest mb-3 flex items-center gap-2 ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>
-                                        <Sparkles size={12} />
-                                        Studio Response
-                                    </div>
-                                    <p className={`text-xs leading-relaxed ${isDark ? "text-white/80" : "text-slate-700 font-medium"} whitespace-pre-wrap`}>
-                                        {questionAnswer}
-                                    </p>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </div>
+            {error && (
+                <div className={`p-3 mb-4 rounded-lg flex items-center gap-2 text-sm ${
+                    isDark ? 'bg-red-900/20 text-red-400 border border-red-900/50' : 'bg-red-50 text-red-600 border border-red-100'
+                }`}>
+                    <AlertCircle size={16} />
+                    {error}
                 </div>
             )}
-        </section>
+
+            {/* Input Dock */}
+            <form onSubmit={handleSubmit} className="flex gap-3 relative mt-auto pt-2">
+                <div className="relative flex-1 group">
+                    <input 
+                        type="text"
+                        value={inputValue}
+                        onChange={(e) => setInputValue(e.target.value)}
+                        placeholder="Ask Prof. Nova something..."
+                        disabled={isGenerating}
+                        className={`w-full rounded-2xl pl-5 pr-14 py-4 outline-none transition-all ${
+                            isDark 
+                            ? 'bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500' 
+                            : 'bg-white border border-gray-200 text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 shadow-sm'
+                        }`}
+                    />
+                    <button
+                        type="button"
+                        onClick={toggleListening}
+                        disabled={isGenerating}
+                        className={`absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-xl transition-all ${
+                            isListening 
+                            ? 'bg-red-100 text-red-600 animate-pulse outline outline-2 outline-red-200' 
+                            : isDark 
+                                ? 'bg-gray-700 text-gray-400 hover:text-indigo-400 hover:bg-gray-600' 
+                                : 'bg-gray-100 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50'
+                        }`}
+                    >
+                        {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+                    </button>
+                </div>
+                
+                <button
+                    type="submit"
+                    disabled={!inputValue.trim() || isGenerating}
+                    className={`p-4 rounded-2xl flex items-center justify-center transition-all ${
+                        inputValue.trim() && !isGenerating
+                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 hover:bg-indigo-700 hover:scale-[1.02] active:scale-95'
+                        : isDark ? 'bg-gray-800 text-gray-600 cursor-not-allowed border border-gray-700' : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    }`}
+                >
+                    <Send size={20} className={inputValue.trim() && !isGenerating ? 'ml-1' : ''} />
+                </button>
+            </form>
+        </div>
     );
 }
-
