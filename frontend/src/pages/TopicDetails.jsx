@@ -321,7 +321,7 @@ const TopicDetails = () => {
                                  {(topic.title?.toLowerCase().includes("complexity") || topic.title?.toLowerCase().includes("big o") || topic.title?.toLowerCase().includes("asymptotic") || topic.title?.toLowerCase().includes("growth")) && <ComplexityVisualizer />}
                                  {(topic.title?.toLowerCase().includes("olap") || topic.title?.toLowerCase().includes("warehouse")) && <DataWarehouseVisualizer type="comparison" />}
                                  {(topic.title?.toLowerCase().includes("uml") || topic.title?.toLowerCase().includes("activity") || topic.title?.toLowerCase().includes("sequence") || topic.title?.toLowerCase().includes("use case")) && <UMLDiagramVisualizer type={topic.title?.toLowerCase().includes("activity") ? "activity" : topic.title?.toLowerCase().includes("sequence") ? "sequence" : "class"} />}
-                                {topic.title?.toLowerCase().includes("sdlc") && <MethodologyVisualizer type="waterfall" />}
+                                 {(topic.title?.toLowerCase().includes("sdlc") || topic.title?.toLowerCase().includes("waterfall") || topic.title?.toLowerCase().includes("spiral") || topic.title?.toLowerCase().includes("scrum") || topic.title?.toLowerCase().includes("agile") || topic.title?.toLowerCase().includes("kanban") || topic.title?.toLowerCase().includes("xp")) && <MethodologyVisualizer type={topic.title?.toLowerCase().includes("spiral") ? "spiral" : topic.title?.toLowerCase().includes("scrum") ? "scrum" : topic.title?.toLowerCase().includes("kanban") ? "kanban" : topic.title?.toLowerCase().includes("xp") ? "xp" : "waterfall"} />}
                             </AnimatePresence>
                         </section>
 
