@@ -1266,45 +1266,53 @@ export const generatePodcastSpeech = async (req, res) => {
     if (!text) return res.status(400).json({ message: 'Text required' });
 
     // 1. Check for Pre-rendered Podcast File (NEW)
-    // Map topics to their pre-rendered folders (e.g., BFS, DFS)
-    if (topicTitle && index !== undefined && interactive !== 'true') {
+    if (topicTitle && interactive !== 'true') {
         try {
             const __dirname = path.resolve();
+            const sanitizedTitle = topicTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase();
             
-            // Comprehensive fuzzy folder mapping
-            const getFolderName = (title) => {
-                const t = title.toLowerCase();
-                if (t.includes("breadth") || t.includes("bfs")) return "BFS";
-                if (t.includes("depth") || t.includes("dfs")) return "DFS";
-                return null;
-            };
+            // Priority 1: Google Studio Explanations (High Fidelity)
+            const studioPath = path.join(__dirname, '..', 'tts-service', 'podcasts', 'google_studio_explanations', `${sanitizedTitle}.wav`);
+            const fallbackStudioPath = path.join(__dirname, '..', 'tts-service', 'podcasts', 'google_studio_explanations', `${topicTitle}.wav`);
 
-            const folderName = getFolderName(topicTitle);
-            
-            if (folderName) {
-                // Pre-rendered files are named "download (X).wav"
-                // BFS: download(1-4), DFS: download(5-8)
-                const offset = folderName === 'DFS' ? 5 : 1;
-                const fileIndex = parseInt(index);
+            const finalStudioPath = fs.existsSync(studioPath) ? studioPath : (fs.existsSync(fallbackStudioPath) ? fallbackStudioPath : null);
+
+            if (finalStudioPath) {
+                console.log(`[Neural-TTS] Found HIGH-FIDELITY studio file for ${topicTitle} -> ${path.basename(finalStudioPath)}`);
+                res.setHeader('Content-Type', 'audio/wav');
+                res.setHeader('X-Studio-Source', 'Google-AI-Studio');
+                return fs.createReadStream(finalStudioPath).pipe(res);
+            }
+
+            // Priority 2: Complexity Folder Mapping (e.g., BFS, DFS)
+            if (index !== undefined) {
+                const getFolderName = (title) => {
+                    const t = title.toLowerCase();
+                    if (t.includes("breadth") || t.includes("bfs")) return "BFS";
+                    if (t.includes("depth") || t.includes("dfs")) return "DFS";
+                    return null;
+                };
+
+                const folderName = getFolderName(topicTitle);
                 
-                // For BFS, we only have 4 files (0,1,2,3 -> 1,2,3,4)
-                // For DFS, we have 4 files (0,1,2,3 -> best one,6,7,8)
-                let fileName = null;
-                if (folderName === 'BFS' && fileIndex < 4) {
-                    fileName = `download (${fileIndex + offset}).wav`;
-                } else if (folderName === 'DFS' && fileIndex < 4) {
-                    fileName = fileIndex === 0 ? 'best one.wav' : `download (${fileIndex + offset}).wav`;
-                }
+                if (folderName) {
+                    const offset = folderName === 'DFS' ? 5 : 1;
+                    const fileIndex = parseInt(index);
+                    let fileName = null;
+                    if (folderName === 'BFS' && fileIndex < 4) {
+                        fileName = `download (${fileIndex + offset}).wav`;
+                    } else if (folderName === 'DFS' && fileIndex < 4) {
+                        fileName = fileIndex === 0 ? 'best one.wav' : `download (${fileIndex + offset}).wav`;
+                    }
 
-                if (fileName) {
-                    // tts-service is located in the ROOT directory, not server/, so we step up one level with '..'
-                    const filePath = path.join(__dirname, '..', 'tts-service', 'podcasts', 'complexity', folderName, fileName);
-                    if (fs.existsSync(filePath)) {
-                        console.log(`[Neural-TTS] Found pre-rendered studio file for ${topicTitle} (Index: ${index}) -> ${fileName}`);
-                        res.setHeader('Content-Type', 'audio/wav');
-                        res.setHeader('X-Studio-Source', 'Pre-rendered');
-                        const fileStream = fs.createReadStream(filePath);
-                        return fileStream.pipe(res);
+                    if (fileName) {
+                        const filePath = path.join(__dirname, '..', 'tts-service', 'podcasts', 'complexity', folderName, fileName);
+                        if (fs.existsSync(filePath)) {
+                            console.log(`[Neural-TTS] Found pre-rendered complexity file for ${topicTitle} (Index: ${index}) -> ${fileName}`);
+                            res.setHeader('Content-Type', 'audio/wav');
+                            res.setHeader('X-Studio-Source', 'Pre-rendered');
+                            return fs.createReadStream(filePath).pipe(res);
+                        }
                     }
                 }
             }
