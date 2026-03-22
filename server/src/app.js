@@ -63,6 +63,8 @@ const __dirname = path.resolve();
 const uploadsPath = path.join(__dirname, 'uploads');
 console.log(`[Static] Serving uploads from: ${uploadsPath}`);
 app.use('/uploads', express.static(uploadsPath));
+const ttsDocumPath = path.join(__dirname, 'tts-service', 'docum');
+app.use('/tts-docum', express.static(ttsDocumPath));
 
 // Register routes
 app.use('/api/auth', authRoutes);

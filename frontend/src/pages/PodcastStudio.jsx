@@ -184,9 +184,11 @@ export default function CsPodcastStudio() {
             const speaker = segment.speaker; // 'host' or 'expert'
             
             try {
-                const apiBase = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : 'https://mustacademy-backend.onrender.com/api');
+                const apiBase = (import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : 'https://mustacademy-backend.onrender.com/api')).replace('/api', '');
                 
-                // Pre-fetch next segment immediately
+                // If it's a video episode, we don't handle segments via neural link here
+                if (episode.video_url) return;
+
                 const nextIdx = currentIdx + 1;
                 if (nextIdx < episode.segments.length) {
                     const nextSeg = episode.segments[nextIdx];
@@ -398,14 +400,26 @@ export default function CsPodcastStudio() {
                                 </button>
                                 {/* Left Panel — Cover + Controls */}
                                 <div className={`lg:col-span-1 border-b lg:border-b-0 lg:border-r ${isDark ? 'border-zinc-800' : 'border-gray-200'} flex flex-col overflow-hidden`}>
-                                    <div className="relative h-48 overflow-hidden">
-                                        <img
-                                            src={episode.topicImage}
-                                            alt={episode.title}
-                                            className="w-full h-full object-cover"
-                                            onError={e => { e.target.style.display = 'none'; }}
-                                        />
-                                        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/70" />
+                                    <div className="relative h-48 lg:h-64 overflow-hidden bg-black">
+                                        {episode.video_url ? (
+                                            <video
+                                                src={episode.video_url.startsWith('http') ? episode.video_url : `${(import.meta.env.VITE_API_URL || '').replace('/api', '')}${episode.video_url}`}
+                                                controls
+                                                autoPlay
+                                                className="w-full h-full object-contain"
+                                                poster={episode.topicImage || episode.thumbnail_url}
+                                            />
+                                        ) : (
+                                            <>
+                                                <img
+                                                    src={episode.topicImage}
+                                                    alt={episode.title}
+                                                    className="w-full h-full object-cover"
+                                                    onError={e => { e.target.style.display = 'none'; }}
+                                                />
+                                                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/70" />
+                                            </>
+                                        )}
                                         <div className="absolute bottom-3 left-4">
                                             <span className="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded" style={{ backgroundColor: netflixRed, color: 'white' }}>
                                                 Now Playing
@@ -415,7 +429,10 @@ export default function CsPodcastStudio() {
 
                                     <div className="p-8 flex-1">
                                         <h2 className="text-2xl font-black mb-3 tracking-tight">{episode.title}</h2>
-                                        <p className={`text-sm mb-6 leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Part of the CS Roadmap AI Masterclass Series.</p>
+                                        <p className={`text-sm mb-6 leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                                            {episode.chapter_number ? `Chapter ${episode.chapter_number} — ` : ""}
+                                            {episode.video_url ? "Video Masterclass Series" : "Part of the CS Roadmap AI Masterclass Series."}
+                                        </p>
 
                                         <div className="space-y-4">
                                             <div className="flex items-center gap-3">

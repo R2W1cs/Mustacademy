@@ -1271,11 +1271,25 @@ export const generatePodcastSpeech = async (req, res) => {
             const __dirname = path.resolve();
             const sanitizedTitle = topicTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase();
             
-            // Priority 1: Google Studio Explanations (High Fidelity)
-            const studioPath = path.join(__dirname, '..', 'tts-service', 'podcasts', 'google_studio_explanations', `${sanitizedTitle}.wav`);
-            const fallbackStudioPath = path.join(__dirname, '..', 'tts-service', 'podcasts', 'google_studio_explanations', `${topicTitle}.wav`);
+            // Priority 1: Google Studio Explanations (Robust Fuzzy Matching)
+            const studioDir = path.join(__dirname, '..', 'tts-service', 'podcasts', 'google_studio_explanations');
+            let finalStudioPath = null;
 
-            const finalStudioPath = fs.existsSync(studioPath) ? studioPath : (fs.existsSync(fallbackStudioPath) ? fallbackStudioPath : null);
+            if (fs.existsSync(studioDir)) {
+                const files = fs.readdirSync(studioDir);
+                // Check for exact match, sanitized match, or title inclusion
+                const bestMatch = files.find(f => {
+                    const base = f.replace(/\.[^/.]+$/, ""); // Name without extension
+                    const lowBase = base.toLowerCase();
+                    const lowTitle = topicTitle.toLowerCase();
+                    return lowBase === sanitizedTitle || 
+                           lowBase === lowTitle || 
+                           lowTitle.startsWith(lowBase) || 
+                           lowBase.startsWith(lowTitle);
+                });
+                
+                if (bestMatch) finalStudioPath = path.join(studioDir, bestMatch);
+            }
 
             if (finalStudioPath) {
                 console.log(`[Neural-TTS] Found HIGH-FIDELITY studio file for ${topicTitle} -> ${path.basename(finalStudioPath)}`);
@@ -1496,7 +1510,7 @@ export const generateMasterclassEpisode = async (req, res) => {
 
 export const getMasterclassEpisodes = async (req, res) => {
     try {
-        const result = await pool.query("SELECT id, title, summary, part_number, published_at FROM masterclass_episodes ORDER BY part_number DESC");
+        const result = await pool.query("SELECT id, title, summary, part_number, chapter_number, video_url, published_at FROM masterclass_episodes ORDER BY part_number DESC");
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({ message: "Error fetching episodes" });
@@ -1506,7 +1520,7 @@ export const getMasterclassEpisodes = async (req, res) => {
 export const getMasterclassEpisode = async (req, res) => {
     const { id } = req.params;
     try {
-        const result = await pool.query("SELECT * FROM masterclass_episodes WHERE id = $1", [id]);
+        const result = await pool.query("SELECT id, title, summary, segments, part_number, chapter_number, video_url, thumbnail_url, published_at FROM masterclass_episodes WHERE id = $1", [id]);
         if (result.rows.length === 0) return res.status(404).json({ message: "Episode not found" });
         res.json(result.rows[0]);
     } catch (err) {
