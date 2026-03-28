@@ -1,5 +1,9 @@
 import express from 'express';
 import cors from 'cors';
+import compression from 'compression';
+import helmet from 'helmet';
+import morgan from 'morgan';
+import logger from './utils/logger.js';
 
 // Import routes
 import authRoutes from './routes/auth.routes.js';
@@ -22,15 +26,17 @@ import forumRoutes from './routes/forum.routes.js';
 import marketRoutes from './routes/market.routes.js';
 import projectRoutes from './routes/project.routes.js';
 import ttsRoutes from './routes/tts.routes.js';
+import arenaRoutes from './routes/arena.routes.js';
+import adminRoutes from './routes/admin.routes.js';
 
 
 const app = express();
 
-// Universal Request Logging
-app.use((req, res, next) => {
-  console.log(`[API] ${req.method} ${req.url}`);
-  next();
-});
+// Security headers (CSP disabled — API-only server, no HTML)
+app.use(helmet({ contentSecurityPolicy: false }));
+
+// HTTP request logging (dev: colorized, production: combined Apache format)
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
 // CORS configuration
 const allowedOrigins = [
@@ -54,17 +60,29 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+app.use(compression());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Serve uploaded files (videos, images, etc.) with absolute path
 import path from 'path';
+import pool from './config/db.js';
 const __dirname = path.resolve();
+
+// Helmet sets Cross-Origin-Resource-Policy: same-origin globally.
+// Static media routes (video/audio) need cross-origin to load in <video>/<audio> tags.
+const crossOriginStatic = (dir) => [
+    (_req, res, next) => { res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin'); next(); },
+    express.static(dir)
+];
+
 const uploadsPath = path.join(__dirname, 'uploads');
-console.log(`[Static] Serving uploads from: ${uploadsPath}`);
-app.use('/uploads', express.static(uploadsPath));
-const ttsDocumPath = path.join(__dirname, 'tts-service', 'docum');
-app.use('/tts-docum', express.static(ttsDocumPath));
+logger.info(`[Static] Serving uploads from: ${uploadsPath}`);
+app.use('/uploads', ...crossOriginStatic(uploadsPath));
+const ttsDocumPath = path.join(__dirname, '..', 'tts-service', 'docum');
+app.use('/tts-docum', ...crossOriginStatic(ttsDocumPath));
+const ttsPodcastsPath = path.join(__dirname, '..', 'tts-service', 'podcasts');
+app.use('/tts-podcasts', ...crossOriginStatic(ttsPodcastsPath));
 
 // Register routes
 app.use('/api/auth', authRoutes);
@@ -87,15 +105,17 @@ app.use('/api/forum', forumRoutes);
 app.use('/api/market', marketRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/tts', ttsRoutes);
+app.use('/api/arena', arenaRoutes);
+app.use('/api/admin', adminRoutes);
 
 
 app.get('/api/health', async (req, res) => {
   try {
-    const { default: pool } = await import('./config/db.js');
-    const result = await pool.query('SELECT NOW()');
-    res.json({ status: 'ok', db: result.rows[0].now });
+    await pool.query('SELECT 1');
+    res.json({ status: 'ok', db: 'ok', uptime: Math.floor(process.uptime()) });
   } catch (err) {
-    res.status(500).json({ status: 'error', message: err.message });
+    logger.error('[Health] DB ping failed', { err: err.message });
+    res.status(503).json({ status: 'error', db: 'unreachable' });
   }
 });
 
@@ -109,7 +129,7 @@ app.get('/', (req, res) => {
 
 // Global Error Handler
 app.use((err, req, res, next) => {
-  console.error("[Global Error]", err);
+  logger.error('[Global Error]', { msg: err.message, stack: err.stack });
   res.status(err.status || 500).json({
     message: err.message || "Internal Server Error",
     error: process.env.NODE_ENV === 'development' ? err : {}

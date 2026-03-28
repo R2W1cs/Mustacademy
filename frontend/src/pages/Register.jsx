@@ -3,9 +3,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "../api/axios";
 import { Mail, Lock, Check, AlertCircle, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { useTheme } from "../auth/ThemeContext";
 
 // Floating Particles Component
-const FloatingParticles = () => {
+const FloatingParticles = ({ isDark }) => {
   const particles = Array.from({ length: 50 }, (_, i) => ({
     id: i,
     size: Math.random() * 4 + 2,
@@ -20,7 +21,7 @@ const FloatingParticles = () => {
       {particles.map((particle) => (
         <motion.div
           key={particle.id}
-          className="absolute rounded-full bg-white/20"
+          className={`absolute rounded-full ${isDark ? 'bg-white/20' : 'bg-black/10'}`}
           style={{
             width: particle.size,
             height: particle.size,
@@ -45,7 +46,7 @@ const FloatingParticles = () => {
 };
 
 // Animated Input Component
-const AnimatedInput = ({ type = "text", placeholder, value, onChange }) => {
+const AnimatedInput = ({ type = "text", placeholder, value, onChange, isDark }) => {
   const [isFocused, setIsFocused] = useState(false);
   const [hasValue, setHasValue] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -65,17 +66,17 @@ const AnimatedInput = ({ type = "text", placeholder, value, onChange }) => {
         onChange={onChange}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
-        className="w-full px-6 py-4 bg-white/10 border-2 border-white/20 rounded-2xl text-white placeholder-transparent focus:border-gold focus:bg-white/15 transition-all duration-300 outline-none backdrop-blur-xl pr-14"
+        className={`w-full px-6 py-4 border-2 rounded-2xl transition-all duration-300 outline-none backdrop-blur-xl pr-14 ${isDark ? 'bg-white/10 border-white/20 text-white placeholder-transparent focus:border-gold focus:bg-white/15' : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-transparent focus:border-purple-500 focus:bg-white shadow-sm'}`}
         placeholder={placeholder}
       />
 
       <motion.label
-        className="absolute left-6 text-white/60 pointer-events-none font-medium"
+        className={`absolute left-6 pointer-events-none font-medium ${isDark ? 'text-white/60' : 'text-gray-500'}`}
         animate={{
           top: isFocused || hasValue ? "0.5rem" : "50%",
           translateY: isFocused || hasValue ? "0" : "-50%",
           fontSize: isFocused || hasValue ? "0.75rem" : "1rem",
-          color: isFocused ? "#FFD700" : "rgba(255, 255, 255, 0.6)",
+          color: isFocused ? (isDark ? "#FFD700" : "#a855f7") : (isDark ? "rgba(255, 255, 255, 0.6)" : "rgba(107, 114, 128, 0.8)"),
         }}
         transition={{ duration: 0.2 }}
       >
@@ -86,7 +87,7 @@ const AnimatedInput = ({ type = "text", placeholder, value, onChange }) => {
         <button
           type="button"
           onClick={() => setShowPassword(!showPassword)}
-          className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-white/40 hover:text-gold transition-colors block"
+          className={`absolute right-4 top-1/2 -translate-y-1/2 p-2 transition-colors block ${isDark ? 'text-white/40 hover:text-[#FFD700]' : 'text-gray-400 hover:text-purple-500'}`}
         >
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
@@ -102,10 +103,10 @@ const AnimatedInput = ({ type = "text", placeholder, value, onChange }) => {
         </button>
       ) : (
         <motion.div
-          className="absolute right-4 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-white/40"
+          className={`absolute right-4 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full ${isDark ? 'bg-white/40' : 'bg-black/20'}`}
           animate={{
             scale: isFocused ? [1, 1.5, 1] : 1,
-            backgroundColor: isFocused ? "#FFD700" : "rgba(255, 255, 255, 0.4)",
+            backgroundColor: isFocused ? (isDark ? "#FFD700" : "#a855f7") : (isDark ? "rgba(255, 255, 255, 0.4)" : "rgba(0, 0, 0, 0.2)"),
           }}
           transition={{ duration: 0.3 }}
         />
@@ -122,6 +123,8 @@ const Register = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
 
   const submit = async (e) => {
     e.preventDefault();
@@ -146,14 +149,14 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-[#0a0e1a] via-[#1a1f35] to-[#0f1729]">
+    <div className={`min-h-screen relative overflow-hidden transition-colors duration-500 ${isDark ? 'bg-gradient-to-br from-[#0a0e1a] via-[#1a1f35] to-[#0f1729]' : 'bg-gradient-to-br from-gray-50 via-white to-gray-100'}`}>
       {/* Animated Background */}
-      <FloatingParticles />
+      <FloatingParticles isDark={isDark} />
 
       {/* Gradient Orbs */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500/30 rounded-full blur-[120px] animate-pulse" />
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-500/30 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: "1s" }} />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-[#FFD700]/20 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: "2s" }} />
+      <div className={`absolute top-0 right-0 w-96 h-96 rounded-full blur-[120px] animate-pulse ${isDark ? 'bg-purple-500/30' : 'bg-purple-400/20'}`} />
+      <div className={`absolute bottom-0 left-0 w-96 h-96 rounded-full blur-[120px] animate-pulse ${isDark ? 'bg-indigo-500/30' : 'bg-indigo-400/20'}`} style={{ animationDelay: "1s" }} />
+      <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full blur-[120px] animate-pulse ${isDark ? 'bg-[#FFD700]/20' : 'bg-yellow-400/20'}`} style={{ animationDelay: "2s" }} />
 
       {/* Content */}
       <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
@@ -166,8 +169,8 @@ const Register = () => {
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
             <motion.div
-              className="bg-white/10 backdrop-blur-2xl rounded-[2.5rem] p-10 border border-white/20 shadow-2xl"
-              whileHover={{ boxShadow: "0 0 60px rgba(255, 215, 0, 0.2)" }}
+              className={`backdrop-blur-2xl rounded-[2.5rem] p-10 border shadow-2xl ${isDark ? 'bg-white/10 border-white/20' : 'bg-white/80 border-white/50'}`}
+              whileHover={{ boxShadow: isDark ? "0 0 60px rgba(255, 215, 0, 0.2)" : "0 0 60px rgba(168, 85, 247, 0.15)" }}
               transition={{ duration: 0.3 }}
             >
               <div className="text-center mb-8">
@@ -175,7 +178,7 @@ const Register = () => {
                   initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 }}
-                  className="text-4xl font-black text-white mb-2 tracking-tight"
+                  className={`text-4xl font-black mb-2 tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}
                 >
                   Join the Academy
                 </motion.h2>
@@ -183,7 +186,7 @@ const Register = () => {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.4 }}
-                  className="text-white/60 font-medium"
+                  className={`font-medium ${isDark ? 'text-white/60' : 'text-gray-500'}`}
                 >
                   Begin your journey to mastery
                 </motion.p>
@@ -195,6 +198,7 @@ const Register = () => {
                   placeholder="Full Name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  isDark={isDark}
                 />
 
                 <AnimatedInput
@@ -202,6 +206,7 @@ const Register = () => {
                   placeholder="Email Address"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  isDark={isDark}
                 />
 
                 <AnimatedInput
@@ -209,6 +214,7 @@ const Register = () => {
                   placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  isDark={isDark}
                 />
 
                 <AnimatePresence>
@@ -217,7 +223,7 @@ const Register = () => {
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
-                      className="bg-rose-500/20 border border-rose-500/50 text-rose-200 px-4 py-3 rounded-xl text-sm font-medium"
+                      className={`border px-4 py-3 rounded-xl text-sm font-medium ${isDark ? 'bg-rose-500/20 border-rose-500/50 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-600'}`}
                     >
                       {error}
                     </motion.div>
@@ -228,7 +234,7 @@ const Register = () => {
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
-                      className="bg-emerald-500/20 border border-emerald-500/50 text-emerald-200 px-4 py-3 rounded-xl text-sm font-medium"
+                      className={`border px-4 py-3 rounded-xl text-sm font-medium ${isDark ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}
                     >
                       ✓ Account Created Successfully
                     </motion.div>
@@ -238,14 +244,14 @@ const Register = () => {
                 <motion.button
                   type="submit"
                   disabled={isLoading || success}
-                  className="w-full py-4 rounded-2xl font-black text-lg uppercase tracking-wider bg-gradient-to-r from-[#FFD700] to-[#FDB931] text-black hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`w-full py-4 rounded-2xl font-black text-lg uppercase tracking-wider transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${isDark ? 'bg-gradient-to-r from-[#FFD700] to-[#FDB931] text-black hover:shadow-lg' : 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:shadow-xl'}`}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
                   {isLoading ? (
                     <span className="flex items-center justify-center gap-2">
                       <motion.div
-                        className="w-5 h-5 border-3 border-black border-t-transparent rounded-full"
+                        className={`w-5 h-5 border-3 border-t-transparent rounded-full ${isDark ? 'border-black' : 'border-white'}`}
                         animate={{ rotate: 360 }}
                         transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                       />
@@ -259,11 +265,11 @@ const Register = () => {
                 </motion.button>
 
                 <div className="text-center pt-4">
-                  <p className="text-white/60 text-sm font-medium">
+                  <p className={`text-sm font-medium ${isDark ? 'text-white/60' : 'text-gray-500'}`}>
                     Already enrolled?{" "}
                     <Link
                       to="/login"
-                      className="text-[#FFD700] font-bold hover:text-[#FDB931] transition-colors"
+                      className={`font-bold transition-colors ${isDark ? 'text-[#FFD700] hover:text-[#FDB931]' : 'text-purple-600 hover:text-purple-700'}`}
                     >
                       Sign In
                     </Link>
@@ -278,24 +284,24 @@ const Register = () => {
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
-            className="hidden lg:block text-white space-y-8"
+            className={`hidden lg:block space-y-8 ${isDark ? 'text-white' : 'text-gray-900'}`}
           >
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              <h1 className="text-7xl font-black tracking-tighter mb-4 bg-gradient-to-r from-purple-200 via-indigo-200 to-white bg-clip-text text-transparent">
+              <h1 className={`text-7xl font-black tracking-tighter mb-4 bg-gradient-to-r ${isDark ? 'from-purple-200 via-indigo-200 to-white' : 'from-purple-900 via-indigo-800 to-gray-900'} bg-clip-text text-transparent`}>
                 Must Academy
               </h1>
-              <div className="h-1 w-32 bg-gradient-to-r from-[#FFD700] to-transparent rounded-full" />
+              <div className={`h-1 w-32 bg-gradient-to-r ${isDark ? 'from-[#FFD700]' : 'from-purple-500'} to-transparent rounded-full`} />
             </motion.div>
 
             <motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="text-xl text-white/70 leading-relaxed max-w-md font-medium"
+              className={`text-xl leading-relaxed max-w-md font-medium ${isDark ? 'text-white/70' : 'text-gray-600'}`}
             >
               Exclusive platform for Must Education students. Master computer science through AI-powered mentorship and intelligent curriculum design.
             </motion.p>
@@ -316,12 +322,12 @@ const Register = () => {
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.7 + idx * 0.1 }}
-                  className="flex items-start gap-4 bg-white/5 backdrop-blur-xl px-6 py-4 rounded-2xl border border-white/10"
+                  className={`flex items-start gap-4 backdrop-blur-xl px-6 py-4 rounded-2xl border ${isDark ? 'bg-white/5 border-white/10' : 'bg-white/80 border-gray-100 shadow-sm'}`}
                 >
-                  <div className="w-3 h-3 rounded-full bg-gradient-to-r from-[#FFD700] to-[#FDB931] mt-1 flex-shrink-0" />
+                  <div className={`w-3 h-3 rounded-full bg-gradient-to-r ${isDark ? 'from-[#FFD700] to-[#FDB931]' : 'from-purple-500 to-indigo-500'} mt-1 flex-shrink-0`} />
                   <div>
-                    <h3 className="font-bold text-white text-lg">{item.label}</h3>
-                    <p className="text-white/60 text-sm">{item.desc}</p>
+                    <h3 className={`font-bold text-lg ${isDark ? 'text-white' : 'text-gray-800'}`}>{item.label}</h3>
+                    <p className={`text-sm ${isDark ? 'text-white/60' : 'text-gray-500'}`}>{item.desc}</p>
                   </div>
                 </motion.div>
               ))}
@@ -334,4 +340,3 @@ const Register = () => {
 };
 
 export default Register;
-

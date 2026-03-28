@@ -9,7 +9,7 @@ export const getMyProfile = async (req, res) => {
 
     const result = await pool.query(
       `
-      SELECT id, name, email, avatar_url, bio, passion, year, semester, status, dream_job, target_company, technical_pillar
+      SELECT id, name, email, avatar_url, bio, passion, year, semester, status, dream_job, target_company, technical_pillar, plan
       FROM users
       WHERE id = $1
       `,
@@ -102,5 +102,17 @@ export const updateProfile = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Failed to update profile" });
+  }
+};
+
+/* ---------------- UPGRADE PLAN (demo) ---------------- */
+export const upgradePlan = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    await pool.query(`UPDATE users SET plan = 'premium' WHERE id = $1`, [userId]);
+    res.json({ message: "Plan upgraded to premium", plan: "premium" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to upgrade plan" });
   }
 };

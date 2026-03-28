@@ -72,8 +72,8 @@ export const callGroq = async (prompt, expectJson = true, model = "llama-3.3-70b
         const payload = {
             model: model,
             messages: [{ role: "user", content: prompt }],
-            temperature: 1,
-            max_completion_tokens: 8192,
+            temperature: 0.7,
+            max_completion_tokens: 32768,
             top_p: 1
         };
 
@@ -203,10 +203,10 @@ export const callGemini = async (prompt, expectJson = true) => {
         body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
             generationConfig: {
-                temperature: 0.2,
-                topP: 0.8,
+                temperature: 0.7,
+                topP: 0.95,
                 topK: 40,
-                maxOutputTokens: 8192,
+                maxOutputTokens: 32768,
                 responseMimeType: expectJson ? "application/json" : undefined
             }
         })
@@ -358,12 +358,29 @@ const parseAiJson = (aiText) => {
 
     // Robust JSON extraction
     let jsonStr = aiText.trim();
-    const codeBlockMatch = jsonStr.match(/```(?:\w+)?\s*([\s\S]*?)\s*```/);
-    if (codeBlockMatch) {
-        jsonStr = codeBlockMatch[1].trim();
+    
+    // Try to extract from ```json ... ``` or fallback to outermost brackets
+    const jsonBlockMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+    if (jsonBlockMatch && (jsonBlockMatch[1].trim().startsWith('{') || jsonBlockMatch[1].trim().startsWith('['))) {
+        jsonStr = jsonBlockMatch[1].trim();
     } else {
-        const startIdx = jsonStr.indexOf('{');
-        const endIdx = jsonStr.lastIndexOf('}');
+        const firstBrace = jsonStr.indexOf('{');
+        const lastBrace = jsonStr.lastIndexOf('}');
+        const firstBracket = jsonStr.indexOf('[');
+        const lastBracket = jsonStr.lastIndexOf(']');
+        
+        // Find the outermost structure that surrounds the payload
+        let startIdx = firstBrace;
+        let endIdx = lastBrace;
+        
+        if (firstBracket !== -1 && (firstBrace === -1 || firstBracket < firstBrace)) {
+            // It might be an array
+            if (lastBracket !== -1 && lastBracket > endIdx) {
+                startIdx = firstBracket;
+                endIdx = lastBracket;
+            }
+        }
+        
         if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
             jsonStr = jsonStr.substring(startIdx, endIdx + 1).trim();
         }

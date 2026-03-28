@@ -21,6 +21,18 @@ venv_311/
 tts-service/venv/
 tts-service/venv_311/
 tts-service/output/
+**/venv/
+**/.venv/
+**/venv_311/
+**/node_modules/
+**/dist/
+**/.DS_Store
+*.pyc
+__pycache__/
+# Media files — served statically, not stored in git
+tts-service/docum/
+tts-service/podcasts/
+server/uploads/
 
 # Logs
 *.log

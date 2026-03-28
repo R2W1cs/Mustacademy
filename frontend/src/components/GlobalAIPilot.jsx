@@ -1,6 +1,10 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, X, Send, ChevronDown, Zap, Clock, ArrowRight, ChevronRight, Activity, Play, Pause, CheckCircle2 } from 'lucide-react';
+import { 
+    Bot, X, Send, ChevronDown, Zap, Clock, ArrowRight, 
+    ChevronRight, Activity, Play, Pause, CheckCircle2,
+    Mic, MicOff, Volume2, VolumeX, Sparkles
+} from 'lucide-react';
 import api from '../api/axios';
 import { useTheme } from '../auth/ThemeContext';
 import { usePlan } from '../auth/PlanContext';
@@ -12,7 +16,32 @@ const formatTime = (seconds) => {
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 };
 
-export default function GlobalAIPilot() {
+const PulseWave = ({ isSpeaking, isListening, intensity, isDark }) => {
+    return (
+        <div className="flex items-center gap-1 h-4 px-2">
+            {[0, 1, 2, 3, 4].map(i => (
+                <motion.div
+                    key={i}
+                    animate={{
+                        height: isSpeaking ? [4, 12 * intensity * (1 - Math.abs(2 - i) * 0.2), 4] 
+                                : isListening ? [4, 8, 4] : 4
+                    }}
+                    transition={{
+                        duration: isSpeaking ? 0.3 + i * 0.1 : 0.8,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                        delay: i * 0.1
+                    }}
+                    className={`w-0.5 rounded-full ${isSpeaking 
+                        ? (isDark ? 'bg-indigo-400' : 'bg-red-500') 
+                        : isListening ? 'bg-emerald-400' : 'bg-slate-300 opacity-20'}`}
+                />
+            ))}
+        </div>
+    );
+};
+
+function GlobalAIPilot() {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
 
@@ -36,8 +65,35 @@ export default function GlobalAIPilot() {
         return newId;
     });
 
+    // --- NOVA INTERACTIVE STATE ---
+    const [isListening, setIsListening] = useState(false);
+    const [isSpeaking, setIsSpeaking] = useState(false);
+    const [voiceEnabled, setVoiceEnabled] = useState(() => localStorage.getItem('novaVoiceEnabled') === 'true');
+    const [revealedLength, setRevealedLength] = useState(0);
+    const [voiceIntensity, setVoiceIntensity] = useState(0);
+
+    const recognitionRef = useRef(null);
+    const audioRef = useRef(null);
+    const textIntervalRef = useRef(null);
+    const silenceTimerRef = useRef(null);
     const scrollRef = useRef(null);
     const inputRef = useRef(null);
+
+    // Refs for state to avoid closure staleness in listeners
+    const isListeningRef = useRef(isListening);
+    const isSpeakingRef = useRef(isSpeaking);
+    const loadingRef = useRef(loading);
+
+    useEffect(() => {
+        isListeningRef.current = isListening;
+        isSpeakingRef.current = isSpeaking;
+        loadingRef.current = loading;
+    }, [isListening, isSpeaking, loading]);
+
+    useEffect(() => {
+        localStorage.setItem('novaVoiceEnabled', voiceEnabled);
+    }, [voiceEnabled]);
+
 
     useEffect(() => {
         refreshPlan();
@@ -102,14 +158,160 @@ export default function GlobalAIPilot() {
         if (activeTab === 'history') fetchHistory();
     };
 
-    const sendMessage = async () => {
-        const text = input.trim();
+    // --- TTS: SPEAK RESPONSE ---
+    const killAudio = useCallback(() => {
+        if (textIntervalRef.current) {
+            clearInterval(textIntervalRef.current);
+            textIntervalRef.current = null;
+        }
+        if (audioRef.current) {
+            try {
+                audioRef.current.pause();
+                audioRef.current.src = "";
+            } catch (e) { }
+            audioRef.current = null;
+        }
+        setIsSpeaking(false);
+    }, []);
+
+    const speakResponse = async (text) => {
+        if (!text || !voiceEnabled) return;
+
+        killAudio();
+
+        try {
+            setIsSpeaking(true);
+            setRevealedLength(0);
+
+            // Stop recognition while speaking to avoid feedback
+            if (recognitionRef.current) {
+                try { recognitionRef.current.stop(); } catch (e) { }
+            }
+
+            const response = await api.post(
+                '/tts',
+                { text, voice: 'en-US-AvaNeural' }, // Nova's voice
+                { responseType: 'blob' }
+            );
+
+            if (!response.data || response.data.size < 500) throw new Error('Invalid audio');
+
+            const url = URL.createObjectURL(response.data);
+            const audio = new Audio(url);
+            audioRef.current = audio;
+
+            const totalChars = text.length;
+
+            audio.onplay = () => {
+                textIntervalRef.current = setInterval(() => {
+                    const a = audioRef.current;
+                    if (!a || !a.duration) return;
+                    const progress = Math.min(a.currentTime / a.duration, 1);
+                    setRevealedLength(Math.floor(progress * totalChars));
+                    setVoiceIntensity(0.5 + Math.random() * 0.5);
+                }, 50);
+            };
+
+            audio.onended = () => {
+                killAudio();
+                URL.revokeObjectURL(url);
+                // Resume listening if we were in "interactive" mode (conceptually)
+                // For now, only resume if the modal is still open
+                if (isOpen && !loadingRef.current) {
+                    // Slight delay before resuming listening
+                    setTimeout(() => {
+                        if (isOpen && !isSpeakingRef.current && !loadingRef.current) {
+                            // Only resume if manually toggled or in a dedicated voice flow?
+                            // Let's keep it simple: don't auto-start listening unless user clicked mic
+                        }
+                    }, 500);
+                }
+            };
+
+            audio.onerror = () => {
+                killAudio();
+                URL.revokeObjectURL(url);
+            };
+
+            await audio.play();
+        } catch (err) {
+            console.error("[Nova-Voice] Synthesis failed:", err);
+            killAudio();
+        }
+    };
+
+    // --- STT: SPEECH RECOGNITION ---
+    useEffect(() => {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            recognitionRef.current = new SpeechRecognition();
+            recognitionRef.current.continuous = true;
+            recognitionRef.current.interimResults = true;
+            recognitionRef.current.lang = 'en-US';
+
+            recognitionRef.current.onresult = (e) => {
+                let currentTranscript = "";
+                for (let i = 0; i < e.results.length; i++) {
+                    currentTranscript += e.results[i][0].transcript;
+                }
+
+                if (currentTranscript.trim()) {
+                    setInput(currentTranscript);
+
+                    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+                    silenceTimerRef.current = setTimeout(() => {
+                        if (currentTranscript.trim() && !loadingRef.current && !isSpeakingRef.current) {
+                            sendMessage(currentTranscript);
+                        }
+                    }, 3000); // 3s silence to auto-send
+                }
+            };
+
+            recognitionRef.current.onstart = () => setIsListening(true);
+            recognitionRef.current.onend = () => {
+                setIsListening(false);
+                // Restart if ended unexpectedly and we should be listening
+                if (isListeningRef.current && !isSpeakingRef.current && !loadingRef.current) {
+                    try { recognitionRef.current.start(); } catch (e) { }
+                }
+            };
+            recognitionRef.current.onerror = (e) => {
+                console.error("[Nova-Mic] Error:", e.error);
+                if (e.error !== 'no-speech') setIsListening(false);
+            };
+        }
+
+        return () => {
+            if (recognitionRef.current) recognitionRef.current.stop();
+            if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+            killAudio();
+        };
+    }, [isOpen]);
+
+    const toggleListening = () => {
+        if (isListening) {
+            isListeningRef.current = false; // Prevent auto-restart
+            if (recognitionRef.current) try { recognitionRef.current.stop(); } catch (e) { }
+        } else {
+            killAudio(); // Interrupt voice to listen
+            if (recognitionRef.current) try { recognitionRef.current.start(); } catch (e) { }
+        }
+    };
+
+    const sendMessage = async (overrideText) => {
+        const text = overrideText || input.trim();
         if (!text || loading) return;
+        
+        killAudio(); // Stop Nova if she was speaking
+        if (isListening) {
+            isListeningRef.current = false;
+            if (recognitionRef.current) try { recognitionRef.current.stop(); } catch (e) { }
+        }
+
         setInput('');
         setMessages(prev => [...prev, { role: 'user', text }]);
         setLoading(true);
 
-        // Add a placeholder message for the AI
         setMessages(prev => [...prev, { role: 'ai', text: '' }]);
 
         const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
@@ -182,6 +384,11 @@ export default function GlobalAIPilot() {
                         }
                     }
                 }
+            }
+
+            // --- VOICE FEEDBACK ---
+            if (voiceEnabled && accumulatedResponse) {
+                speakResponse(accumulatedResponse);
             }
 
             // Refresh history to include new/updated session
@@ -322,19 +529,35 @@ export default function GlobalAIPilot() {
                         {/* Header */}
                         <div className={`flex items-center justify-between px-5 py-4 border-b shrink-0 ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
                             <div className="flex items-center gap-3">
-                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center relative ${isDark ? 'bg-indigo-500/10' : 'bg-red-50'}`}>
-                                    <Bot size={18} className={isDark ? "text-indigo-500" : "text-red-600"} />
+                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center relative transition-all duration-500 ${isDark ? 'bg-indigo-500/10' : 'bg-red-50'} ${isSpeaking ? 'ring-4 ring-indigo-500/20 scale-110 shadow-[0_0_20px_rgba(99,102,241,0.4)]' : ''}`}>
+                                    <motion.div
+                                        animate={isSpeaking ? { rotate: 360 } : { rotate: 0 }}
+                                        transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                                    >
+                                        <Sparkles size={18} className={isDark ? "text-indigo-400" : "text-red-500"} />
+                                    </motion.div>
                                     <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-[#070b14] animate-pulse" />
                                 </div>
                                 <div>
-                                    <h3 className={`text-xs font-black uppercase tracking-widest ${isDark ? 'text-white' : 'text-slate-900'}`}>AI Pilot</h3>
-                                    <p className="text-[9px] text-emerald-500 font-bold uppercase tracking-widest">
-                                        {plan ? 'Protocol Active' : 'Ready to Forge'}
-                                    </p>
+                                    <h3 className={`text-xs font-black uppercase tracking-widest ${isDark ? 'text-white' : 'text-slate-900'}`}>Dr. Nova</h3>
+                                    <div className="flex items-center gap-2">
+                                        <p className="text-[9px] text-emerald-500 font-bold uppercase tracking-widest">
+                                            {isSpeaking ? 'Speaking' : isListening ? 'Listening' : 'Synthesizer Active'}
+                                        </p>
+                                        <PulseWave isSpeaking={isSpeaking} isListening={isListening} intensity={voiceIntensity} isDark={isDark} />
+                                    </div>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
                                 <div className={`flex p-1 rounded-xl shrink-0 ${isDark ? 'bg-white/5' : 'bg-slate-100'}`}>
+                                    <button
+                                        onClick={() => setVoiceEnabled(!voiceEnabled)}
+                                        className={`px-2 py-1.5 rounded-lg transition-all ${voiceEnabled ? (isDark ? 'text-indigo-400' : 'text-red-500') : 'text-slate-500'}`}
+                                        title={voiceEnabled ? "Voice Enabled" : "Voice Disabled"}
+                                    >
+                                        {voiceEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
+                                    </button>
+                                    <div className={`w-px h-3 self-center mx-1 ${isDark ? 'bg-white/10' : 'bg-slate-200'}`} />
                                     <button
                                         onClick={() => setActiveTab('plan')}
                                         className={`px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'plan' ? (isDark ? 'bg-indigo-600 text-white shadow-lg' : 'bg-red-600 text-white shadow-sm') : (isDark ? 'text-slate-500' : 'text-slate-400')}`}
@@ -452,10 +675,24 @@ export default function GlobalAIPilot() {
                                                     <Bot size={12} className={isDark ? "text-indigo-500" : "text-red-600"} />
                                                 </div>
                                             )}
-                                            <div className={`max-w-[82%] px-3.5 py-2.5 rounded-2xl text-[11px] leading-relaxed font-medium whitespace-pre-wrap ${msg.role === 'user' ? (isDark ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-red-600 text-white rounded-br-none')
+                                            <div className={`max-w-[82%] px-3.5 py-2.5 rounded-2xl text-[11px] leading-relaxed font-medium whitespace-pre-wrap relative group/msg ${msg.role === 'user' ? (isDark ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-red-600 text-white rounded-br-none')
                                                 : isDark ? 'bg-white/5 text-slate-200 border border-white/5 rounded-bl-none'
                                                     : 'bg-slate-100 text-slate-800 rounded-bl-none'
-                                                }`}>{msg.text}</div>
+                                                }`}>
+                                                {msg.role === 'ai' && i === messages.length - 1 && isSpeaking 
+                                                    ? msg.text.substring(0, revealedLength) 
+                                                    : msg.text}
+                                                
+                                                {msg.role === 'ai' && i === messages.length - 1 && isSpeaking && (
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); killAudio(); }}
+                                                        className="absolute -right-8 bottom-0 p-1.5 rounded-full bg-slate-800/80 text-white opacity-0 group-hover/msg:opacity-100 transition-opacity"
+                                                        title="Stop Speaking"
+                                                    >
+                                                        <VolumeX size={10} />
+                                                    </button>
+                                                )}
+                                            </div>
                                         </motion.div>
                                     ))}
 
@@ -480,11 +717,20 @@ export default function GlobalAIPilot() {
                                         ? 'bg-white/5 border-white/10 focus-within:border-indigo-500/40'
                                         : 'bg-slate-50 border-gray-200 focus-within:border-red-300 focus-within:shadow-md'
                                         }`}>
+                                        <button 
+                                            onClick={toggleListening}
+                                            className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all ${isListening 
+                                                ? (isDark ? 'bg-red-500/20 text-red-400 animate-pulse' : 'bg-red-100 text-red-600 animate-pulse')
+                                                : (isDark ? 'hover:bg-white/5 text-slate-500' : 'hover:bg-slate-200 text-slate-400')
+                                            }`}
+                                        >
+                                            {isListening ? <Mic size={14} /> : <MicOff size={14} />}
+                                        </button>
                                         <textarea ref={inputRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKey}
-                                            rows={1} placeholder="Ask anything... (Enter to send)" disabled={loading}
+                                            rows={1} placeholder={isListening ? "Listening..." : "Ask Dr. Nova anything..."} disabled={loading}
                                             className={`flex-1 bg-transparent resize-none outline-none text-[11px] font-medium placeholder:opacity-40 max-h-20 leading-relaxed py-1 ${isDark ? 'text-white placeholder:text-slate-500' : 'text-slate-900 placeholder:text-slate-400'}`}
                                             style={{ scrollbarWidth: 'none' }} />
-                                        <button onClick={sendMessage} disabled={loading || !input.trim()}
+                                        <button onClick={() => sendMessage()} disabled={loading || !input.trim()}
                                             className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all disabled:opacity-30 disabled:grayscale active:scale-90 shadow-lg ${isDark ? 'bg-indigo-600 shadow-indigo-600/20 hover:bg-indigo-500' : 'bg-red-600 shadow-red-600/20 hover:bg-red-700'}`}>
                                             <Send size={13} className="text-white ml-0.5" />
                                         </button>
@@ -570,4 +816,6 @@ export default function GlobalAIPilot() {
         </div>
     );
 }
+
+export default memo(GlobalAIPilot);
 

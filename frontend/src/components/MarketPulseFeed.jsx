@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import api from "../api/axios";
 
-const CATEGORIES = ["all", "AI", "Cloud", "Security", "Web", "Mobile", "Data"];
+const CATEGORIES = ["all", "AI", "Cloud", "Security", "Web", "Mobile", "Data", "Business", "Supply Chain", "Economics"];
 const LOCATIONS = ["all", "USA", "Europe", "Asia", "Remote"];
 
 const DEMAND_COLOR = (v) => {

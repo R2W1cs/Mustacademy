@@ -1,14 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getRecommendedCourses } from "../api/courses";
+import api from "../api/axios";
 import CourseCard from "../components/CourseCard";
 import { useNavigate } from "react-router-dom";
-import { GraduationCap, Sparkles, BookOpen, Search, Shield, Cpu, Globe, Binary } from "lucide-react";
+import { GraduationCap, Sparkles, BookOpen, Search, Shield, Cpu, Globe, Binary, X, Loader2 } from "lucide-react";
 import { useTheme } from "../auth/ThemeContext";
 
 const Courses = () => {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState([]);
+    const [searchTotal, setSearchTotal] = useState(0);
+    const [searchPage, setSearchPage] = useState(1);
+    const [searchLoading, setSearchLoading] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const debounceRef = useRef(null);
     const navigate = useNavigate();
     const { theme } = useTheme();
     const isDark = theme === 'dark';
@@ -24,9 +32,39 @@ const Courses = () => {
         }
     };
 
+    const fetchSearch = useCallback(async (query, page = 1, append = false) => {
+        if (page === 1) setSearchLoading(true);
+        else setLoadingMore(true);
+        try {
+            const res = await api.get(`/courses?search=${encodeURIComponent(query)}&page=${page}&limit=12`);
+            const { courses, total } = res.data;
+            setSearchResults(prev => append ? [...prev, ...courses] : courses);
+            setSearchTotal(total);
+            setSearchPage(page);
+        } catch (err) {
+            console.error('Search failed', err);
+        } finally {
+            setSearchLoading(false);
+            setLoadingMore(false);
+        }
+    }, []);
+
     useEffect(() => {
         loadData();
     }, []);
+
+    useEffect(() => {
+        clearTimeout(debounceRef.current);
+        if (!searchQuery.trim()) {
+            setSearchResults([]);
+            setSearchTotal(0);
+            return;
+        }
+        debounceRef.current = setTimeout(() => {
+            fetchSearch(searchQuery.trim(), 1, false);
+        }, 400);
+        return () => clearTimeout(debounceRef.current);
+    }, [searchQuery, fetchSearch]);
 
     if (loading) {
         return (
@@ -113,7 +151,7 @@ const Courses = () => {
             </div>
 
             {/* JAW-DROPPING HERO SECTION */}
-            <div className="max-w-[1800px] mx-auto mb-48 relative z-10">
+            <div className="max-w-[1800px] mx-auto pt-16 px-4 md:px-10 mb-48 relative z-10">
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-24">
                     <div className="relative">
                         <motion.div
@@ -252,29 +290,90 @@ const Courses = () => {
             </div>
 
             {/* CURATED ASYMMETRIC GRID */}
-            <div className="max-w-[1800px] mx-auto py-20 border-t relative z-10 transition-colors duration-700 border-white/5">
-                <div className="flex flex-col md:flex-row items-center justify-between mb-24 gap-12">
+            <div className="max-w-[1800px] mx-auto py-20 px-4 md:px-10 border-t relative z-10 transition-colors duration-700 border-white/5">
+                <div className="flex flex-col md:flex-row items-center justify-between mb-16 gap-8">
                     <div className="flex items-center gap-10">
                         <h2 className={`text-4xl font-black uppercase tracking-[0.6em] whitespace-nowrap ${isDark ? 'text-white' : 'text-slate-900'}`}>Courses</h2>
-                        <div className={`h-px w-64 ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`} />
+                        <div className={`h-px w-32 md:w-64 hidden md:block ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`} />
+                    </div>
+                    {/* Search Bar */}
+                    <div className={`flex items-center gap-3 px-5 py-3 rounded-2xl border w-full md:w-96 transition-all ${isDark ? 'bg-white/5 border-white/10 focus-within:border-amber-500/40' : 'bg-white border-slate-200 focus-within:border-red-500/40 shadow-sm'}`}>
+                        <Search size={16} className={isDark ? 'text-slate-500' : 'text-slate-400'} />
+                        <input
+                            type="text"
+                            placeholder="Search courses..."
+                            value={searchQuery}
+                            onChange={e => setSearchQuery(e.target.value)}
+                            className={`flex-1 bg-transparent outline-none text-sm font-medium ${isDark ? 'text-white placeholder:text-slate-600' : 'text-slate-900 placeholder:text-slate-400'}`}
+                        />
+                        {searchQuery && (
+                            <button onClick={() => setSearchQuery('')} className="opacity-50 hover:opacity-100 transition-opacity">
+                                <X size={14} className={isDark ? 'text-white' : 'text-slate-600'} />
+                            </button>
+                        )}
                     </div>
                 </div>
 
-                {/* ASYMMETRIC GRID LAYOUT */}
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-16">
-                    {data.courses.map((course, idx) => (
-                        <motion.div
-                            key={course.id}
-                            initial={{ opacity: 0, y: 50, filter: 'blur(10px)' }}
-                            whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 1, delay: idx * 0.15 }}
-                            className={idx % 2 === 1 ? 'md:translate-y-16' : ''}
-                        >
-                            <CourseCard course={course} index={idx} />
-                        </motion.div>
-                    ))}
-                </div>
+                {/* Search mode */}
+                {searchQuery.trim() ? (
+                    <>
+                        {searchLoading ? (
+                            <div className="flex justify-center py-24">
+                                <Loader2 size={32} className={`animate-spin ${isDark ? 'text-amber-500' : 'text-red-600'}`} />
+                            </div>
+                        ) : searchResults.length === 0 ? (
+                            <div className={`text-center py-24 text-sm font-black uppercase tracking-widest opacity-30 ${isDark ? 'text-white' : 'text-slate-600'}`}>
+                                No courses match "{searchQuery}"
+                            </div>
+                        ) : (
+                            <>
+                                <p className={`text-[10px] font-black uppercase tracking-widest mb-12 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                                    Showing {searchResults.length} of {searchTotal} courses
+                                </p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-16">
+                                    {searchResults.map((course, idx) => (
+                                        <motion.div
+                                            key={course.id}
+                                            initial={{ opacity: 0, y: 30 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ duration: 0.5, delay: idx * 0.05 }}
+                                        >
+                                            <CourseCard course={course} index={idx} />
+                                        </motion.div>
+                                    ))}
+                                </div>
+                                {searchResults.length < searchTotal && (
+                                    <div className="flex justify-center mt-16">
+                                        <button
+                                            onClick={() => fetchSearch(searchQuery.trim(), searchPage + 1, true)}
+                                            disabled={loadingMore}
+                                            className={`flex items-center gap-3 px-10 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all hover:scale-105 active:scale-95 disabled:opacity-50 ${isDark ? 'bg-white/5 border border-white/10 text-white hover:bg-white/10' : 'bg-white border border-slate-200 text-slate-900 hover:border-slate-300 shadow-sm'}`}
+                                        >
+                                            {loadingMore ? <Loader2 size={14} className="animate-spin" /> : null}
+                                            Load More
+                                        </button>
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </>
+                ) : (
+                    /* Default: recommended courses */
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-16">
+                        {data.courses.map((course, idx) => (
+                            <motion.div
+                                key={course.id}
+                                initial={{ opacity: 0, y: 50, filter: 'blur(10px)' }}
+                                whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                                viewport={{ once: true }}
+                                transition={{ duration: 1, delay: idx * 0.15 }}
+                                className={idx % 2 === 1 ? 'md:translate-y-16' : ''}
+                            >
+                                <CourseCard course={course} index={idx} />
+                            </motion.div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* FOOTER: TERMINAL PROTOCOL */}

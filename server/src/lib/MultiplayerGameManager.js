@@ -1,4 +1,12 @@
 import { callOllama } from "../utils/aiClient.js";
+import pool from "../config/db.js";
+
+const K_FACTOR = 32;
+
+function computeElo(playerRating, opponentAvgRating, score) {
+    const expected = 1 / (1 + Math.pow(10, (opponentAvgRating - playerRating) / 400));
+    return Math.round(playerRating + K_FACTOR * (score - expected));
+}
 
 class MultiplayerGameManager {
     constructor(io) {
@@ -106,13 +114,21 @@ class MultiplayerGameManager {
         return room;
     }
 
-    startGame(roomId, userId) {
+    startGame(roomId, userId, config = {}) {
         const room = this.rooms.get(roomId);
         if (!room) return;
 
         // Verify host (first player is the host)
         if (room.players[0].id !== userId) {
             throw new Error("Only the host can initiate the protocol.");
+        }
+
+        // Apply host config
+        if (config.timePerQuestion && [10, 15, 30].includes(config.timePerQuestion)) {
+            room.timePerQuestion = config.timePerQuestion;
+        }
+        if (config.questionCount && [5, 10, 15].includes(config.questionCount)) {
+            room.questionCount = config.questionCount;
         }
 
         room.status = "playing";
@@ -125,7 +141,15 @@ class MultiplayerGameManager {
 
         room.currentQuestionIndex++;
 
-        if (room.currentQuestionIndex >= room.quiz.questions.length) {
+        const actualCount = room.quiz?.questions?.length || 0;
+        const maxQuestions = Math.min(room.questionCount || actualCount, actualCount);
+        if (room.currentQuestionIndex >= maxQuestions || maxQuestions === 0) {
+            this.endGame(roomId);
+            return;
+        }
+
+        const question = room.quiz.questions[room.currentQuestionIndex];
+        if (!question) {
             this.endGame(roomId);
             return;
         }
@@ -133,18 +157,19 @@ class MultiplayerGameManager {
         // Reset player answer tracking for new question
         room.players.forEach(p => p.lastAnswered = -1);
 
-        room.timeRemaining = this.TIMER_DURATION;
+        room.timeRemaining = room.timePerQuestion || this.TIMER_DURATION;
 
         room.firstCorrectUserId = null;
 
         this.io.to(this.LOBBY_ROOM_PREFIX + roomId).emit("question_started", {
             question: {
-                text: room.quiz.questions[room.currentQuestionIndex].text,
-                options: room.quiz.questions[room.currentQuestionIndex].options,
+                text: question.text,
+                options: question.options,
                 index: room.currentQuestionIndex,
-                total: room.quiz.questions.length
+                total: maxQuestions
             },
-            timeRemaining: room.timeRemaining
+            timeRemaining: room.timeRemaining,
+            timePerQuestion: room.timePerQuestion || this.TIMER_DURATION
         });
 
         // Clear existing timer if any
@@ -174,7 +199,8 @@ class MultiplayerGameManager {
         const question = room.quiz.questions[room.currentQuestionIndex];
         if (answerIndex === question.correctIndex) {
             // Scoring Formula: Base 500 + Speed Bonus (up to 500)
-            const speedBonus = Math.round((room.timeRemaining / this.TIMER_DURATION) * 500);
+            const timerDuration = room.timePerQuestion || this.TIMER_DURATION;
+            const speedBonus = Math.round((room.timeRemaining / timerDuration) * 500);
             let firstToFinishBonus = 0;
 
             // First to finish correct bonus (+200)
@@ -222,7 +248,8 @@ class MultiplayerGameManager {
         const room = this.rooms.get(roomId);
         if (!room) return;
 
-        const question = room.quiz.questions[room.currentQuestionIndex];
+        const question = room.quiz?.questions?.[room.currentQuestionIndex];
+        if (!question) { this.endGame(roomId); return; }
 
         this.io.to(this.LOBBY_ROOM_PREFIX + roomId).emit("answer_revealed", {
             correctIndex: question.correctIndex,
@@ -236,14 +263,50 @@ class MultiplayerGameManager {
         }, 5000); // 5 second pause to see leaderboard
     }
 
-    endGame(roomId) {
+    async endGame(roomId) {
         const room = this.rooms.get(roomId);
         if (!room) return;
 
         room.status = "finished";
+
+        const sorted = [...room.players].sort((a, b) => b.score - a.score);
+
         this.io.to(this.LOBBY_ROOM_PREFIX + roomId).emit("game_finished", {
-            leaderboard: [...room.players].sort((a, b) => b.score - a.score)
+            leaderboard: sorted
         });
+
+        // Persist ELO updates (only for authenticated users with numeric IDs)
+        if (sorted.length >= 2) {
+            try {
+                // Fetch current ELO ratings for all players
+                const userIds = sorted.map(p => p.id).filter(id => !isNaN(Number(id)));
+                if (userIds.length >= 2) {
+                    const { rows } = await pool.query(
+                        `SELECT id, elo_rating FROM users WHERE id = ANY($1::int[])`,
+                        [userIds]
+                    );
+                    const ratingMap = Object.fromEntries(rows.map(r => [String(r.id), r.elo_rating || 1200]));
+
+                    const avgRating = Object.values(ratingMap).reduce((a, b) => a + b, 0) / Object.values(ratingMap).length;
+                    const totalPlayers = sorted.length;
+
+                    for (let i = 0; i < sorted.length; i++) {
+                        const player = sorted[i];
+                        if (isNaN(Number(player.id))) continue;
+                        const currentElo = ratingMap[player.id] || 1200;
+                        // Score: 1 for top half, 0 for bottom half (simple rank-based)
+                        const outcome = i < totalPlayers / 2 ? 1 : 0;
+                        const newElo = computeElo(currentElo, avgRating, outcome);
+                        await pool.query(
+                            'UPDATE users SET elo_rating = $1 WHERE id = $2',
+                            [newElo, Number(player.id)]
+                        );
+                    }
+                }
+            } catch (err) {
+                console.error('[GameManager] ELO update failed:', err.message);
+            }
+        }
 
         // Clean up room after 1 minute
         setTimeout(() => {
@@ -252,10 +315,10 @@ class MultiplayerGameManager {
         }, 60000);
     }
 
-    async generateQuizData(topic) {
+    async generateQuizData(topic, count = 15) {
         const prompt = `Generate a rigorous CS Quiz for Multiplayer.
         Topic: ${topic || "Computer Science"}
-        Count: 5 Questions.
+        Count: ${count} Questions (generate all ${count}, host may use fewer).
         Return ONLY VALID JSON:
         {
             "questions": [

@@ -25,6 +25,7 @@ import {
     Globe,
     Moon,
     Sun,
+    MessageSquare,
 } from "lucide-react";
 import { useTheme } from "../auth/ThemeContext";
 import mustLogo from "../assets/must_logo.png";
@@ -100,6 +101,24 @@ const JOURNEY_STEPS = [
     },
 ];
 
+const TESTIMONIALS = [
+    {
+        quote: "The Neural Clash arena makes studying actually fun. I learned algorithms faster competing against classmates than reading for hours.",
+        name: "Ahmed K.", role: "CS Student, Year 3", avatar: "A", color: "#6366f1",
+        stars: 5,
+    },
+    {
+        quote: "The AI notebook explained recursion better than my professor ever did. The step-by-step visualizations are genuinely impressive.",
+        name: "Sara M.", role: "Software Engineering Intern", avatar: "S", color: "#8b5cf6",
+        stars: 5,
+    },
+    {
+        quote: "Three mock interviews with the AI prep tool and I walked into the real one feeling completely prepared. Got the offer.",
+        name: "Omar L.", role: "Final Year — hired at Capgemini", avatar: "O", color: "#ec4899",
+        stars: 5,
+    },
+];
+
 /* ══════════════════════════════════════════════════════════ */
 
 export default function LandingPage() {
@@ -112,7 +131,6 @@ export default function LandingPage() {
     const themeClass = isDark ? "bg-[#0a0e1a] text-white" : "bg-[#FAFAFF] text-slate-900";
     const textMuted = isDark ? "text-gray-400" : "text-slate-500";
     const cardBg = isDark ? "bg-white/[0.03] border-white/[0.07] hover:bg-white/[0.06] hover:border-white/[0.12]" : "bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-100";
-    const dividerClass = isDark ? "via-white/[0.07]" : "via-slate-200";
 
     // Particle background
     useEffect(() => {
@@ -147,10 +165,13 @@ export default function LandingPage() {
 
     const toggleStep = (i) => setOpenStep(openStep === i ? null : i);
 
+    const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+
     return (
         <div className={`min-h-screen flex flex-col font-sans transition-colors duration-500 selection:bg-[#6366f1]/30 overflow-x-hidden ${themeClass}`}>
             {/* Inline keyframes */}
             <style>{`
+                html { scroll-behavior: smooth; }
                 @keyframes marquee-left  { from { transform: translateX(0); } to { transform: translateX(-50%); } }
                 @keyframes marquee-right { from { transform: translateX(-50%); } to { transform: translateX(0); } }
                 .marquee-track-left  { animation: marquee-left  30s linear infinite; }
@@ -172,14 +193,29 @@ export default function LandingPage() {
             {/* ══ HEADER ══ */}
             <header className={`relative z-50 flex justify-between items-center px-6 lg:px-12 py-4 border-b ${isDark ? 'border-white/[0.04]' : 'border-slate-200'}`}>
                 <div className="flex items-center gap-3">
-                    <img
-                        src={mustLogo} alt="MUST"
-                        className="h-14 w-auto object-contain"
-                    />
+                    <img src={mustLogo} alt="MUST" className="h-14 w-auto object-contain" />
                     <span className={`${isDark ? 'text-white' : 'text-slate-900'} font-semibold text-[17px] tracking-tight`}>
                         Must<span className="text-[#818cf8]">Academy</span>
                     </span>
                 </div>
+
+                {/* Anchor nav links */}
+                <nav className="hidden md:flex items-center gap-1">
+                    {[
+                        { label: "Features", id: "features" },
+                        { label: "Arena", id: "arena" },
+                        { label: "How It Works", id: "journey" },
+                    ].map(({ label, id }) => (
+                        <button
+                            key={id}
+                            onClick={() => scrollTo(id)}
+                            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${isDark ? 'text-gray-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'}`}
+                        >
+                            {label}
+                        </button>
+                    ))}
+                </nav>
+
                 <nav className="flex items-center gap-3">
                     <button
                         onClick={toggleTheme}
@@ -216,7 +252,7 @@ export default function LandingPage() {
                             { icon: Code2, title: "Battle with your friends", desc: "Sharpen your skills against your classmates. Compete and level up every day.", accent: "from-[#8b5cf6] to-[#a78bfa]", glow: isDark ? "rgba(139,92,246,0.15)" : "rgba(139,92,246,0.08)" },
                             { icon: Rocket, title: "Real-World Experience", desc: "Build a portfolio with contributions that actually impress employers.", accent: "from-[#ec4899] to-[#f472b6]", glow: isDark ? "rgba(236,72,153,0.15)" : "rgba(236,72,153,0.08)" },
                         ].map((f) => (
-                            <div key={f.title} className={`group relative p-7 rounded-2xl transition-all duration-300 ${cardBg}`} style={{ boxShadow: `0 0 40px ${f.glow}` }}>
+                            <div key={f.title} className={`group relative p-7 rounded-2xl transition-all duration-300 border ${cardBg}`} style={{ boxShadow: `0 0 40px ${f.glow}` }}>
                                 <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${f.accent} flex items-center justify-center mb-5 shadow-lg`}><f.icon className="w-5 h-5 text-white" /></div>
                                 <h3 className={`text-base font-semibold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>{f.title}</h3>
                                 <p className={`text-sm leading-relaxed ${textMuted}`}>{f.desc}</p>
@@ -229,8 +265,8 @@ export default function LandingPage() {
 
             <Divider isDark={isDark} />
 
-            {/* ══ §2 AI Roadmap Hero ══ */}
-            <section className="relative z-10 pt-28 pb-24 px-6 lg:px-12">
+            {/* ══ §2 AI Roadmap Features ══ */}
+            <section id="features" className="relative z-10 pt-28 pb-24 px-6 lg:px-12">
                 <div className="max-w-6xl mx-auto text-center">
                     <h2 className="text-4xl sm:text-5xl lg:text-[3.6rem] font-bold tracking-tight leading-[1.1] mb-5">
                         Master Computer Science with{" "}
@@ -240,17 +276,17 @@ export default function LandingPage() {
                         Your personalized journey from fundamentals to mastery. Learn smarter with structured paths, deep explanations, and AI guidance.
                     </p>
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20">
-                        <Link to="/dashboard" className="group relative px-8 py-3.5 rounded-xl bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white font-semibold text-[15px] hover:shadow-2xl hover:shadow-lg/30 flex items-center gap-2 overflow-hidden transition-all">
+                        <Link to="/dashboard" className="group relative px-8 py-3.5 rounded-xl bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white font-semibold text-[15px] hover:shadow-2xl flex items-center gap-2 overflow-hidden transition-all">
                             <span className="relative z-10 flex items-center gap-2">Start Learning <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" /></span>
                             <span className="absolute inset-0 bg-gradient-to-r from-[#818cf8] to-[#a78bfa] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                         </Link>
-                        <Link to="/dashboard" className={`px-8 py-3.5 rounded-xl transition-all font-medium text-[15px] flex items-center gap-2 ${isDark ? 'bg-white/[0.04] text-white border-white/[0.10] hover:bg-white/[0.08] hover:border-white/[0.16]' : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200 hover:border-slate-300'}`}>
+                        <Link to="/dashboard" className={`px-8 py-3.5 rounded-xl transition-all font-medium text-[15px] flex items-center gap-2 border ${isDark ? 'bg-white/[0.04] text-white border-white/[0.10] hover:bg-white/[0.08] hover:border-white/[0.16]' : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200 hover:border-slate-300'}`}>
                             <GraduationCap className="w-4 h-4 text-[#818cf8]" /> Explore Roadmaps
                         </Link>
                     </div>
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-20 max-w-3xl mx-auto">
-                        {[["50K+", "Active Learners"], ["500+", "Topics Covered"], ["95%", "Success Rate"], ["24/7", "AI Support"]].map(([v, l]) => (
-                            <div key={l} className={`p-5 rounded-2xl transition-colors ${isDark ? 'bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.05]' : 'bg-white border-slate-200 shadow-sm hover:border-indigo-100'}`}>
+                        {[["3K+", "Active Students"], ["500+", "Topics Covered"], ["4.9★", "Student Rating"], ["24/7", "AI Support"]].map(([v, l]) => (
+                            <div key={l} className={`p-5 rounded-2xl border transition-colors ${isDark ? 'bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.05]' : 'bg-white border-slate-200 shadow-sm hover:border-indigo-100'}`}>
                                 <div className="text-3xl font-bold bg-gradient-to-r from-[#6366f1] to-[#a855f7] bg-clip-text text-transparent mb-1">{v}</div>
                                 <div className={`text-xs font-medium tracking-wide uppercase ${isDark ? 'text-gray-500' : 'text-slate-500'}`}>{l}</div>
                             </div>
@@ -265,7 +301,7 @@ export default function LandingPage() {
                             { icon: Zap, title: "Project Corner", desc: "Start implementing your ideas with our guidance and support", color: "from-[#f59e0b] to-[#eab308]" },
                             { icon: TrendingUp, title: "Market Trends", desc: "Stay current with live tech industry insights", color: "from-[#6366f1] to-[#8b5cf6]" },
                         ].map((f) => (
-                            <div key={f.title} className={`group p-7 rounded-2xl transition-all duration-300 ${cardBg}`}>
+                            <div key={f.title} className={`group p-7 rounded-2xl border transition-all duration-300 ${cardBg}`}>
                                 <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${f.color} flex items-center justify-center mb-5 shadow-lg group-hover:scale-105 transition-transform`}><f.icon className="w-5 h-5 text-white" /></div>
                                 <h3 className={`text-base font-semibold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>{f.title}</h3>
                                 <p className={`text-sm leading-relaxed ${textMuted}`}>{f.desc}</p>
@@ -289,8 +325,6 @@ export default function LandingPage() {
                         From foundational languages to cutting-edge tools — build a skill set that companies actually hire for.
                     </p>
                 </div>
-
-                {/* Row 1 — scrolls left */}
                 <div className="relative mb-4 overflow-hidden" style={{ maskImage: "linear-gradient(to right, transparent, black 10%, black 90%, transparent)" }}>
                     <div className="flex w-max marquee-track-left gap-3">
                         {[...TECHS_ROW1, ...TECHS_ROW1].map((t, i) => (
@@ -298,8 +332,6 @@ export default function LandingPage() {
                         ))}
                     </div>
                 </div>
-
-                {/* Row 2 — scrolls right */}
                 <div className="relative overflow-hidden" style={{ maskImage: "linear-gradient(to right, transparent, black 10%, black 90%, transparent)" }}>
                     <div className="flex w-max marquee-track-right gap-3">
                         {[...TECHS_ROW2, ...TECHS_ROW2].map((t, i) => (
@@ -311,7 +343,82 @@ export default function LandingPage() {
 
             <Divider isDark={isDark} />
 
-            {/* ══ §4 Form Teams ══ */}
+            {/* ══ §4 Neural Clash Arena ══ */}
+            <section id="arena" className="relative z-10 py-28 px-6 lg:px-12 overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-indigo-950/40 via-transparent to-fuchsia-950/30 pointer-events-none" />
+                <div className="absolute top-1/2 right-0 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-600/8 rounded-full blur-[130px] pointer-events-none" />
+                <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+                    <div>
+                        <SectionLabel icon={Zap} label="Neural Clash Arena" isDark={isDark} />
+                        <h2 className={`text-4xl sm:text-5xl font-bold tracking-tight leading-[1.1] mb-5 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                            Battle Your Peers in{" "}
+                            <span className="bg-gradient-to-r from-indigo-400 to-fuchsia-500 bg-clip-text text-transparent">Real-Time</span>
+                        </h2>
+                        <p className={`text-[16px] leading-relaxed mb-8 ${textMuted}`}>
+                            Host a live quiz arena on any CS topic. Compete with classmates in fast-paced Kahoot-style rounds — complete with a live leaderboard and meme-worthy wrong-answer reactions.
+                        </p>
+                        <ul className="space-y-3 mb-10">
+                            {[
+                                "AI-generated questions on any topic, any difficulty",
+                                "Real-time multiplayer — host or join with a PIN",
+                                "Live leaderboard, in-match chat, and match settings",
+                                "Funny sound effects when someone gets it wrong",
+                            ].map(b => (
+                                <li key={b} className={`flex items-start gap-3 text-[15px] ${isDark ? 'text-gray-300' : 'text-slate-600'}`}>
+                                    <CheckCircle2 className="w-5 h-5 mt-0.5 flex-shrink-0 text-indigo-400" />{b}
+                                </li>
+                            ))}
+                        </ul>
+                        <Link to="/register" className="inline-flex items-center gap-2 px-7 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-fuchsia-600 text-white font-semibold text-[15px] hover:shadow-xl hover:shadow-indigo-500/25 transition-all">
+                            Enter the Arena <ArrowRight className="w-4 h-4" />
+                        </Link>
+                    </div>
+
+                    {/* Mock arena card */}
+                    <div className="relative">
+                        <div className="absolute -inset-4 bg-gradient-to-br from-indigo-500/10 to-fuchsia-500/10 rounded-3xl blur-xl" />
+                        <div className="relative rounded-3xl overflow-hidden border border-indigo-500/20 shadow-2xl shadow-indigo-500/10">
+                            {/* Header */}
+                            <div className="bg-[#0d0f2b] px-6 py-5 text-center border-b border-white/5">
+                                <div className="text-[9px] font-black uppercase tracking-[0.4em] text-indigo-400 mb-1">Game PIN</div>
+                                <div className="text-4xl font-black text-white tracking-[0.35em] font-mono">8 4 7 2 1</div>
+                                <div className="mt-2 flex items-center justify-center gap-2">
+                                    <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+                                    <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest">4 players waiting</span>
+                                </div>
+                            </div>
+                            {/* Question */}
+                            <div className={`px-6 py-5 text-center ${isDark ? 'bg-[#111428]' : 'bg-slate-900'}`}>
+                                <div className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-2">Question 2 / 5</div>
+                                <p className="text-white font-semibold text-[15px]">What is the time complexity of binary search?</p>
+                            </div>
+                            {/* 4 answer buttons — Kahoot style */}
+                            <div className="grid grid-cols-2">
+                                {[
+                                    { c: '#e21b3c', s: '▲', t: 'O(log n)', correct: true },
+                                    { c: '#1368ce', s: '◆', t: 'O(n)' },
+                                    { c: '#d89e00', s: '●', t: 'O(n²)' },
+                                    { c: '#26890c', s: '■', t: 'O(1)' },
+                                ].map((a) => (
+                                    <div
+                                        key={a.t}
+                                        className="flex items-center gap-3 px-5 py-4 text-white font-bold text-sm border-t border-r border-white/5"
+                                        style={{ background: a.c }}
+                                    >
+                                        <span className="text-xl opacity-70">{a.s}</span>
+                                        <span>{a.t}</span>
+                                        {a.correct && <span className="ml-auto text-white/70 text-xs">✓</span>}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <Divider isDark={isDark} />
+
+            {/* ══ §5 Form Teams ══ */}
             <section className="relative z-10 py-28 px-6 lg:px-12">
                 <div className="absolute top-1/2 left-0 -translate-y-1/2 w-[400px] h-[400px] bg-[#6366f1]/8 rounded-full blur-[120px] pointer-events-none" />
                 <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
@@ -343,7 +450,7 @@ export default function LandingPage() {
                             { icon: Globe, label: "Projects Shipped", count: "940+", color: "from-[#ec4899] to-[#f472b6]" },
                             { icon: Star, label: "Employer Matches", count: "1.2K+", color: "from-[#10b981] to-[#14b8a6]" },
                         ].map((c) => (
-                            <div key={c.label} className={`p-6 rounded-2xl transition-colors text-center ${isDark ? 'bg-white/[0.03] border-white/[0.07] hover:bg-white/[0.06]' : 'bg-white border-slate-200 shadow-sm hover:border-indigo-100'}`}>
+                            <div key={c.label} className={`p-6 rounded-2xl border transition-colors text-center ${isDark ? 'bg-white/[0.03] border-white/[0.07] hover:bg-white/[0.06]' : 'bg-white border-slate-200 shadow-sm hover:border-indigo-100'}`}>
                                 <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${c.color} flex items-center justify-center mx-auto mb-3`}><c.icon className="w-5 h-5 text-white" /></div>
                                 <div className={`text-2xl font-bold bg-gradient-to-r bg-clip-text text-transparent ${isDark ? 'from-white to-gray-300' : 'from-slate-900 to-slate-600'}`}>{c.count}</div>
                                 <div className={`text-xs mt-1 font-medium ${isDark ? 'text-gray-500' : 'text-slate-400'}`}>{c.label}</div>
@@ -355,7 +462,7 @@ export default function LandingPage() {
 
             <Divider isDark={isDark} />
 
-            {/* ══ §5 Crack Any Interview ══ */}
+            {/* ══ §6 Crack Any Interview ══ */}
             <section className="relative z-10 py-28 px-6 lg:px-12">
                 <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#8b5cf6]/8 rounded-full blur-[140px] pointer-events-none" />
                 <div className="max-w-6xl mx-auto">
@@ -370,7 +477,7 @@ export default function LandingPage() {
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                         {INTERVIEW_ITEMS.map((item) => (
-                            <div key={item.title} className={`group p-7 rounded-2xl transition-all duration-300 ${isDark ? 'bg-white/[0.03] border-white/[0.07] hover:bg-white/[0.06] hover:border-[#6366f1]/30' : 'bg-white border-slate-200 shadow-sm hover:border-indigo-200 hover:shadow-md'}`}>
+                            <div key={item.title} className={`group p-7 rounded-2xl border transition-all duration-300 ${isDark ? 'bg-white/[0.03] border-white/[0.07] hover:bg-white/[0.06] hover:border-[#6366f1]/30' : 'bg-white border-slate-200 shadow-sm hover:border-indigo-200 hover:shadow-md'}`}>
                                 <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] flex items-center justify-center mb-5 group-hover:scale-105 transition-transform shadow-lg"><item.icon className="w-5 h-5 text-white" /></div>
                                 <h3 className={`text-base font-semibold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>{item.title}</h3>
                                 <p className={`text-sm leading-relaxed ${textMuted}`}>{item.desc}</p>
@@ -395,8 +502,160 @@ export default function LandingPage() {
 
             <Divider isDark={isDark} />
 
-            {/* ══ §6 From Zero to Industry-Ready — Accordion ══ */}
+            {/* ══ §7 Platform Preview ══ */}
             <section className="relative z-10 py-28 px-6 lg:px-12">
+                <div className="max-w-6xl mx-auto">
+                    <div className="text-center mb-16">
+                        <SectionLabel icon={Sparkles} label="The Platform" isDark={isDark} />
+                        <h2 className={`text-4xl sm:text-5xl font-bold tracking-tight leading-[1.1] mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                            Everything in <span className="bg-gradient-to-r from-[#6366f1] to-[#a855f7] bg-clip-text text-transparent">One Place</span>
+                        </h2>
+                        <p className={`text-[16px] max-w-xl mx-auto leading-relaxed ${textMuted}`}>
+                            A complete CS learning environment — not just videos and quizzes.
+                        </p>
+                    </div>
+
+                    <div className="space-y-10">
+                        {/* Row 1 — AI Notebook */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                            {/* Mock notebook */}
+                            <div className="order-2 lg:order-1 rounded-2xl overflow-hidden border border-white/10 shadow-xl">
+                                <div className={`px-4 py-3 flex items-center gap-2 border-b ${isDark ? 'bg-[#0d0f1e] border-white/5' : 'bg-slate-800 border-white/10'}`}>
+                                    <div className="w-3 h-3 rounded-full bg-rose-500/70" />
+                                    <div className="w-3 h-3 rounded-full bg-amber-400/70" />
+                                    <div className="w-3 h-3 rounded-full bg-emerald-500/70" />
+                                    <span className="ml-2 text-[11px] text-white/25 font-mono">Notebook — Binary Trees.md</span>
+                                </div>
+                                <div className={`p-5 space-y-3 ${isDark ? 'bg-[#0d0f1e]' : 'bg-slate-900'}`}>
+                                    <div className="h-2.5 bg-white/10 rounded-full w-3/4" />
+                                    <div className="h-2.5 bg-white/5 rounded-full w-full" />
+                                    <div className="h-2.5 bg-indigo-500/20 rounded-full w-2/3" />
+                                    <div className="mt-5 p-4 bg-black/30 rounded-xl border border-white/5 space-y-2">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <div className="w-2 h-2 rounded-full bg-indigo-400" />
+                                            <span className="text-[10px] text-indigo-400/70 font-mono">python</span>
+                                        </div>
+                                        <div className="h-2 bg-purple-400/30 rounded w-1/2" />
+                                        <div className="h-2 bg-cyan-400/20 rounded w-3/4" />
+                                        <div className="h-2 bg-emerald-400/20 rounded w-2/3" />
+                                        <div className="h-2 bg-cyan-400/20 rounded w-1/2" />
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-4 p-3 bg-indigo-500/10 rounded-xl border border-indigo-500/10">
+                                        <div className="w-6 h-6 rounded-lg bg-indigo-500/30 flex items-center justify-center flex-shrink-0">
+                                            <Sparkles className="w-3 h-3 text-indigo-400" />
+                                        </div>
+                                        <div className="flex-1 space-y-1">
+                                            <div className="h-2 bg-indigo-400/20 rounded w-full" />
+                                            <div className="h-2 bg-indigo-400/10 rounded w-2/3" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="order-1 lg:order-2">
+                                <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold mb-4 ${isDark ? 'bg-indigo-500/10 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>
+                                    <Brain className="w-3.5 h-3.5" /> AI Notebook
+                                </div>
+                                <h3 className={`text-2xl sm:text-3xl font-bold mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>Learn any topic with an AI professor</h3>
+                                <p className={`text-[15px] leading-relaxed mb-5 ${textMuted}`}>
+                                    Every topic in the roadmap opens an AI-powered notebook. Ask questions, get deep explanations, run code snippets in-browser, and see algorithm visualizations — all without leaving the page.
+                                </p>
+                                <Link to="/register" className={`inline-flex items-center gap-2 text-sm font-semibold transition-all ${isDark ? 'text-indigo-400 hover:text-indigo-300' : 'text-indigo-600 hover:text-indigo-700'}`}>
+                                    Try a topic <ArrowRight className="w-4 h-4" />
+                                </Link>
+                            </div>
+                        </div>
+
+                        {/* Row 2 — Career Roadmap */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                            <div>
+                                <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold mb-4 ${isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>
+                                    <TrendingUp className="w-3.5 h-3.5" /> Career Roadmap
+                                </div>
+                                <h3 className={`text-2xl sm:text-3xl font-bold mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>Know exactly what to learn next</h3>
+                                <p className={`text-[15px] leading-relaxed mb-5 ${textMuted}`}>
+                                    The career roadmap shows you a clear, visual path to your goal role — frontend dev, ML engineer, SRE, whatever you choose. Track progress, unlock topics, and see real job requirements mapped to your skills.
+                                </p>
+                                <Link to="/register" className={`inline-flex items-center gap-2 text-sm font-semibold transition-all ${isDark ? 'text-emerald-400 hover:text-emerald-300' : 'text-emerald-600 hover:text-emerald-700'}`}>
+                                    Explore career paths <ArrowRight className="w-4 h-4" />
+                                </Link>
+                            </div>
+                            {/* Mock roadmap */}
+                            <div className={`rounded-2xl overflow-hidden border shadow-xl ${isDark ? 'border-white/10 bg-[#0d0f1e]' : 'border-slate-200 bg-slate-50'}`}>
+                                <div className={`px-5 py-4 border-b ${isDark ? 'border-white/5' : 'border-slate-200'}`}>
+                                    <div className={`text-xs font-black uppercase tracking-widest mb-1 ${isDark ? 'text-white/30' : 'text-slate-400'}`}>Your Path</div>
+                                    <div className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Frontend Engineer Track</div>
+                                </div>
+                                <div className="p-5 space-y-2">
+                                    {[
+                                        { label: "HTML & CSS", pct: 100, color: '#10b981' },
+                                        { label: "JavaScript", pct: 85, color: '#6366f1' },
+                                        { label: "React", pct: 60, color: '#8b5cf6' },
+                                        { label: "TypeScript", pct: 20, color: '#f59e0b' },
+                                        { label: "System Design", pct: 0, color: '#6366f1' },
+                                    ].map(row => (
+                                        <div key={row.label} className="space-y-1">
+                                            <div className="flex justify-between items-center">
+                                                <span className={`text-xs font-medium ${isDark ? 'text-white/60' : 'text-slate-600'}`}>{row.label}</span>
+                                                <span className="text-[10px] font-bold" style={{ color: row.color }}>{row.pct}%</span>
+                                            </div>
+                                            <div className={`h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-white/5' : 'bg-slate-200'}`}>
+                                                <div className="h-full rounded-full" style={{ width: `${row.pct}%`, background: row.color }} />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <Divider isDark={isDark} />
+
+            {/* ══ §8 Testimonials ══ */}
+            <section className="relative z-10 py-24 px-6 lg:px-12">
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-[#6366f1]/6 rounded-full blur-[120px] pointer-events-none" />
+                <div className="max-w-6xl mx-auto">
+                    <div className="text-center mb-16">
+                        <SectionLabel icon={MessageSquare} label="Student Stories" isDark={isDark} />
+                        <h2 className={`text-4xl sm:text-5xl font-bold tracking-tight leading-[1.1] mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                            Loved by <span className="bg-gradient-to-r from-[#6366f1] to-[#a855f7] bg-clip-text text-transparent">Students</span>
+                        </h2>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {TESTIMONIALS.map((t) => (
+                            <div key={t.name} className={`p-7 rounded-2xl border relative flex flex-col transition-all duration-300 ${cardBg}`}>
+                                {/* Stars */}
+                                <div className="flex gap-1 mb-5">
+                                    {Array.from({ length: t.stars }).map((_, i) => (
+                                        <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                                    ))}
+                                </div>
+                                {/* Big quote mark */}
+                                <div className="text-5xl font-serif leading-none text-indigo-400/20 mb-3 select-none">"</div>
+                                <p className={`text-[15px] leading-relaxed mb-6 flex-1 ${isDark ? 'text-gray-300' : 'text-slate-600'}`}>{t.quote}</p>
+                                <div className="flex items-center gap-3 pt-4 border-t border-white/5">
+                                    <div
+                                        className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
+                                        style={{ background: t.color }}
+                                    >
+                                        {t.avatar}
+                                    </div>
+                                    <div>
+                                        <div className={`font-semibold text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>{t.name}</div>
+                                        <div className={`text-xs ${textMuted}`}>{t.role}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            <Divider isDark={isDark} />
+
+            {/* ══ §9 From Zero to Industry-Ready — Accordion ══ */}
+            <section id="journey" className="relative z-10 py-28 px-6 lg:px-12">
                 <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-[#6366f1]/6 rounded-full blur-[120px] pointer-events-none" />
                 <div className="max-w-3xl mx-auto">
                     <div className="text-center mb-16">
@@ -419,16 +678,10 @@ export default function LandingPage() {
                                     key={s.step}
                                     className={`rounded-2xl border transition-all duration-300 overflow-hidden ${isOpen ? (isDark ? "bg-white/[0.06] border-[#6366f1]/40 shadow-lg" : "bg-white border-indigo-200 shadow-md") : (isDark ? "bg-white/[0.03] border-white/[0.07] hover:bg-white/[0.05]" : "bg-white border-slate-200 shadow-sm hover:border-indigo-100")}`}
                                 >
-                                    {/* Header row — always visible, clickable */}
-                                    <button
-                                        onClick={() => toggleStep(i)}
-                                        className="w-full flex items-center gap-5 p-6 text-left"
-                                    >
-                                        {/* Step number */}
+                                    <button onClick={() => toggleStep(i)} className="w-full flex items-center gap-5 p-6 text-left">
                                         <div className={`flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-lg transition-all duration-300 ${isOpen ? "bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] scale-105" : "bg-gradient-to-br from-[#6366f1]/60 to-[#8b5cf6]/60"}`}>
                                             {s.step}
                                         </div>
- 
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 mb-0.5">
                                                 <s.icon className={`w-4 h-4 flex-shrink-0 transition-colors ${isOpen ? "text-[#a78bfa]" : "text-[#818cf8]"}`} />
@@ -436,12 +689,8 @@ export default function LandingPage() {
                                             </div>
                                             <p className={`text-sm leading-relaxed ${textMuted}`}>{s.desc}</p>
                                         </div>
- 
-                                        {/* Chevron */}
                                         <ChevronDown className={`w-5 h-5 flex-shrink-0 transition-transform duration-300 ${isOpen ? "rotate-180 text-[#818cf8]" : "text-gray-500"}`} />
                                     </button>
- 
-                                    {/* Detail panel — animated */}
                                     <div className={`step-detail${isOpen ? " open" : ""}`}>
                                         <div className="step-detail-inner">
                                             <div className="px-6 pb-6 pt-0">
@@ -452,7 +701,7 @@ export default function LandingPage() {
                                         </div>
                                     </div>
                                 </div>
-                                );
+                            );
                         })}
                     </div>
                 </div>
@@ -467,7 +716,7 @@ export default function LandingPage() {
                         <div className="relative p-14 lg:p-20 text-center space-y-6">
                             <h2 className={`text-4xl lg:text-5xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Ready to start your journey?</h2>
                             <p className={`text-[17px] max-w-xl mx-auto ${textMuted}`}>Join thousands of learners mastering Computer Science with AI-powered guidance.</p>
-                            <Link to="/register" className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white font-semibold text-[15px] hover:shadow-2xl hover:shadow-lg/30 transition-all">
+                            <Link to="/register" className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white font-semibold text-[15px] hover:shadow-2xl transition-all">
                                 Get Started Free <ArrowRight className="w-4 h-4" />
                             </Link>
                         </div>
@@ -512,4 +761,3 @@ function TechBadge({ t, isDark }) {
         </span>
     );
 }
-

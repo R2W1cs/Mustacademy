@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
     GraduationCap, LayoutGrid, Network, BookOpen, Users, User,
     Sun, Moon, ChevronLeft, PanelLeftClose, PanelLeftOpen, Activity, Rocket,
-    Briefcase, FileText, Swords, Film
+    Briefcase, FileText, Swords, Film, X
 } from "lucide-react";
 import api from "../api/axios";
 import { useTheme } from "../auth/ThemeContext";
@@ -52,7 +52,7 @@ const StarParticles = () => {
 };
 
 
-export default function Sidebar({ isCollapsed, toggleSidebar }) {
+export default function Sidebar({ isCollapsed, toggleSidebar, mobileOpen = false, onMobileClose }) {
     const { theme, toggleTheme } = useTheme();
     const { logout } = useAuth();
     const isDark = theme === 'dark';
@@ -99,16 +99,30 @@ export default function Sidebar({ isCollapsed, toggleSidebar }) {
         <aside
             style={{
                 width: isCollapsed ? 80 : 256,
-                transition: 'width 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-                backdropFilter: 'blur(25px) saturate(160%)'
+                transition: 'width 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                backdropFilter: 'blur(25px) saturate(160%)',
+                // Mobile: fixed overlay, hidden by default, shown when mobileOpen
+                position: undefined,
             }}
-            className={`h-screen sticky top-0 z-40 ${sidebarClass} flex flex-col`}
+            className={`h-screen sticky top-0 z-40 ${sidebarClass} flex flex-col
+                md:static md:translate-x-0
+                max-md:fixed max-md:top-0 max-md:left-0 max-md:z-50
+                ${mobileOpen ? 'max-md:translate-x-0' : 'max-md:-translate-x-full'}`}
         >
             {isDark && <StarParticles />}
-            {/* Collapse Toggle Button */}
+            {/* Mobile close button */}
+            {mobileOpen && (
+                <button
+                    onClick={onMobileClose}
+                    className={`md:hidden absolute top-4 right-4 z-[70] w-8 h-8 rounded-xl flex items-center justify-center transition-all hover:bg-white/10 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}
+                >
+                    <X size={16} />
+                </button>
+            )}
+            {/* Collapse Toggle Button (desktop only) */}
             <button
                 onClick={toggleSidebar}
-                className={`absolute -right-3 top-20 w-6 h-6 rounded-full border ${isDark ? 'bg-gray-900 border-gray-700 text-purple-400' : 'bg-white border-gray-200 text-red-600'} flex items-center justify-center transition-all hover:scale-110 z-[60] shadow-md`}
+                className={`max-md:hidden absolute -right-3 top-20 w-6 h-6 rounded-full border ${isDark ? 'bg-gray-900 border-gray-700 text-purple-400' : 'bg-white border-gray-200 text-red-600'} flex items-center justify-center transition-all hover:scale-110 z-[60] shadow-md`}
             >
                 {isCollapsed ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
             </button>

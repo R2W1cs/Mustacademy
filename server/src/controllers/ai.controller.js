@@ -1,11 +1,12 @@
 import pool from "../config/db.js";
+import { cacheGet, cacheSet, cacheKey } from "../utils/aiCache.js";
 
 import { incrementStreak } from "../services/streak.service.js";
 import {
     PROFESSOR_THEORY_SYNTHESIS_PROMPT, PROFESSOR_PROGRAMMING_SYNTHESIS_PROMPT,
     PROFESSOR_THEORY_DEEP_PROMPT, PROFESSOR_PROGRAMMING_DEEP_PROMPT,
     FILLER_PROMPT, PROFESSOR_LECTURE_PROMPT, ELITE_PLAN_PROMPT,
-    BOARDROOM_SYSTEM_PROMPT, SCORECARD_PROMPT, RIGOROUS_QUIZ_PROMPT,
+    BOARDROOM_SYSTEM_PROMPT, SCORECARD_PROMPT, INTERVIEW_MODE_CONTEXTS, RIGOROUS_QUIZ_PROMPT,
     PROFESSOR_IQ_160_PROMPT, MASTERCLASS_EPISODE_PROMPT, ULTIMATE_PODCAST_PROMPT
 } from "../utils/aiRules.js";
 import { getNextPhase, updateInterviewSession, startInterviewSession } from "../services/interview.service.js";
@@ -17,6 +18,35 @@ import fs from 'fs';
 
 // In-memory cache for frequently requested TTS segments
 const ttsCache = new Map();
+
+// --- KNOWLEDGE BASE HELPER ---
+const KNOWLEDGE_BASE_DIR = path.join(process.cwd(), 'src', 'knowledge_base');
+
+const getKnowledgeBaseContent = (topicTitle) => {
+    if (!topicTitle) return null;
+    try {
+        // Precise filename matching
+        const fileName = `${topicTitle}.md`;
+        const filePath = path.join(KNOWLEDGE_BASE_DIR, fileName);
+        
+        if (fs.existsSync(filePath)) {
+            console.log(`[Knowledge Base] Hit: ${topicTitle}`);
+            return fs.readFileSync(filePath, 'utf8');
+        }
+        
+        // Fuzzy matching (if title contains special chars or is subset)
+        const files = fs.readdirSync(KNOWLEDGE_BASE_DIR);
+        const match = files.find(f => f.toLowerCase().includes(topicTitle.toLowerCase()) || topicTitle.toLowerCase().includes(f.toLowerCase().replace('.md', '')));
+        
+        if (match) {
+            console.log(`[Knowledge Base] Fuzzy Hit: ${match} for ${topicTitle}`);
+            return fs.readFileSync(path.join(KNOWLEDGE_BASE_DIR, match), 'utf8');
+        }
+    } catch (err) {
+        console.warn("[Knowledge Base] Error reading directory:", err.message);
+    }
+    return null;
+};
 
 // --- MOCK FALLBACK SYSTEM ---
 // Integrated via aiClient.js
@@ -43,7 +73,7 @@ const sanitizeMermaid = (mermaidCode) => {
 // --- ROBUST CONTROLLER LOGIC ---
 
 export const chatWithMentor = async (req, res) => {
-    const { message, conversationId } = req.body;
+    const { message, conversationId, topicId } = req.body;
     const userId = req.user.id;
 
     // Failsafe Wrapper
@@ -56,6 +86,7 @@ export const chatWithMentor = async (req, res) => {
         let detectedTopic = null;
         let questionCount = 0;
         let shouldForceExercise = false;
+        let scholarlyContext = "";
 
         try {
             const historyRes = await pool.query(
@@ -64,39 +95,80 @@ export const chatWithMentor = async (req, res) => {
             );
             history = historyRes.rows.reverse();
 
-            const topicRes = await pool.query(
-                "SELECT title, content FROM topics WHERE $1 ILIKE '%' || title || '%' AND content IS NOT NULL LIMIT 1",
-                [message]
-            );
+            if (topicId) {
+                const topicRes = await pool.query(
+                    "SELECT title, content_markdown as content FROM topics WHERE id = $1",
+                    [topicId]
+                );
+                if (topicRes.rows.length > 0) {
+                    context = `Context for ${topicRes.rows[0].title}: ${topicRes.rows[0].content}`;
+                    detectedTopic = topicRes.rows[0].title;
 
-            if (topicRes.rows.length > 0) {
-                context = `Context for ${topicRes.rows[0].title}: ${topicRes.rows[0].content}`;
-                detectedTopic = topicRes.rows[0].title;
+                    // User-uploaded vault resources for this topic
+                    const resourcesRes = await pool.query(
+                        `SELECT title, file_type, extracted_text FROM topic_resources
+                         WHERE topic_id = $1 AND user_id = $2 AND extracted_text IS NOT NULL
+                         ORDER BY created_at DESC LIMIT 5`,
+                        [topicId, userId]
+                    );
+                    if (resourcesRes.rows.length > 0) {
+                        scholarlyContext = "\n\n--- STUDENT VAULT RESOURCES ---\n" +
+                            resourcesRes.rows.map(r =>
+                                `[${r.file_type.toUpperCase()}] ${r.title}:\n${r.extracted_text.slice(0, 4000)}`
+                            ).join("\n\n---\n\n") +
+                            "\n--- END VAULT RESOURCES ---\n" +
+                            "\nCRITICAL: The student has uploaded these resources. Use them as authoritative context. When answering, reference these materials by name.";
+                    }
+                }
+            } else {
+                const topicRes = await pool.query(
+                    "SELECT title, content_markdown as content FROM topics WHERE $1 ILIKE '%' || title || '%' AND content_markdown IS NOT NULL LIMIT 1",
+                    [message]
+                );
+                if (topicRes.rows.length > 0) {
+                    context = `Context for ${topicRes.rows[0].title}: ${topicRes.rows[0].content}`;
+                    detectedTopic = topicRes.rows[0].title;
+                }
+            }
 
-                // Count consecutive questions on this topic
+            if (detectedTopic) {
                 const recentMessages = history.filter(h => h.role === 'user').slice(-5);
                 questionCount = recentMessages.filter(h =>
                     h.message.toLowerCase().includes(detectedTopic.toLowerCase())
                 ).length;
 
-                // Force exercise after 5 questions on same topic
-                if (questionCount >= 4) { // 4 previous + this one = 5 total
+                if (questionCount >= 4) {
                     shouldForceExercise = true;
-                    console.log(`[AI] Auto-Exercise Trigger: ${questionCount + 1} questions on ${detectedTopic}`);
                 }
             }
         } catch (dbErr) {
             console.warn("AI DB Context Error (Recoverable):", dbErr.message);
         }
 
+        // 1.5. Check High-Fidelity Knowledge Base
+        const kbContent = getKnowledgeBaseContent(detectedTopic);
+        if (kbContent) {
+            context = `--- HIGH-FIDELITY ARCHITECTURAL KNOWLEDGE BASE ---\n${kbContent}\n--- END KNOWLEDGE BASE ---`;
+            console.log(`[Dr. Nova] Using premium KB context for ${detectedTopic}`);
+        }
+
         // 2. Determine Complexity & Prepare Prompt
-        const isComplex = message.length > 50 || /explain|how|why|deep dive|protocol|architecture|design/i.test(message);
-        const dynamicInstruction = isComplex
-            ? "\n\n--- INSTRUCTION: Use the FULL Professor's Method for this specific topic to give the student the most elite, high-level perspective. Keep it extremely technical, research-backed, and direct. Dr. Nova, what do you think? \n\nDr. Nova: Well..."
-            : "\n\n--- INSTRUCTION: Provide a CONCISE, brilliant response. Skip the 9-point lecture structure. ---";
+        const isComplex = message.length > 30 || /explain|how|why|deep dive|protocol|architecture|design|breakdown|curriculum|technical|system|masterclass/i.test(message);
+        let dynamicInstruction = isComplex
+            ? "\n\n--- MANDATORY INSTRUCTION: The 'reply' field MUST contain the FULL lesson text (800+ words minimum). It MUST include ALL THREE: ① An algo-viz block — the opening fence MUST be written as three backticks followed by algo-viz (NOT json, NOT javascript, NOT mermaid — the tag must be algo-viz). JSON inside: {\"type\":\"bfs\",\"nodes\":[...],\"edges\":[...],\"steps\":[{\"highlight_nodes\":[],\"visited\":[],\"queue\":[],\"description\":\"\"}]}. ② Complete runnable JavaScript code (30+ lines) with console.log() output AND __step__(label, state) calls. ③ A markdown complexity table. Write directly in reply field. ---"
+            : "\n\n--- INSTRUCTION: Provide a concise but technically precise response in the reply field. ---";
+
+        if (kbContent) {
+            dynamicInstruction += "\n\nCRITICAL: A verified High-Fidelity Knowledge Base entry has been provided in the context. You MUST base your explanation ON THIS CONTENT. Use the terms, diagrams, and axioms defined in the KB. Specifically, you MUST perform a line-by-line technical autopsy of any code provided and walk through the iteration simulation step-by-step. Do not deviate from the technical truth provided.";
+        }
+
+        const historyText = history.map(h => `${h.role === 'user' ? 'Student' : 'Dr. Nova'}: ${h.message}`).join("\n");
+        const forceExerciseInstruction = shouldForceExercise 
+            ? "\n\nCRITICAL: The student has asked many questions on this. You MUST assign a mission now using the 'mission' field in your JSON response."
+            : "";
 
         const systemPrompt = PROFESSOR_IQ_160_PROMPT
-            .replace('{context}', context || "No specific topic context found.")
+            .replace('{context}', (context + scholarlyContext) || "No specific topic context found.")
             .replace('{history}', historyText || "No previous history.")
             + dynamicInstruction
             + (forceExerciseInstruction || '');
@@ -166,6 +238,27 @@ export const chatWithMentorStream = async (req, res) => {
             console.warn("[Stream AI] User Message Save Error:", dbErr.message);
         }
 
+        // 1.5. Check High-Fidelity Knowledge Base & Context
+        let context = "";
+        let detectedTopic = null;
+        try {
+            const topicRes = await pool.query(
+                "SELECT title FROM topics WHERE $1 ILIKE '%' || title || '%' AND (content_markdown IS NOT NULL OR content IS NOT NULL) LIMIT 1",
+                [message]
+            );
+            if (topicRes.rows.length > 0) {
+                detectedTopic = topicRes.rows[0].title;
+            }
+        } catch (dbErr) {
+            console.warn("[Stream AI] Topic Detection Error:", dbErr.message);
+        }
+
+        const kbContent = getKnowledgeBaseContent(detectedTopic);
+        if (kbContent) {
+            context = `--- HIGH-FIDELITY ARCHITECTURAL KNOWLEDGE BASE ---\n${kbContent}\n--- END KNOWLEDGE BASE ---`;
+            console.log(`[Stream AI] Using premium KB context for ${detectedTopic}`);
+        }
+
         // Header for SSE
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache');
@@ -173,12 +266,16 @@ export const chatWithMentorStream = async (req, res) => {
 
         // 2. Prepare Prompt (Simple version for streaming)
         const isComplex = message.length > 50 || /explain|how|why|deep dive|protocol|architecture|design/i.test(message);
-        const dynamicInstruction = isComplex
+        let dynamicInstruction = isComplex
             ? "\n--- INSTRUCTION: Use the FULL Professor's Method for this deep query. ---"
             : "\n--- INSTRUCTION: Provide a CONCISE, brilliant response. Skip the 9-point lecture structure. ---";
 
+        if (kbContent) {
+            dynamicInstruction += "\n\nCRITICAL: A verified High-Fidelity Knowledge Base entry has been provided in the context. You MUST base your explanation ON THIS CONTENT. Use the terms, diagrams, and axioms defined in the KB. Specifically, you MUST perform a line-by-line technical autopsy of any code provided and walk through the iteration simulation step-by-step. Do not deviate from the technical truth provided.";
+        }
+
         let systemPrompt = PROFESSOR_IQ_160_PROMPT
-            .replace('{context}', "Streaming session active.")
+            .replace('{context}', (context || "Streaming session active."))
             .replace('{history}', "Real-time protocol engaged.")
             + dynamicInstruction;
 
@@ -381,6 +478,14 @@ export const generateQuiz = async (req, res) => {
     const { topic } = req.body;
 
     try {
+        // Cache check — quizzes for same topic reuse within 15 min
+        const ck = cacheKey('quiz', topic);
+        const cached = cacheGet(ck);
+        if (cached) {
+            console.log(`[generateQuiz] Cache hit for "${topic}"`);
+            return res.json(cached);
+        }
+
         // --- STREAK SYSTEM ---
         await incrementStreak(userId).catch(e => console.warn("Streak increment failed:", e.message));
         // 1. Fetch Deep Context for Grounding
@@ -422,6 +527,7 @@ FAILURE VECTORS: ${topicData.failure_analysis}
             return res.json(getFallbackQuiz());
         }
 
+        cacheSet(ck, aiData, 15 * 60 * 1000); // 15 min TTL
         res.json(aiData);
     } catch (err) {
         console.error("Quiz Error", err);
@@ -696,24 +802,25 @@ export const deleteDailyPlan = async (req, res) => {
 
 export const startInterview = async (req, res) => {
     const userId = req.user.id;
-    const { targetJob, conversationId } = req.body;
+    const { targetJob, conversationId, mode = 'STANDARD' } = req.body;
 
     if (!targetJob || !conversationId) {
         return res.status(400).json({ message: "Target job and conversation ID required" });
     }
 
     try {
-        await startInterviewSession(userId, conversationId, targetJob);
+        await startInterviewSession(userId, conversationId, targetJob, mode);
 
         // Clear previous interview history for this user
         await pool.query("DELETE FROM chat_messages WHERE user_id = $1 AND chat_type = 'interview'", [userId]);
 
+        const modeContext = INTERVIEW_MODE_CONTEXTS[mode] || INTERVIEW_MODE_CONTEXTS.STANDARD;
         const systemPrompt = BOARDROOM_SYSTEM_PROMPT
             .replace('{target_job}', targetJob)
-            .replace('{context}', "First contact. High-Stakes Simulation.")
+            .replace('{context}', `${modeContext}\n\nFirst contact. High-Stakes Simulation.`)
             .replace('{history}', "Simulation Initialized.");
 
-        const aiData = await callAI(systemPrompt + `\n\nOrchestrator: The candidate has selected ${targetJob}. \n\nDirect Panel Command: Use your high-IQ capability to build a professional boardroom atmosphere. Set the stage, explain the protocol, and build initial rapport with the candidate before opening the floor for the INTRO phase. Do not jump straight to "Tell me about yourself".`);
+        const aiData = await callAI(systemPrompt + `\n\nOrchestrator: The candidate has selected ${targetJob}. Mode: ${mode}. \n\nDirect Panel Command: Use your high-IQ capability to build a professional boardroom atmosphere. Set the stage, explain the protocol, and build initial rapport with the candidate before opening the floor for the INTRO phase. Do not jump straight to "Tell me about yourself".`);
 
         // Save Initial AI Message
         await pool.query(
@@ -789,7 +896,10 @@ export const chatWithInterviewer = async (req, res) => {
             const evaluationPrompt = SCORECARD_PROMPT.replace('{target_job}', targetJob || 'Software Engineer');
             scorecard = await callAI(evaluationPrompt + `\n\nInterview Transcript:\n${historyText}`);
 
-            await pool.query("UPDATE interview_sessions SET is_completed = true WHERE id = $1", [conversationId]);
+            await pool.query(
+                "UPDATE interview_sessions SET is_completed = true, scorecard = $1 WHERE id = $2",
+                [JSON.stringify(scorecard), conversationId]
+            );
         }
 
         res.json({
@@ -805,6 +915,24 @@ export const chatWithInterviewer = async (req, res) => {
     } catch (err) {
         console.error("Interview Chat Error:", err);
         res.status(500).json({ message: "Interview system is momentarily unavailable.", error: err.message });
+    }
+};
+
+export const getInterviewHistory = async (req, res) => {
+    const userId = req.user.id;
+    try {
+        const result = await pool.query(
+            `SELECT id, target_job, mode, current_phase, is_completed, scorecard, created_at
+             FROM interview_sessions
+             WHERE user_id = $1
+             ORDER BY created_at DESC
+             LIMIT 20`,
+            [userId]
+        );
+        res.json({ sessions: result.rows });
+    } catch (err) {
+        console.error("Interview history error:", err);
+        res.status(500).json({ message: "Failed to load interview history" });
     }
 };
 
@@ -1085,6 +1213,13 @@ export const generateTopicExercises = async (req, res) => {
     const { topicTitle, topicId, mcqCount = 3, shortAnswerCount = 2 } = req.body;
     if (!topicTitle) return res.status(400).json({ message: 'Topic title required' });
 
+    const exCk = cacheKey('exercises', topicTitle, mcqCount, shortAnswerCount);
+    const exCached = cacheGet(exCk);
+    if (exCached) {
+        console.log(`[generateTopicExercises] Cache hit for "${topicTitle}"`);
+        return res.json(exCached);
+    }
+
     console.log(`[generateTopicExercises] Generating ${mcqCount} MCQs and ${shortAnswerCount} Short Answers for "${topicTitle}"...`);
 
     const isComplexityTopic = /complexity|asymptotic|big o|recurrence/i.test(topicTitle);
@@ -1134,7 +1269,7 @@ STRICT REQUIREMENTS:
         }
 
         console.log(`[generateTopicExercises] Success for "${topicTitle}" (${aiData.mcq?.length || 0} MCQs)`);
-        res.json({
+        const exResult = {
             success: true,
             exercises: {
                 mcq: aiData.mcq || [],
@@ -1146,7 +1281,9 @@ STRICT REQUIREMENTS:
                     solution_guide: "Focus on efficiency, scalability, and maintainability."
                 }
             }
-        });
+        };
+        cacheSet(exCk, exResult, 20 * 60 * 1000); // 20 min TTL
+        res.json(exResult);
     } catch (err) {
         console.error('[generateTopicExercises] Error:', err.message);
         res.status(500).json({ message: 'Synchronous Generation Failure', error: err.message });
@@ -1231,25 +1368,39 @@ export const generateTopicPodcast = async (req, res) => {
 };
 
 export const askPodcastQuestion = async (req, res) => {
-    const { topicTitle, question } = req.body;
+    const { topicTitle, question, history = [] } = req.body;
     if (!topicTitle || !question) return res.status(400).json({ message: 'Topic title and question required' });
+
+    // Cache first-time questions (no history) for 30 min — repeat students ask same basics
+    const pqCk = history.length === 0 ? cacheKey('podcastqa', topicTitle, question.toLowerCase().trim()) : null;
+    if (pqCk) {
+        const pqCached = cacheGet(pqCk);
+        if (pqCached) {
+            console.log(`[askPodcastQuestion] Cache hit for "${question}"`);
+            return res.json(pqCached);
+        }
+    }
 
     console.log(`[askPodcastQuestion] Answering question about "${topicTitle}": ${question}`);
 
-    const prompt = `You are "Dr. Aria" (Host) and "Prof. Nova" (Expert) co-hosting a podcast about "${topicTitle}".
-A student just asked this question during the live recording: "${question}"
-Answer the question directly, continuing your engaging, highly technical podcast persona.
-You can have both hosts chime in, but return just the plain text of your answer (e.g. "Dr. Aria: Great question! Prof. Nova, what do you think? \\n\\nProf. Nova: Well...").
-Keep it under 3 paragraphs.`;
+    const conversationContext = history.length > 0
+        ? `\n\nPrevious Q&A in this session:\n${history.map(m => `${m.role === 'user' ? 'Student' : 'Dr. Nova'}: ${m.text}`).join('\n')}\n`
+        : '';
+
+    const prompt = `You are "Dr. Nova", an expert CS professor who just finished hosting a podcast episode about "${topicTitle}".
+A student is asking follow-up questions about the episode content.${conversationContext}
+Student question: "${question}"
+
+Answer directly and technically. Be concise (2-3 paragraphs max). Use examples and real-world context.
+Respond with valid JSON in exactly this format:
+{"answer": "Your complete answer here as a single string"}`;
 
     try {
-        const aiData = await callAI(prompt, false);
-        res.json({
-            success: true,
-            // The AI might return JSON if callAI treats everything as JSON parsing by default. 
-            // In aiClient.js, callAI(prompt) expects JSON. Let's make sure askPodcastQuestion also asks for JSON to be safe since callAI might force it:
-            answer: aiData.reply || typeof aiData === 'string' ? aiData : JSON.stringify(aiData)
-        });
+        const aiData = await callAI(prompt, true);
+        const answer = aiData.answer || aiData.reply || "I couldn't process that question.";
+        const result = { success: true, answer };
+        if (pqCk) cacheSet(pqCk, result, 30 * 60 * 1000);
+        res.json(result);
     } catch (err) {
         console.error('[askPodcastQuestion] Error:', err.message);
         res.status(500).json({ message: 'Podcast Q&A Failure', error: err.message });
@@ -1402,7 +1553,7 @@ export const generatePodcastSpeech = async (req, res) => {
                 // Add a robust timeout for cloud synthesis
                 const buffer = await Promise.race([
                     tts.toBuffer(text),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error("Synthesis Timeout")), 12000))
+                    new Promise((_, reject) => setTimeout(() => reject(new Error("Synthesis Timeout")), 30000))
                 ]);
 
                 if (buffer && buffer.length > 500) return { buffer, voice };
@@ -1415,24 +1566,55 @@ export const generatePodcastSpeech = async (req, res) => {
 
     try {
         const voicesToUse = speaker === "host" ? hostVoices : expertVoices;
-        const { buffer, voice } = await trySynthesize(voicesToUse, text);
+        
+        // --- CHUNKED SYNTHESIS (Prevent 503 on long text) ---
+        const maxChunk = 1000;
+        let finalBuffer = Buffer.alloc(0);
+        let selectedVoice = voicesToUse[0];
+
+        if (text.length > maxChunk) {
+            console.log(`[Neural-TTS] Text too long (${text.length} chars), chunking...`);
+            const sentenceRegex = /[^.!?]+[.!?]+/g;
+            const sentences = text.match(sentenceRegex) || [text];
+            let currentChunk = "";
+            
+            for (const sentence of sentences) {
+                if ((currentChunk + sentence).length > maxChunk) {
+                    const { buffer, voice } = await trySynthesize(voicesToUse, currentChunk);
+                    finalBuffer = Buffer.concat([finalBuffer, buffer]);
+                    selectedVoice = voice;
+                    currentChunk = sentence;
+                } else {
+                    currentChunk += sentence;
+                }
+            }
+            if (currentChunk) {
+                const { buffer, voice } = await trySynthesize(voicesToUse, currentChunk);
+                finalBuffer = Buffer.concat([finalBuffer, buffer]);
+                selectedVoice = voice;
+            }
+        } else {
+            const { buffer, voice } = await trySynthesize(voicesToUse, text);
+            finalBuffer = buffer;
+            selectedVoice = voice;
+        }
 
         res.set({
             'Content-Type': 'audio/mpeg',
-            'Content-Length': buffer.length,
+            'Content-Length': finalBuffer.length,
             'Accept-Ranges': 'bytes',
-            'X-Neural-Voice': voice,
+            'X-Neural-Voice': selectedVoice,
             'X-Premium-Class': 'Neural-Human-Buffered',
             'Cache-Control': 'public, max-age=3600'
         });
 
-        res.send(buffer);
+        res.send(finalBuffer);
 
         // Cache for future
-        if (ttsCache.size < 500 && buffer.length > 500) {
-            ttsCache.set(cacheKey, buffer);
+        if (ttsCache.size < 500 && finalBuffer.length > 500) {
+            ttsCache.set(cacheKey, finalBuffer);
         }
-        console.log(`[Neural-TTS] SUCCESS: Premium ${voice} (Buffered) sent.`);
+        console.log(`[Neural-TTS] SUCCESS: Premium ${selectedVoice} (Chunked) sent.`);
 
     } catch (err) {
         console.error(`[Neural-TTS] TITAN FAIL: ${err.message}`);
@@ -1508,6 +1690,50 @@ export const generateMasterclassEpisode = async (req, res) => {
     })();
 };
 
+export const analyzeProject = async (req, res) => {
+    const { title, description, skills = [], memberCount = 1 } = req.body;
+    if (!title) return res.status(400).json({ message: 'Project title required' });
+
+    const prompt = `You are a senior software architect and startup advisor reviewing a student project.
+
+Project: "${title}"
+Description: "${description || 'No description provided'}"
+Required Skills: ${skills.length ? skills.join(', ') : 'Not specified'}
+Current Team Size: ${memberCount}
+
+Score the project 0-100 based on: clarity of scope, technical feasibility, team size vs complexity, and real-world relevance.
+Rubric: 0=vague/unrealistic, 40=weak, 60=average, 75=solid, 90=strong, 100=production-ready idea.
+
+Respond with EXACTLY this JSON object (no markdown, no extra text):
+{
+  "verdict": "one sharp sentence about this project's real-world potential",
+  "score": <your integer score 0-100>,
+  "stack": ["tech1", "tech2", "tech3", "tech4"],
+  "roles": [{"title": "Role Name", "reason": "why this role is critical now"}],
+  "sprints": [
+    {"week": "Week 1-2", "goal": "specific deliverable"},
+    {"week": "Week 3-4", "goal": "specific deliverable"},
+    {"week": "Week 5-6", "goal": "specific deliverable"}
+  ],
+  "risks": ["specific risk 1", "specific risk 2", "specific risk 3"]
+}`;
+
+    try {
+        const result = await callAI(prompt, true);
+        res.json({
+            verdict: result.verdict || 'Analysis complete.',
+            score: typeof result.score === 'number' ? result.score : 70,
+            stack: Array.isArray(result.stack) ? result.stack : [],
+            roles: Array.isArray(result.roles) ? result.roles : [],
+            sprints: Array.isArray(result.sprints) ? result.sprints : [],
+            risks: Array.isArray(result.risks) ? result.risks : []
+        });
+    } catch (err) {
+        console.error('[analyzeProject] Error:', err.message);
+        res.status(500).json({ message: 'Analysis failed', error: err.message });
+    }
+};
+
 export const getMasterclassEpisodes = async (req, res) => {
     try {
         const result = await pool.query("SELECT id, title, summary, part_number, chapter_number, video_url, published_at FROM masterclass_episodes ORDER BY part_number DESC");
@@ -1560,6 +1786,43 @@ Speak entirely naturally, warmly, and eloquently. Do not use structural markdown
     } catch (err) {
         console.error("Interactive Podcast Error:", err);
         return res.status(500).json({ success: false, message: "Failed to generate interactive response" });
+    }
+};
+
+// Dr. Nova — generate a spoken lecture for a topic (1-on-1 session opening)
+export const generateNovaLesson = async (req, res) => {
+    try {
+        const { topicTitle } = req.body;
+        if (!topicTitle) return res.status(400).json({ success: false, message: "topicTitle required" });
+
+        console.log(`[Dr. Nova] Generating lesson for: "${topicTitle}"`);
+
+        const prompt = `You are Dr. Nova, a world-class computer science professor delivering a private spoken lecture on "${topicTitle}".
+
+Write a lesson that sounds completely natural when spoken aloud. No markdown, no asterisks, no bullet points, no headers, no code blocks — only natural spoken prose.
+
+Write exactly 4 paragraphs separated by a blank line:
+1. Hook — Open with a compelling statement about why this topic matters in real systems.
+2. Core Concept — Explain what it is in plain language. Use one concrete analogy.
+3. How It Works — Walk through the mechanics step by step, as if explaining to someone sitting across from you.
+4. Real World and Invitation — Describe where this is used in production. End with a warm invitation for the student to ask questions.
+
+Keep each paragraph to 2 to 4 sentences. Write for the ear, not the eye. Speak directly to the student using "you".`;
+
+        const completion = await groq.chat.completions.create({
+            messages: [{ role: "user", content: prompt }],
+            model: "llama3-70b-8192",
+            temperature: 0.72,
+            max_tokens: 550
+        });
+
+        const lesson = completion.choices[0].message.content.trim();
+        const paragraphs = lesson.split(/\n\n+/).map(p => p.trim()).filter(p => p.length > 20);
+
+        return res.json({ success: true, lesson, paragraphs });
+    } catch (err) {
+        console.error("Nova Lesson Error:", err);
+        return res.status(500).json({ success: false, message: "Failed to generate lesson" });
     }
 };
 

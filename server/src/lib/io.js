@@ -1,5 +1,8 @@
 import { Server } from "socket.io";
+import jwt from "jsonwebtoken";
 import MultiplayerGameManager from "./MultiplayerGameManager.js";
+import pool from "../config/db.js";
+import logger from "../utils/logger.js";
 
 let io;
 let gameManager;
@@ -29,21 +32,32 @@ export const initIo = (server) => {
     gameManager = new MultiplayerGameManager(io);
 
     io.on("connection", (socket) => {
-        console.log(`[SOCKET] User connected: ${socket.id}`);
+        logger.info(`[SOCKET] User connected: ${socket.id}`);
 
         socket.on("authenticate", (data) => {
-            const userId = typeof data === 'object' ? data.userId : data;
-            const userName = typeof data === 'object' ? data.userName : "Scholar";
+            const token = typeof data === 'object' ? data.token : null;
+            const userName = (typeof data === 'object' ? data.userName : null) || "Scholar";
 
-            if (userId) {
+            if (!token) {
+                socket.emit("auth_error", { message: "No token provided" });
+                return;
+            }
+
+            try {
+                const decoded = jwt.verify(token, process.env.JWT_SECRET);
+                const userId = String(decoded.id);
+                socket.data.userId = userId;
+                socket.data.userName = userName;
+
                 socket.join(`user_${userId}`);
                 gameManager.setOnline(userId, socket.id, userName);
 
-                // Immediately send current list to this user
                 const users = Array.from(gameManager.onlineUsers.entries()).map(([id, u]) => ({ id, name: u.userName }));
                 socket.emit("online_users_update", users);
 
-                console.log(`[SOCKET] User ${userId} (${userName}) authenticated and online.`);
+                logger.info(`[SOCKET] User ${userId} (${userName}) authenticated.`);
+            } catch {
+                socket.emit("auth_error", { message: "Invalid token" });
             }
         });
 
@@ -79,12 +93,22 @@ export const initIo = (server) => {
             gameManager.toggleReady(roomId, userId);
         });
 
-        socket.on("start_quiz", ({ roomId, userId }) => {
+        socket.on("start_quiz", ({ roomId, userId, config }) => {
             try {
-                gameManager.startGame(roomId, userId);
+                gameManager.startGame(roomId, userId, config || {});
             } catch (err) {
                 socket.emit("error", { message: err.message });
             }
+        });
+
+        socket.on("match_chat", ({ roomId, text }) => {
+            const userName = socket.data.userName || 'Scholar';
+            if (!roomId || !text?.trim()) return;
+            io.to(`room_${roomId}`).emit("match_chat", {
+                userName,
+                text: text.trim(),
+                ts: Date.now()
+            });
         });
 
         socket.on("submit_quiz_answer", ({ roomId, userId, answerIndex }) => {
@@ -105,7 +129,7 @@ export const initIo = (server) => {
         });
 
         socket.on("send_invitation", ({ targetUserId, senderName, roomId, topic }) => {
-            console.log(`[SOCKET] Invitation from ${senderName} to ${targetUserId} for room ${roomId}`);
+            logger.info(`[SOCKET] Invitation from ${senderName} to ${targetUserId} for room ${roomId}`);
             emitToUser(targetUserId, "receive_invitation", {
                 senderName,
                 roomId,
@@ -113,9 +137,41 @@ export const initIo = (server) => {
             });
         });
 
+        // --- SQUAD CHAT EVENTS ---
+
+        socket.on("join_squad_room", ({ projectId }) => {
+            if (!projectId || !socket.data.userId) return;
+            socket.join(`squad_${projectId}`);
+            socket.to(`squad_${projectId}`).emit("squad_user_joined", {
+                userId: socket.data.userId,
+                userName: socket.data.userName
+            });
+        });
+
+        socket.on("squad_message", async ({ projectId, text }) => {
+            const userId = socket.data.userId;
+            const userName = socket.data.userName || 'Scholar';
+            if (!userId || !projectId || !text?.trim()) return;
+            const msg = { userId, userName, text: text.trim(), ts: Date.now() };
+            io.to(`squad_${projectId}`).emit("squad_message", msg);
+            try {
+                await pool.query(
+                    'INSERT INTO squad_messages (project_id, user_id, user_name, text) VALUES ($1, $2, $3, $4)',
+                    [projectId, userId, userName, text.trim()]
+                );
+            } catch (err) {
+                logger.error('[SOCKET] Failed to persist squad message:', { err: err.message });
+            }
+        });
+
+        socket.on("leave_squad_room", ({ projectId }) => {
+            if (!projectId) return;
+            socket.leave(`squad_${projectId}`);
+        });
+
         socket.on("disconnect", () => {
             gameManager.removeOnline(socket.id);
-            console.log(`[SOCKET] User disconnected: ${socket.id}`);
+            logger.info(`[SOCKET] User disconnected: ${socket.id}`);
         });
     });
 

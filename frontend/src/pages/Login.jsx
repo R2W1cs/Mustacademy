@@ -3,9 +3,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "../api/axios";
 import { Mail, Lock, Check, AlertCircle, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { useTheme } from "../auth/ThemeContext";
 
 // Floating Particles Component
-const FloatingParticles = () => {
+const FloatingParticles = ({ isDark }) => {
   const particles = Array.from({ length: 50 }, (_, i) => ({
     id: i,
     size: Math.random() * 4 + 2,
@@ -20,7 +21,7 @@ const FloatingParticles = () => {
       {particles.map((particle) => (
         <motion.div
           key={particle.id}
-          className="absolute rounded-full bg-white/20"
+          className={`absolute rounded-full ${isDark ? 'bg-white/20' : 'bg-black/10'}`}
           style={{
             width: particle.size,
             height: particle.size,
@@ -45,7 +46,7 @@ const FloatingParticles = () => {
 };
 
 // Animated Input Component
-const AnimatedInput = ({ type = "text", placeholder, value, onChange }) => {
+const AnimatedInput = ({ type = "text", placeholder, value, onChange, isDark }) => {
   const [isFocused, setIsFocused] = useState(false);
   const [hasValue, setHasValue] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -65,17 +66,17 @@ const AnimatedInput = ({ type = "text", placeholder, value, onChange }) => {
         onChange={onChange}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
-        className="w-full px-6 py-4 bg-white/10 border-2 border-white/20 rounded-2xl text-white placeholder-transparent focus:border-gold focus:bg-white/15 transition-all duration-300 outline-none backdrop-blur-xl pr-14"
+        className={`w-full px-6 py-4 border-2 rounded-2xl transition-all duration-300 outline-none backdrop-blur-xl pr-14 ${isDark ? 'bg-white/10 border-white/20 text-white placeholder-transparent focus:border-gold focus:bg-white/15' : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-transparent focus:border-blue-500 focus:bg-white shadow-sm'}`}
         placeholder={placeholder}
       />
 
       <motion.label
-        className="absolute left-6 text-white/60 pointer-events-none font-medium"
+        className={`absolute left-6 pointer-events-none font-medium ${isDark ? 'text-white/60' : 'text-gray-500'}`}
         animate={{
           top: isFocused || hasValue ? "0.5rem" : "50%",
           translateY: isFocused || hasValue ? "0" : "-50%",
           fontSize: isFocused || hasValue ? "0.75rem" : "1rem",
-          color: isFocused ? "#FFD700" : "rgba(255, 255, 255, 0.6)",
+          color: isFocused ? (isDark ? "#FFD700" : "#3b82f6") : (isDark ? "rgba(255, 255, 255, 0.6)" : "rgba(107, 114, 128, 0.8)"),
         }}
         transition={{ duration: 0.2 }}
       >
@@ -86,7 +87,7 @@ const AnimatedInput = ({ type = "text", placeholder, value, onChange }) => {
         <button
           type="button"
           onClick={() => setShowPassword(!showPassword)}
-          className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-white/40 hover:text-gold transition-colors block"
+          className={`absolute right-4 top-1/2 -translate-y-1/2 p-2 transition-colors block ${isDark ? 'text-white/40 hover:text-[#FFD700]' : 'text-gray-400 hover:text-blue-500'}`}
         >
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
@@ -102,10 +103,10 @@ const AnimatedInput = ({ type = "text", placeholder, value, onChange }) => {
         </button>
       ) : (
         <motion.div
-          className="absolute right-4 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-white/40"
+          className={`absolute right-4 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full ${isDark ? 'bg-white/40' : 'bg-black/20'}`}
           animate={{
             scale: isFocused ? [1, 1.5, 1] : 1,
-            backgroundColor: isFocused ? "#FFD700" : "rgba(255, 255, 255, 0.4)",
+            backgroundColor: isFocused ? (isDark ? "#FFD700" : "#3b82f6") : (isDark ? "rgba(255, 255, 255, 0.4)" : "rgba(0, 0, 0, 0.2)"),
           }}
           transition={{ duration: 0.3 }}
         />
@@ -124,6 +125,8 @@ const Login = () => {
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotSuccess, setForgotSuccess] = useState(false);
   const navigate = useNavigate();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
 
   const submit = async (e) => {
     e.preventDefault();
@@ -179,14 +182,14 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-[#0a0e1a] via-[#1a1f35] to-[#0f1729]">
+    <div className={`min-h-screen relative overflow-hidden transition-colors duration-500 ${isDark ? 'bg-gradient-to-br from-[#0a0e1a] via-[#1a1f35] to-[#0f1729]' : 'bg-gradient-to-br from-gray-50 via-white to-gray-100'}`}>
       {/* Animated Background */}
-      <FloatingParticles />
+      <FloatingParticles isDark={isDark} />
 
       {/* Gradient Orbs */}
-      <div className="absolute top-0 left-0 w-96 h-96 bg-indigo-500/30 rounded-full blur-[120px] animate-pulse" />
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-500/30 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: "1s" }} />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-[#FFD700]/20 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: "2s" }} />
+      <div className={`absolute top-0 left-0 w-96 h-96 rounded-full blur-[120px] animate-pulse ${isDark ? 'bg-indigo-500/30' : 'bg-blue-400/20'}`} />
+      <div className={`absolute bottom-0 right-0 w-96 h-96 rounded-full blur-[120px] animate-pulse ${isDark ? 'bg-purple-500/30' : 'bg-purple-400/20'}`} style={{ animationDelay: "1s" }} />
+      <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full blur-[120px] animate-pulse ${isDark ? 'bg-[#FFD700]/20' : 'bg-yellow-400/20'}`} style={{ animationDelay: "2s" }} />
 
       {/* Content */}
       <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
@@ -197,24 +200,24 @@ const Login = () => {
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
-            className="hidden lg:block text-white space-y-8"
+            className={`hidden lg:block space-y-8 ${isDark ? 'text-white' : 'text-gray-900'}`}
           >
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              <h1 className="text-7xl font-black tracking-tighter mb-4 bg-gradient-to-r from-white via-indigo-200 to-purple-200 bg-clip-text text-transparent">
+              <h1 className={`text-7xl font-black tracking-tighter mb-4 bg-gradient-to-r ${isDark ? 'from-white via-indigo-200 to-purple-200' : 'from-gray-900 via-indigo-800 to-purple-900'} bg-clip-text text-transparent`}>
                 Must Academy
               </h1>
-              <div className="h-1 w-32 bg-gradient-to-r from-[#FFD700] to-transparent rounded-full" />
+              <div className={`h-1 w-32 bg-gradient-to-r ${isDark ? 'from-[#FFD700]' : 'from-blue-500'} to-transparent rounded-full`} />
             </motion.div>
 
             <motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="text-xl text-white/70 leading-relaxed max-w-md font-medium"
+              className={`text-xl leading-relaxed max-w-md font-medium ${isDark ? 'text-white/70' : 'text-gray-600'}`}
             >
               A precision-engineered platform for dedicated scholars. Master computer science through intelligent curriculum design and AI-powered mentorship.
             </motion.p>
@@ -230,9 +233,9 @@ const Login = () => {
                 { label: "AI Mentors" },
                 { label: "Track Progress" },
               ].map((item, idx) => (
-                <div key={idx} className="flex items-center gap-3 bg-white/5 backdrop-blur-xl px-4 py-3 rounded-2xl border border-white/10">
-                  <div className="w-2 h-2 rounded-full bg-gradient-to-r from-[#FFD700] to-[#FDB931]" />
-                  <span className="text-sm font-bold text-white/80">{item.label}</span>
+                <div key={idx} className={`flex items-center gap-3 backdrop-blur-xl px-4 py-3 rounded-2xl border ${isDark ? 'bg-white/5 border-white/10' : 'bg-white/80 border-gray-100 shadow-sm'}`}>
+                  <div className={`w-2 h-2 rounded-full bg-gradient-to-r ${isDark ? 'from-[#FFD700] to-[#FDB931]' : 'from-blue-500 to-indigo-500'}`} />
+                  <span className={`text-sm font-bold ${isDark ? 'text-white/80' : 'text-gray-700'}`}>{item.label}</span>
                 </div>
               ))}
             </motion.div>
@@ -245,8 +248,8 @@ const Login = () => {
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
             <motion.div
-              className="bg-white/10 backdrop-blur-2xl rounded-[2.5rem] p-10 border border-white/20 shadow-2xl"
-              whileHover={{ boxShadow: "0 0 60px rgba(255, 215, 0, 0.2)" }}
+              className={`backdrop-blur-2xl rounded-[2.5rem] p-10 border shadow-2xl ${isDark ? 'bg-white/10 border-white/20' : 'bg-white/80 border-white/50'}`}
+              whileHover={{ boxShadow: isDark ? "0 0 60px rgba(255, 215, 0, 0.2)" : "0 0 60px rgba(59, 130, 246, 0.15)" }}
               transition={{ duration: 0.3 }}
             >
               <div className="text-center mb-8">
@@ -254,7 +257,7 @@ const Login = () => {
                   initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 }}
-                  className="text-4xl font-black text-white mb-2 tracking-tight"
+                  className={`text-4xl font-black mb-2 tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}
                 >
                   Welcome Back
                 </motion.h2>
@@ -262,7 +265,7 @@ const Login = () => {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.4 }}
-                  className="text-white/60 font-medium"
+                  className={`font-medium ${isDark ? 'text-white/60' : 'text-gray-500'}`}
                 >
                   Sign in to continue your scholarly journey
                 </motion.p>
@@ -274,6 +277,7 @@ const Login = () => {
                   placeholder="Email Address"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  isDark={isDark}
                 />
 
                 <AnimatedInput
@@ -281,13 +285,14 @@ const Login = () => {
                   placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  isDark={isDark}
                 />
 
                 <div className="flex justify-end">
                   <button
                     type="button"
                     onClick={() => setShowForgotPassword(true)}
-                    className="text-sm text-[#FFD700] hover:text-[#FDB931] font-medium transition-colors"
+                    className={`text-sm font-medium transition-colors ${isDark ? 'text-[#FFD700] hover:text-[#FDB931]' : 'text-blue-600 hover:text-blue-700'}`}
                   >
                     Forgot Password?
                   </button>
@@ -299,7 +304,7 @@ const Login = () => {
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
-                      className="bg-rose-500/20 border border-rose-500/50 text-rose-200 px-4 py-3 rounded-xl text-sm font-medium"
+                      className={`border px-4 py-3 rounded-xl text-sm font-medium ${isDark ? 'bg-rose-500/20 border-rose-500/50 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-600'}`}
                     >
                       {error}
                     </motion.div>
@@ -309,14 +314,14 @@ const Login = () => {
                 <motion.button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full py-4 rounded-2xl font-black text-lg uppercase tracking-wider bg-gradient-to-r from-[#FFD700] to-[#FDB931] text-black hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`w-full py-4 rounded-2xl font-black text-lg uppercase tracking-wider transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${isDark ? 'bg-gradient-to-r from-[#FFD700] to-[#FDB931] text-black hover:shadow-lg' : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:shadow-xl'}`}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
                   {isLoading ? (
                     <span className="flex items-center justify-center gap-2">
                       <motion.div
-                        className="w-5 h-5 border-3 border-black border-t-transparent rounded-full"
+                        className={`w-5 h-5 border-3 border-t-transparent rounded-full ${isDark ? 'border-black' : 'border-white'}`}
                         animate={{ rotate: 360 }}
                         transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                       />
@@ -328,11 +333,11 @@ const Login = () => {
                 </motion.button>
 
                 <div className="text-center pt-4">
-                  <p className="text-white/60 text-sm font-medium">
+                  <p className={`text-sm font-medium ${isDark ? 'text-white/60' : 'text-gray-500'}`}>
                     New to the Academy?{" "}
                     <Link
                       to="/register"
-                      className="text-[#FFD700] font-bold hover:text-[#FDB931] transition-colors"
+                      className={`font-bold transition-colors ${isDark ? 'text-[#FFD700] hover:text-[#FDB931]' : 'text-blue-600 hover:text-blue-700'}`}
                     >
                       Create Account
                     </Link>
@@ -359,10 +364,10 @@ const Login = () => {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white/10 backdrop-blur-2xl rounded-[2rem] p-8 border border-white/20 shadow-2xl max-w-md w-full"
+              className={`backdrop-blur-2xl rounded-[2rem] p-8 border shadow-2xl max-w-md w-full ${isDark ? 'bg-white/10 border-white/20' : 'bg-white border-gray-100'}`}
             >
-              <h3 className="text-2xl font-black text-white mb-2">Reset Password</h3>
-              <p className="text-white/60 text-sm mb-6">
+              <h3 className={`text-2xl font-black mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>Reset Password</h3>
+              <p className={`text-sm mb-6 ${isDark ? 'text-white/60' : 'text-gray-500'}`}>
                 Enter your Must Education email address and we'll send you a password reset link.
               </p>
 
@@ -372,13 +377,14 @@ const Login = () => {
                   placeholder="Email Address (@musteducation.tn)"
                   value={forgotEmail}
                   onChange={(e) => setForgotEmail(e.target.value)}
+                  isDark={isDark}
                 />
 
                 {forgotSuccess && (
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="mb-6 bg-emerald-500/20 border border-emerald-500/50 text-emerald-200 px-4 py-3 rounded-xl text-sm font-medium"
+                    className={`mb-6 border px-4 py-3 rounded-xl text-sm font-medium ${isDark ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}
                   >
                     ✓ Password reset mail sent
                   </motion.div>
@@ -389,14 +395,14 @@ const Login = () => {
                     type="button"
                     onClick={() => setShowForgotPassword(false)}
                     disabled={forgotLoading}
-                    className="flex-1 py-3 rounded-xl font-bold bg-white/10 text-white hover:bg-white/20 transition-all disabled:opacity-50"
+                    className={`flex-1 py-3 rounded-xl font-bold transition-all disabled:opacity-50 ${isDark ? 'bg-white/10 text-white hover:bg-white/20' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={forgotLoading || forgotSuccess}
-                    className="flex-1 py-3 rounded-xl font-bold bg-gradient-to-r from-[#FFD700] to-[#FDB931] text-black hover:shadow-lg transition-all disabled:opacity-50"
+                    className={`flex-1 py-3 rounded-xl font-bold transition-all disabled:opacity-50 ${isDark ? 'bg-gradient-to-r from-[#FFD700] to-[#FDB931] text-black hover:shadow-lg' : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:shadow-xl'}`}
                   >
                     {forgotLoading ? "Sending..." : "Send Reset Link"}
                   </button>
@@ -411,4 +417,3 @@ const Login = () => {
 };
 
 export default Login;
-

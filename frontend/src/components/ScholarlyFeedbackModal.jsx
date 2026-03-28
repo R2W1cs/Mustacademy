@@ -7,9 +7,11 @@ const ScholarlyFeedbackModal = ({ videoData, isOwner, onUpdate, onClose }) => {
     const [feedbacks, setFeedbacks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [submitLoading, setSubmitLoading] = useState(false);
-    const [feedbackText, setFeedbackText] = useState(isOwner ? (videoData.uploader_note || "") : "");
+    const [feedbackText, setFeedbackText] = useState(isOwner ? (videoData?.uploader_note || "") : "");
     const [rating, setRating] = useState(5);
-    const [isPublic, setIsPublic] = useState(videoData.is_public !== false);
+    const [isPublic, setIsPublic] = useState(videoData?.is_public !== false);
+
+    if (!videoData) return null;
     const [error, setError] = useState(null);
 
     useEffect(() => {

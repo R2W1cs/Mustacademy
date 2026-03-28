@@ -5,7 +5,7 @@ import { io } from "socket.io-client";
 import { getMyProfile } from "../api/profile";
 import { getMyContributions } from "../api/contributions";
 import { useTheme } from "../auth/ThemeContext";
-import { Sun, Moon, Bell, CheckCircle, Info, MessageSquare, ThumbsUp } from "lucide-react";
+import { Sun, Moon, Bell, MessageSquare, ThumbsUp, Search, Menu } from "lucide-react";
 import api from "../api/axios";
 
 const Navbar = () => {
@@ -31,6 +31,9 @@ const Navbar = () => {
             setProfile(profileRes.data);
             setContrib(contribRes.data);
             setNotifications(notifRes.data);
+            if (profileRes.data?.plan) {
+                localStorage.setItem('userPlan', profileRes.data.plan);
+            }
         } catch (err) {
             console.error("Navbar fetch error:", err);
         }
@@ -85,8 +88,15 @@ const Navbar = () => {
             <div className={`absolute inset-0 backdrop-blur-xl border-b transition-colors duration-300 shadow-lg ${isDark ? 'bg-[#0a0e1a]/80 border-white/10' : 'bg-white/80 border-gray-100'}`}></div>
 
             <div className="relative max-w-7xl mx-auto px-6 h-24 grid grid-cols-3 items-center">
-                {/* LEFT — LOGO */}
+                {/* LEFT — LOGO + mobile hamburger */}
                 <div className="justify-self-start flex items-center gap-4">
+                    <button
+                        className={`md:hidden p-2 rounded-xl transition-all ${isDark ? 'hover:bg-white/10 text-slate-400' : 'hover:bg-slate-100 text-slate-600'}`}
+                        onClick={() => window.dispatchEvent(new CustomEvent('open-mobile-nav'))}
+                        aria-label="Open navigation"
+                    >
+                        <Menu size={20} />
+                    </button>
                     <motion.div
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
@@ -103,14 +113,18 @@ const Navbar = () => {
                 {/* CENTER — NAV LINKS */}
                 <nav className={`flex gap-2 justify-center p-1.5 rounded-full border backdrop-blur-md transition-colors ${isDark ? 'bg-white/5 border-white/10' : 'bg-white/60 border-gray-100 shadow-sm'}`}>
                     {[
-                        { tag: "Home", path: "/" },
-                        { tag: "Library", path: "/library" }
+                        { tag: "Home", path: "/dashboard" },
+                        { tag: "Library", path: "/library" },
+                        { tag: "Arena", path: "/arena" },
+                        { tag: "Career", path: "/career" },
+                        { tag: "Boardroom", path: "/interview-boardroom" },
+                        { tag: "Market", path: "/market" },
                     ].map((link) => (
                         <NavLink
                             key={link.path}
                             to={link.path}
                             className={({ isActive }) =>
-                                `relative px-8 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-300 ${isActive
+                                `relative px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-300 ${isActive
                                     ? "text-white"
                                     : isDark ? "text-white/60 hover:text-white" : "text-slate-500 hover:text-slate-900"
                                 }`
@@ -134,6 +148,18 @@ const Navbar = () => {
 
                 {/* RIGHT — PROFILE */}
                 <div className="justify-self-end flex items-center gap-4">
+                    {/* Search */}
+                    <button
+                        onClick={() => window.dispatchEvent(new CustomEvent('open-command-palette'))}
+                        className={`p-2.5 rounded-full border transition-all duration-300 flex items-center gap-2 ${isDark ? 'bg-white/5 border-white/10 text-white/50 hover:text-white hover:bg-white/10' : 'bg-slate-100 border-slate-200 text-slate-400 hover:bg-slate-200'}`}
+                        title="Search (Ctrl+K)"
+                    >
+                        <Search size={16} />
+                        <span className={`hidden lg:flex items-center gap-1 text-[9px] font-black border rounded px-1 py-0.5 ${isDark ? 'border-white/10 text-white/20' : 'border-slate-300 text-slate-300'}`}>
+                            <span>⌘</span><span>K</span>
+                        </span>
+                    </button>
+
                     {/* Notifications */}
                     <div className="relative">
                         <button

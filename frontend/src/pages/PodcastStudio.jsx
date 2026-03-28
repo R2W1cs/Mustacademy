@@ -3,7 +3,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
     Play, Pause, Info, Search, Loader2, Sparkles, Send,
     SkipBack, SkipForward, Film, Volume2, BookOpen, Cpu, Database,
-    Network, Code, Binary, Brain, Globe, Shield, GitBranch, ChevronDown, X
+    Network, Code, Binary, Brain, Globe, Shield, GitBranch, ChevronDown, X,
+    MessageCircle
 } from "lucide-react";
 import api from "../api/axios";
 import { useTheme } from "../auth/ThemeContext";
@@ -137,13 +138,43 @@ export default function CsPodcastStudio() {
     const [expandedChapter, setExpandedChapter] = useState(null);
     const [searchFocused, setSearchFocused] = useState(false);
     const [showAbout, setShowAbout] = useState(false);
+    const [videoFailed, setVideoFailed] = useState(false);
 
     const [masterclassEpisodes, setMasterclassEpisodes] = useState([]);
     const [mcTitle, setMcTitle] = useState("");
     const [mcTheme, setMcTheme] = useState("");
     const [generatingMasterclass, setGeneratingMasterclass] = useState(false);
 
+    const [isAudioPrimed, setIsAudioPrimed] = useState(false);
     const audioRef = useRef(null);
+
+    // Q&A state
+    const [qaMessages, setQaMessages] = useState([]);
+    const [qaInput, setQaInput] = useState('');
+    const [qaLoading, setQaLoading] = useState(false);
+    const qaEndRef = useRef(null);
+
+    // Prime Audio Engine on First Interaction
+    useEffect(() => {
+        const primeAudio = async () => {
+            if (isAudioPrimed) return;
+            const silent = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA== ");
+            try {
+                await silent.play();
+                setIsAudioPrimed(true);
+                window.removeEventListener('click', primeAudio);
+                window.removeEventListener('keydown', primeAudio);
+            } catch (e) {
+                console.warn("[Podcast-Studio] Priming awaiting interaction...");
+            }
+        };
+        window.addEventListener('click', primeAudio);
+        window.addEventListener('keydown', primeAudio);
+        return () => {
+            window.removeEventListener('click', primeAudio);
+            window.removeEventListener('keydown', primeAudio);
+        };
+    }, [isAudioPrimed]);
 
     useEffect(() => {
         const loadTopics = async () => {
@@ -169,16 +200,22 @@ export default function CsPodcastStudio() {
                 audioRef.current.pause();
                 audioRef.current = null;
             }
-            if (window.speechSynthesis.speaking) {
-                window.speechSynthesis.cancel();
-            }
         };
 
         if (!isPlaying || !episode) { stopAudio(); return; }
 
         const playSegment = async () => {
+            if (!episode) return;
+            
+            // If it's a video episode, we don't handle neural segments. 
+            // The video component handles its own playback.
+            if (episode.video_url && !videoFailed) {
+                return;
+            }
+
             const currentIdx = activeSegment;
-            const segment = episode.segments[currentIdx];
+            const segments = episode.segments || [];
+            const segment = segments[currentIdx];
             if (!segment) return;
 
             const speaker = segment.speaker; // 'host' or 'expert'
@@ -186,9 +223,6 @@ export default function CsPodcastStudio() {
             try {
                 const apiBase = (import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : 'https://mustacademy-backend.onrender.com/api')).replace('/api', '');
                 
-                // If it's a video episode, we don't handle segments via neural link here
-                if (episode.video_url) return;
-
                 const nextIdx = currentIdx + 1;
                 if (nextIdx < episode.segments.length) {
                     const nextSeg = episode.segments[nextIdx];
@@ -214,6 +248,33 @@ export default function CsPodcastStudio() {
                 const audio = new Audio(url);
                 audioRef.current = audio;
 
+                const fallbackToServerTTS = async () => {
+                    console.warn(`[Podcast-Audio] Neural fallback triggered for ${speaker}. Using server TTS.`);
+                    try {
+                        const voice = speaker === 'host' ? 'en-US-GuyNeural' : 'en-US-GuyNeural';
+                        const resp = await api.post('/tts', { text: segment.text, voice }, { responseType: 'blob' });
+                        if (!resp.data || resp.data.size < 500) throw new Error('Empty TTS response');
+                        const blobUrl = URL.createObjectURL(resp.data);
+                        const fallbackAudio = new Audio(blobUrl);
+                        audioRef.current = fallbackAudio;
+                        fallbackAudio.onended = () => {
+                            URL.revokeObjectURL(blobUrl);
+                            if (activeSegment < episode.segments.length - 1) setActiveSegment(prev => prev + 1);
+                            else setIsPlaying(false);
+                        };
+                        fallbackAudio.onerror = () => {
+                            URL.revokeObjectURL(blobUrl);
+                            if (activeSegment < episode.segments.length - 1) setActiveSegment(prev => prev + 1);
+                            else setIsPlaying(false);
+                        };
+                        await fallbackAudio.play();
+                    } catch (ttsErr) {
+                        console.error("[Podcast-Audio] Server TTS fallback failed:", ttsErr);
+                        if (activeSegment < episode.segments.length - 1) setActiveSegment(prev => prev + 1);
+                        else setIsPlaying(false);
+                    }
+                };
+
                 audio.onended = () => {
                     if (window._podcastAudioCache) delete window._podcastAudioCache[currentIdx];
                     if (activeSegment < episode.segments.length - 1) {
@@ -224,27 +285,28 @@ export default function CsPodcastStudio() {
                 };
 
                 audio.onerror = () => {
-                    if (activeSegment < episode.segments.length - 1) setActiveSegment(prev => prev + 1);
-                    else setIsPlaying(false);
+                    fallbackToServerTTS();
                 };
 
-                await audio.play();
-            } catch (err) {
-                console.error("[Podcast-Audio] Neural Synthesis Failure:", err.message);
-                setTimeout(() => {
-                    if (activeSegment < episode.segments.length - 1) {
-                        setActiveSegment(prev => prev + 1);
+                try {
+                    await audio.play();
+                } catch (err) {
+                    if (err.name === 'AbortError' || err.message.includes('interrupted')) {
+                        console.warn("[Podcast-Audio] Playback aborted intentionally.");
                     } else {
-                        setIsPlaying(false);
+                        console.error("[Podcast-Audio] Neural Synthesis Failure:", err.message);
+                        fallbackToServerTTS();
                     }
-                }, 500); // Reduced fallback delay
+                }
+            } catch (generalErr) {
+                console.error("[Podcast-Audio] General segment error:", generalErr.message);
             }
         };
 
         playSegment();
 
         return stopAudio;
-    }, [isPlaying, activeSegment, episode]);
+    }, [isPlaying, activeSegment, episode, videoFailed]);
 
     const generateStory = async (topic) => {
         setLoading(true);
@@ -252,6 +314,8 @@ export default function CsPodcastStudio() {
         setEpisode(null);
         setActiveSegment(0);
         setIsPlaying(false);
+        setVideoFailed(false);
+        setQaMessages([]);
         try {
             const res = await api.post("/ai/topics/podcast", {
                 topicId: topic.id,
@@ -263,6 +327,29 @@ export default function CsPodcastStudio() {
             setError(err.response?.data?.message || "Failed to generate story.");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const askQuestion = async () => {
+        if (!qaInput.trim() || qaLoading || !episode) return;
+        const q = qaInput.trim();
+        setQaInput('');
+        const userMsg = { role: 'user', text: q };
+        setQaMessages(prev => [...prev, userMsg]);
+        setQaLoading(true);
+        setTimeout(() => qaEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+        try {
+            const res = await api.post('/ai/topics/podcast/question', {
+                topicTitle: episode.title || episode.topic_title || 'this topic',
+                question: q,
+                history: [...qaMessages, userMsg]
+            });
+            setQaMessages(prev => [...prev, { role: 'ai', text: res.data.answer }]);
+        } catch {
+            setQaMessages(prev => [...prev, { role: 'ai', text: 'Connection interrupted. Please try again.' }]);
+        } finally {
+            setQaLoading(false);
+            setTimeout(() => qaEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
         }
     };
 
@@ -285,6 +372,8 @@ export default function CsPodcastStudio() {
         setLoading(true);
         setEpisode(null);
         setError(null);
+        setVideoFailed(false);
+        setQaMessages([]);
         try {
             const res = await api.get(`/ai/masterclass/episode/${ep.id}`);
             setEpisode(res.data);
@@ -294,6 +383,13 @@ export default function CsPodcastStudio() {
         finally { setLoading(false); }
     };
 
+    // Load default episode (Chapter 1) once masterclass loads
+    useEffect(() => {
+        if (masterclassEpisodes.length > 0 && !episode && !loading) {
+            setEpisode(masterclassEpisodes[0]);
+        }
+    }, [masterclassEpisodes]);
+
     // Filter topics and group into chapters
     const filteredTopics = topics.filter(t =>
         t.title?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -301,8 +397,20 @@ export default function CsPodcastStudio() {
 
     const chapteredTopics = CS_CHAPTERS.map(chapter => ({
         ...chapter,
-        topics: filteredTopics.filter(t => getChapterForTopic(t) === chapter.id)
+        topics: filteredTopics.filter(t => {
+            const chId = getChapterForTopic(t);
+            // Extra check for Machine Learning in Origins
+            if (chId === 'origins' && t.title?.toLowerCase().includes('machine learning')) return false;
+            return chId === chapter.id;
+        })
     })).filter(ch => ch.topics.length > 0);
+
+    // Filtered result for specialized ML chapter if not caught
+    const aiChapter = chapteredTopics.find(c => c.id === 'ai');
+    if (aiChapter) {
+        const mlTopics = filteredTopics.filter(t => t.title?.toLowerCase().includes('machine learning') && !aiChapter.topics.includes(t));
+        aiChapter.topics = [...new Set([...aiChapter.topics, ...mlTopics])];
+    }
 
     // Inline search results when searching
     const isSearching = searchQuery.trim().length > 0;
@@ -314,7 +422,7 @@ export default function CsPodcastStudio() {
         <div className={`min-h-screen ${themeBg} pb-20 font-sans`}>
 
             {/* HERO SECTION */}
-            <div className="relative w-full h-[60vh] min-h-[460px] flex items-end overflow-hidden">
+            <div className="relative w-full h-[65vh] min-h-[500px] flex items-end overflow-hidden">
                 <div className={`absolute inset-0 z-0 ${isDark ? 'bg-[#0a0a0a]' : 'bg-[#e5e5e5]'}`}>
                     <div className="absolute inset-0 opacity-20" style={{
                         backgroundImage: `
@@ -326,41 +434,51 @@ export default function CsPodcastStudio() {
                     <div className="absolute inset-0 opacity-40" style={{
                         backgroundImage: 'radial-gradient(ellipse at 65% 20%, #E50914 0%, transparent 50%)'
                     }} />
+                    {/* VIDEO BACKGROUND PREVIEW (If Chapter 1 exists) */}
+                    {masterclassEpisodes[0]?.video_url && (
+                        <div className="absolute inset-0 opacity-30 pointer-events-none">
+                            <video 
+                                src={masterclassEpisodes[0].video_url.startsWith('http') ? masterclassEpisodes[0].video_url : `${(import.meta.env.VITE_API_URL || '').replace('/api', '')}${masterclassEpisodes[0].video_url}`}
+                                autoPlay muted loop playsInline
+                                className="w-full h-full object-cover grayscale brightness-50"
+                            />
+                        </div>
+                    )}
                     <div className={`absolute inset-0 bg-gradient-to-t ${isDark ? 'from-[#141414] via-[#141414]/60' : 'from-white via-white/60'} to-transparent`} />
                 </div>
 
                 <div className="relative z-10 w-full px-6 md:px-12 pb-14">
                     <div className="flex items-center gap-2 mb-3">
-                        <Film size={14} style={{ color: netflixRed }} />
+                        <Sparkles size={14} style={{ color: netflixRed }} />
                         <span className="text-[10px] font-black tracking-[0.4em] uppercase" style={{ color: netflixRed }}>
-                            An AI Original Series
+                            Must Academy Original Series
                         </span>
                     </div>
-                    <h1 className="text-5xl md:text-8xl font-black mb-3 tracking-tighter drop-shadow-lg leading-none uppercase">
-                        Podcast Studio
+                    <h1 className="text-5xl md:text-8xl font-black mb-3 tracking-tighter drop-shadow-lg leading-none uppercase max-w-4xl">
+                        {masterclassEpisodes[0]?.title || "The Masterclass"}
                     </h1>
-                    <p className={`text-base md:text-lg max-w-xl font-medium mb-8 drop-shadow-md ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                        The complete story of computer science — from vacuum tubes to neural networks. Select any topic to generate your AI-narrated story.
+                    <p className={`text-base md:text-lg max-w-2xl font-medium mb-8 drop-shadow-md leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                        {masterclassEpisodes[0]?.summary || "The complete story of computer science — from vacuum tubes to neural networks. A premium AI-narrated cinematic experience."}
                     </p>
 
                     <div className="flex items-center gap-3 flex-wrap">
                         <button
                             onClick={() => {
-                                if (filteredTopics.length > 0) {
-                                    generateStory(filteredTopics[0]);
+                                if (masterclassEpisodes.length > 0) {
+                                    playMasterclass(masterclassEpisodes[0]);
                                 }
                             }}
-                            className="bg-white text-black px-7 py-3 rounded flex items-center gap-2 font-bold hover:bg-white/90 transition-all text-sm uppercase tracking-wider"
+                            className="bg-white text-black px-10 py-4 rounded flex items-center gap-2 font-black hover:bg-white/90 transition-all text-sm uppercase tracking-widest"
                         >
                             <Play size={18} fill="currentColor" />
-                            Listen to Latest
+                            Start Series
                         </button>
                         <button
                             onClick={() => setShowAbout(true)}
-                            className={`px-7 py-3 rounded flex items-center gap-2 font-bold transition-all text-sm uppercase tracking-wider backdrop-blur-md ${isDark ? 'bg-zinc-800/60 text-white hover:bg-zinc-800' : 'bg-gray-200/80 text-black hover:bg-gray-300'}`}
+                            className={`px-8 py-4 rounded flex items-center gap-2 font-black transition-all text-sm uppercase tracking-widest backdrop-blur-md ${isDark ? 'bg-zinc-800/60 text-white hover:bg-zinc-800' : 'bg-gray-200/80 text-black hover:bg-gray-300'}`}
                         >
                             <Info size={18} />
-                            About Studio
+                            Details
                         </button>
                     </div>
                 </div>
@@ -390,112 +508,307 @@ export default function CsPodcastStudio() {
                                 <h2 className="text-2xl font-bold tracking-tight mb-2">Synthesizing Story...</h2>
                                 <p className={isDark ? "text-gray-400" : "text-gray-600"}>Architecting narrative, composing voices, setting the scene.</p>
                             </div>
-                        ) : episode ? (
-                            <div className="grid grid-cols-1 lg:grid-cols-3 relative">
+                        ) : episode ? (() => {
+                            const isMasterclass = !!episode.video_url && !videoFailed;
+                            const hasSegments = episode.segments && episode.segments.length > 0;
+                            const isFullVideo = isMasterclass && !hasSegments;
+
+                            return (
+                                <div className={`grid grid-cols-1 ${!isFullVideo ? 'lg:grid-cols-3' : ''} relative`}>
                                 <button 
                                     onClick={() => setEpisode(null)}
-                                    className="absolute top-4 right-4 z-20 p-2 rounded-full hover:bg-black/10 transition-all"
+                                    className="absolute top-4 right-4 z-20 p-2 rounded-full hover:bg-black/10 transition-all text-white"
                                 >
                                     <X size={20} />
                                 </button>
                                 {/* Left Panel — Cover + Controls */}
-                                <div className={`lg:col-span-1 border-b lg:border-b-0 lg:border-r ${isDark ? 'border-zinc-800' : 'border-gray-200'} flex flex-col overflow-hidden`}>
-                                    <div className="relative h-48 lg:h-64 overflow-hidden bg-black">
-                                        {episode.video_url ? (
+                                <div className={`${isFullVideo ? 'lg:col-span-3' : 'lg:col-span-1'} border-b lg:border-b-0 ${!isFullVideo ? 'lg:border-r' : ''} ${isDark ? 'border-zinc-800' : 'border-gray-200'} flex flex-col overflow-hidden`}>
+                                    <div className={`relative ${isFullVideo ? 'h-[500px] md:h-[650px]' : 'h-48 lg:h-80'} overflow-hidden bg-black flex items-center justify-center`}>
+                                        {episode.video_url && !videoFailed ? (
                                             <video
-                                                src={episode.video_url.startsWith('http') ? episode.video_url : `${(import.meta.env.VITE_API_URL || '').replace('/api', '')}${episode.video_url}`}
+                                                src={episode.video_url.startsWith('http') ? episode.video_url : `${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${episode.video_url}`}
                                                 controls
                                                 autoPlay
                                                 className="w-full h-full object-contain"
                                                 poster={episode.topicImage || episode.thumbnail_url}
+                                                onError={(e) => {
+                                                    console.warn("[Podcast-Studio] Video source failed:", e.target.src);
+                                                    setVideoFailed(true);
+                                                }}
                                             />
                                         ) : (
                                             <>
                                                 <img
-                                                    src={episode.topicImage}
+                                                    src={episode.topicImage || "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800&q=80"}
                                                     alt={episode.title}
-                                                    className="w-full h-full object-cover"
-                                                    onError={e => { e.target.style.display = 'none'; }}
+                                                    className="w-full h-full object-cover opacity-60"
+                                                    onError={e => { e.target.src = "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800&q=80"; }}
                                                 />
-                                                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/70" />
+                                                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/90" />
+                                                <div className="absolute inset-0 flex items-center justify-center">
+                                                    <div className="w-16 h-16 rounded-full bg-red-600 flex items-center justify-center text-white shadow-2xl animate-pulse">
+                                                        <Volume2 size={32} />
+                                                    </div>
+                                                </div>
                                             </>
                                         )}
                                         <div className="absolute bottom-3 left-4">
                                             <span className="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded" style={{ backgroundColor: netflixRed, color: 'white' }}>
-                                                Now Playing
+                                                {episode.video_url ? 'Masterclass' : 'Audio Mastery'}
                                             </span>
                                         </div>
                                     </div>
 
                                     <div className="p-8 flex-1">
-                                        <h2 className="text-2xl font-black mb-3 tracking-tight">{episode.title}</h2>
+                                        <h2 className="text-2xl font-black mb-3 tracking-tight leading-tight uppercase italic">{episode.title}</h2>
                                         <p className={`text-sm mb-6 leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                                             {episode.chapter_number ? `Chapter ${episode.chapter_number} — ` : ""}
-                                            {episode.video_url ? "Video Masterclass Series" : "Part of the CS Roadmap AI Masterclass Series."}
+                                            {episode.video_url && !videoFailed ? "Video Masterclass Series" : "Part of the CS Roadmap AI Masterclass Series."}
                                         </p>
 
-                                        <div className="space-y-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer" style={{ backgroundColor: netflixRed, color: 'white' }}>
-                                                    {isPlaying
-                                                        ? <Pause size={20} fill="currentColor" onClick={() => setIsPlaying(false)} />
-                                                        : <Play size={20} fill="currentColor" onClick={() => setIsPlaying(true)} />
-                                                    }
+                                        {(!episode.video_url || videoFailed) && (
+                                            <div className="space-y-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer" style={{ backgroundColor: netflixRed, color: 'white' }}>
+                                                        {isPlaying
+                                                            ? <Pause size={20} fill="currentColor" onClick={() => setIsPlaying(false)} />
+                                                            : <Play size={20} fill="currentColor" onClick={() => setIsPlaying(true)} />
+                                                        }
+                                                    </div>
+                                                    <span className="font-bold uppercase text-[10px] tracking-widest">
+                                                        {isPlaying ? "Neural Engine Streaming" : "Paused"}
+                                                    </span>
                                                 </div>
-                                                <span className="font-bold uppercase text-xs tracking-widest">
-                                                    {isPlaying ? "Neural Voice Active" : "Paused"}
-                                                </span>
-                                            </div>
 
-                                            <div className={`w-full h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-zinc-800' : 'bg-gray-200'}`}>
-                                                <motion.div
-                                                    animate={{ width: `${((activeSegment + 1) / (episode.segments?.length || 1)) * 100}%` }}
-                                                    className="h-full rounded-full"
-                                                    style={{ backgroundColor: netflixRed }}
-                                                    transition={{ duration: 0.3 }}
-                                                />
+                                                <div className={`w-full h-1 rounded-full overflow-hidden ${isDark ? 'bg-zinc-800' : 'bg-gray-200'}`}>
+                                                    <motion.div
+                                                        animate={{ width: `${((activeSegment + 1) / (episode.segments?.length || 1)) * 100}%` }}
+                                                        className="h-full rounded-full"
+                                                        style={{ backgroundColor: netflixRed }}
+                                                        transition={{ duration: 0.3 }}
+                                                    />
+                                                </div>
+                                                <p className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                                                    Synaptic Segment {activeSegment + 1} / {episode.segments?.length || 0}
+                                                </p>
                                             </div>
-                                            <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                                                Segment {activeSegment + 1} of {episode.segments?.length || 0}
-                                            </p>
-                                        </div>
+                                        )}
                                     </div>
                                 </div>
 
                                 {/* Right Panel — Script */}
-                                <div className="p-10 lg:col-span-2 bg-black/5">
-                                    <div className="space-y-6">
-                                        {episode.segments?.map((seg, i) => {
-                                            const isActive = activeSegment === i;
-                                            return (
-                                                <div
-                                                    key={i}
-                                                    onClick={() => setActiveSegment(i)}
-                                                    className={`transition-all duration-300 cursor-pointer ${isActive ? 'opacity-100 scale-[1.01]' : 'opacity-35 hover:opacity-60'}`}
-                                                >
-                                                    <div className="font-bold text-xs uppercase tracking-widest mb-1" style={{ color: isActive ? netflixRed : (isDark ? '#555' : '#bbb') }}>
-                                                        {seg.speaker === 'host' ? 'Dr. Aria' : 'Dr. Nova'}
-                                                    </div>
-                                                    <p className={`text-xl lg:text-2xl font-medium leading-relaxed ${isActive ? (isDark ? 'text-white' : 'text-black') : (isDark ? 'text-zinc-600' : 'text-gray-400')}`}>
-                                                        "{seg.text}"
-                                                    </p>
-                                                </div>
-                                            );
-                                        })}
+                                {!isFullVideo && (
+                                    <div className="p-10 lg:col-span-2 bg-black/10 overflow-y-auto no-scrollbar h-auto max-h-[80vh]">
+                                        {hasSegments ? (
+                                            <div className="space-y-8">
+                                                {episode.segments.map((seg, i) => {
+                                                    const isActive = activeSegment === i;
+                                                    return (
+                                                        <motion.div
+                                                            key={i}
+                                                            initial={{ opacity: 0, x: 20 }}
+                                                            animate={{ opacity: 1, x: 0 }}
+                                                            onClick={() => setActiveSegment(i)}
+                                                            className={`transition-all duration-300 cursor-pointer p-4 rounded-2xl ${isActive ? 'bg-white/5 opacity-100' : 'opacity-25 hover:opacity-50'}`}
+                                                        >
+                                                            <div className="font-black text-[9px] uppercase tracking-[0.3em] mb-3 flex items-center gap-2" style={{ color: isActive ? netflixRed : (isDark ? '#555' : '#bbb') }}>
+                                                                {seg.speaker === 'host' ? 'Dr. Aria' : 'Dr. Nova'}
+                                                                {isActive && <div className="w-1.5 h-1.5 rounded-full bg-red-600 animate-ping" />}
+                                                            </div>
+                                                            <p className={`text-lg lg:text-xl font-medium leading-loose ${isActive ? (isDark ? 'text-white' : 'text-black') : (isDark ? 'text-zinc-600' : 'text-gray-400')}`}>
+                                                                "{seg.text}"
+                                                            </p>
+                                                        </motion.div>
+                                                    );
+                                                })}
+                                            </div>
+                                        ) : (
+                                            <div className="h-full flex flex-col items-center justify-center text-center p-10 opacity-40">
+                                                <Film size={48} className="mb-4" />
+                                                <h4 className="text-xl font-black uppercase italic tracking-tighter">Audio Primary</h4>
+                                                <p className="text-sm mt-2">Listen to the neural narration while exploring the syllabus.</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })() : null}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Q&A PANEL — appears when episode is active */}
+            <AnimatePresence>
+                {episode && !loading && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 16 }}
+                        className={`mx-6 md:mx-12 mb-10 rounded-xl border overflow-hidden ${isDark ? 'border-zinc-800 bg-zinc-900/50' : 'border-gray-200 bg-gray-50'}`}
+                    >
+                        {/* Header */}
+                        <div className={`flex items-center gap-3 px-6 py-4 border-b ${isDark ? 'border-zinc-800' : 'border-gray-200'}`}>
+                            <MessageCircle size={16} style={{ color: netflixRed }} />
+                            <span className="font-black text-xs uppercase tracking-[0.3em]">Ask About This Episode</span>
+                            <span className={`text-[10px] ml-auto font-medium ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}>
+                                Dr. Nova answers your questions
+                            </span>
+                        </div>
+
+                        {/* Messages */}
+                        <div className="px-6 py-4 space-y-4 max-h-80 overflow-y-auto">
+                            {qaMessages.length === 0 && (
+                                <p className={`text-sm text-center py-6 ${isDark ? 'text-zinc-600' : 'text-gray-400'}`}>
+                                    Ask anything about <span className="font-bold">{episode.title || 'this episode'}</span> — concepts, code, or deeper context.
+                                </p>
+                            )}
+                            {qaMessages.map((msg, i) => (
+                                <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                    {msg.role === 'ai' && (
+                                        <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mr-3 mt-0.5 font-black text-[10px]"
+                                            style={{ backgroundColor: netflixRed, color: 'white' }}>N</div>
+                                    )}
+                                    <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                                        msg.role === 'user'
+                                            ? 'text-white rounded-br-sm font-medium'
+                                            : `rounded-bl-sm ${isDark ? 'bg-zinc-800 text-zinc-100' : 'bg-white text-gray-800 border border-gray-200'}`
+                                    }`} style={msg.role === 'user' ? { backgroundColor: netflixRed } : {}}>
+                                        {msg.text}
                                     </div>
                                 </div>
-                            </div>
-                        ) : null}
+                            ))}
+                            {qaLoading && (
+                                <div className="flex justify-start">
+                                    <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mr-3 font-black text-[10px]"
+                                        style={{ backgroundColor: netflixRed, color: 'white' }}>N</div>
+                                    <div className={`px-4 py-3 rounded-2xl rounded-bl-sm ${isDark ? 'bg-zinc-800' : 'bg-white border border-gray-200'}`}>
+                                        <div className="flex gap-1.5 items-center">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-bounce" style={{ animationDelay: '0ms' }} />
+                                            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-bounce" style={{ animationDelay: '150ms' }} />
+                                            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            <div ref={qaEndRef} />
+                        </div>
+
+                        {/* Input */}
+                        <div className={`flex items-center gap-3 px-4 py-3 border-t ${isDark ? 'border-zinc-800' : 'border-gray-200'}`}>
+                            <input
+                                type="text"
+                                value={qaInput}
+                                onChange={e => setQaInput(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && !e.shiftKey && askQuestion()}
+                                placeholder="Ask Dr. Nova about this episode..."
+                                className={`flex-1 text-sm px-4 py-2.5 rounded-xl border outline-none transition-all ${isDark
+                                    ? 'bg-zinc-800 border-zinc-700 text-white placeholder-zinc-500 focus:border-red-600/50'
+                                    : 'bg-white border-gray-200 text-gray-800 placeholder-gray-400 focus:border-red-400'}`}
+                            />
+                            <button
+                                onClick={askQuestion}
+                                disabled={!qaInput.trim() || qaLoading}
+                                className="w-10 h-10 rounded-xl flex items-center justify-center transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                                style={{ backgroundColor: netflixRed, color: 'white' }}
+                            >
+                                {qaLoading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                            </button>
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
 
             {/* BROWSE SECTION */}
-            <div className="px-6 md:px-12 space-y-10">
+            <div className="px-6 md:px-12 space-y-16">
 
-                <div className="flex items-center justify-between pt-4">
-                    <h2 className="text-xl md:text-2xl font-black tracking-tight">Browse Episodes</h2>
-                    <div className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-all ${searchFocused || searchQuery ? 'w-72 md:w-96' : 'w-48'} ${isDark ? 'border-white/15 bg-zinc-900 focus-within:border-white/30' : 'border-black/10 bg-gray-100 focus-within:border-black/20'}`}
+                {/* OFFICIAL SERIES LIST — grouped by chapter */}
+                {masterclassEpisodes.length > 0 && (() => {
+                    // Group episodes by chapter_number
+                    const chaptersMap = {};
+                    masterclassEpisodes.forEach(ep => {
+                        const ch = ep.chapter_number ?? 1;
+                        if (!chaptersMap[ch]) chaptersMap[ch] = [];
+                        chaptersMap[ch].push(ep);
+                    });
+                    const chapterNums = Object.keys(chaptersMap).sort((a, b) => Number(a) - Number(b));
+
+                    return (
+                        <div className="pt-8">
+                            <div className="flex items-center gap-3 mb-8">
+                                <div className="w-1.5 h-8 bg-red-600 rounded-full" />
+                                <h2 className="text-2xl font-black tracking-tight uppercase italic">The Masterclass Series</h2>
+                            </div>
+
+                            <div className="space-y-12">
+                                {chapterNums.map(chNum => {
+                                    const eps = chaptersMap[chNum].sort((a, b) => a.part_number - b.part_number);
+                                    return (
+                                        <div key={chNum}>
+                                            <p className={`text-[10px] font-black uppercase tracking-[0.4em] mb-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                                                Chapter {chNum}
+                                            </p>
+                                            <div className="space-y-3">
+                                                {eps.map((ep, idx) => (
+                                                    <div
+                                                        key={ep.id}
+                                                        onClick={() => playMasterclass(ep)}
+                                                        className={`flex items-center gap-6 p-4 rounded-2xl border cursor-pointer group transition-all
+                                                            ${isDark
+                                                                ? 'border-white/5 bg-zinc-900/60 hover:bg-zinc-800 hover:border-red-600/30'
+                                                                : 'border-gray-100 bg-white hover:border-red-300 hover:shadow-sm'}`}
+                                                    >
+                                                        {/* Part Number */}
+                                                        <span className={`text-3xl font-black w-10 text-center shrink-0 ${isDark ? 'text-zinc-600 group-hover:text-zinc-400' : 'text-gray-200 group-hover:text-gray-400'} transition-colors`}>
+                                                            {ep.part_number ?? idx + 1}
+                                                        </span>
+
+                                                        {/* Thumbnail */}
+                                                        <div className="relative shrink-0 w-28 h-16 rounded-xl overflow-hidden bg-zinc-800">
+                                                            <img
+                                                                src={ep.thumbnail_url || "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=300&q=80"}
+                                                                alt={ep.title}
+                                                                className="w-full h-full object-cover opacity-70 group-hover:opacity-90 transition-opacity"
+                                                            />
+                                                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                <div className="w-8 h-8 rounded-full bg-white/90 flex items-center justify-center">
+                                                                    <Play size={14} fill="black" className="text-black ml-0.5" />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Info */}
+                                                        <div className="flex-1 min-w-0">
+                                                            <h4 className={`font-black text-sm uppercase tracking-tight truncate ${isDark ? 'text-white' : 'text-black'}`}>
+                                                                {ep.title}
+                                                            </h4>
+                                                            <p className={`text-xs mt-1 line-clamp-2 leading-relaxed ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                                                                {ep.summary}
+                                                            </p>
+                                                        </div>
+
+                                                        {/* Play indicator */}
+                                                        <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <Play size={20} className="text-red-500" />
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    );
+                })()}
+
+
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-t border-white/5 pt-16">
+                    <div>
+                        <h2 className="text-2xl font-black tracking-tight uppercase italic">Topic Masterclasses</h2>
+                        <p className={`text-xs mt-1 font-medium ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Generate on-demand deep dives for your entire curriculum.</p>
+                    </div>
+                    <div className={`flex items-center gap-2 px-6 py-3 rounded-2xl border transition-all ${searchFocused || searchQuery ? 'w-full md:w-96' : 'w-full md:w-64'} ${isDark ? 'border-white/10 bg-zinc-900 focus-within:border-red-600/50' : 'border-black/5 bg-gray-50'}`}
                         style={{ transition: 'width 0.3s ease' }}>
                         <Search size={16} className={isDark ? 'text-gray-400' : 'text-gray-500'} />
                         <input
@@ -511,11 +824,11 @@ export default function CsPodcastStudio() {
                 </div>
 
                 {isSearching && (
-                    <div>
-                        <p className={`text-xs font-bold uppercase tracking-widest mb-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                    <div className="pt-4">
+                        <p className={`text-[10px] font-black uppercase tracking-[0.2em] mb-8 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
                             {filteredTopics.length} result{filteredTopics.length !== 1 ? 's' : ''} for "{searchQuery}"
                         </p>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                             {filteredTopics.map((t, idx) => (
                                 <EpisodeCard
                                     key={t.id}
@@ -531,36 +844,38 @@ export default function CsPodcastStudio() {
                 )}
 
                 {!isSearching && (
-                    <div className="space-y-6 pb-12">
+                    <div className="space-y-8 pb-20">
                         {chapteredTopics.map((chapter) => {
                             const isExpanded = expandedChapter === chapter.id;
                             return (
-                                <motion.div key={chapter.id} className={`rounded-xl overflow-hidden border ${isDark ? 'border-zinc-800 bg-[#181818]' : 'border-gray-200 bg-white'}`} layout>
+                                <motion.div key={chapter.id} className={`rounded-[2.5rem] overflow-hidden border transition-all duration-500 ${isExpanded ? 'ring-2 ring-red-600/20' : ''} ${isDark ? 'border-white/5 bg-[#181818]' : 'border-gray-100 bg-white shadow-sm'}`} layout>
                                     <button onClick={() => setExpandedChapter(isExpanded ? null : chapter.id)} className="w-full text-left">
-                                        <div className="relative h-24 overflow-hidden">
+                                        <div className="relative h-28 overflow-hidden">
                                             <img src={chapter.coverUrl} alt={chapter.title} className="w-full h-full object-cover" />
                                             <div className={`absolute inset-0 bg-gradient-to-r ${chapter.gradient}`} />
-                                            <div className="absolute inset-0 flex items-center px-6 gap-4">
-                                                <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: chapter.color + '33', border: `1px solid ${chapter.color}55` }}>
-                                                    <chapter.icon size={20} style={{ color: chapter.color }} />
+                                            <div className="absolute inset-0 flex items-center px-8 gap-6">
+                                                <div className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-xl" style={{ backgroundColor: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', backdropFilter: 'blur(10px)' }}>
+                                                    <chapter.icon size={24} className="text-white" />
                                                 </div>
                                                 <div className="flex-1">
-                                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60">{chapter.subtitle}</p>
-                                                    <h3 className="text-lg font-black text-white tracking-tight leading-tight">{chapter.title}</h3>
+                                                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/50">{chapter.subtitle}</p>
+                                                    <h3 className="text-xl md:text-2xl font-black text-white tracking-tight leading-tight uppercase italic">{chapter.title}</h3>
                                                 </div>
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-xs font-bold px-3 py-1 rounded-full text-white/80" style={{ backgroundColor: chapter.color + '33', border: `1px solid ${chapter.color}44` }}>
+                                                <div className="flex items-center gap-4">
+                                                    <span className="text-[10px] font-black px-4 py-2 rounded-full text-white/90 bg-white/10 border border-white/10 uppercase tracking-widest">
                                                         {chapter.topics.length} episodes
                                                     </span>
-                                                    <ChevronDown size={20} className={`text-white transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                                    <div className={`p-2 rounded-full bg-white/10 transition-transform duration-500 ${isExpanded ? 'rotate-180' : ''}`}>
+                                                        <ChevronDown size={20} className="text-white" />
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </button>
                                     <AnimatePresence>
                                         {isExpanded && (
-                                            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="p-5 overflow-hidden">
-                                                <div className="flex gap-4 overflow-x-auto pb-3 snap-x">
+                                            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="p-8 overflow-hidden">
+                                                <div className="flex gap-6 overflow-x-auto pb-4 pt-4 no-scrollbar snap-x">
                                                     {chapter.topics.map((t, idx) => (
                                                         <EpisodeCard key={t.id} topic={t} idx={idx} isDark={isDark} netflixRed={netflixRed} chapterColor={chapter.color} onPlay={() => { generateStory(t); }} />
                                                     ))}
@@ -637,6 +952,156 @@ export default function CsPodcastStudio() {
                     </div>
                 )}
             </div>
+            
+            {/* DETAILS MODAL */}
+            <AnimatePresence>
+                {showAbout && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 overflow-y-auto no-scrollbar">
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setShowAbout(false)}
+                            className="fixed inset-0 bg-black/80 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 40 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 40 }}
+                            className={`relative w-full max-w-4xl overflow-hidden rounded-xl border shadow-2xl flex flex-col ${isDark ? 'bg-[#181818] border-white/10' : 'bg-white border-gray-200'}`}
+                        >
+                            <button 
+                                onClick={() => setShowAbout(false)}
+                                className="absolute top-4 right-4 z-50 p-2 rounded-full bg-black/60 hover:bg-black/80 text-white transition-all"
+                            >
+                                <X size={20} />
+                            </button>
+
+                            {/* HERO HEADER */}
+                            <div className="relative w-full h-[400px] overflow-hidden shrink-0">
+                                <img 
+                                    src={masterclassEpisodes[0]?.topicImage || CS_CHAPTERS[0].coverUrl} 
+                                    className="w-full h-full object-cover"
+                                    alt="Series Hero"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-[#181818] via-[#181818]/20 to-transparent" />
+                                
+                                <div className="absolute bottom-12 left-12 right-12">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <Sparkles size={16} className="text-red-600" />
+                                        <span className="text-[10px] font-black tracking-[0.3em] uppercase text-white/70">Original Series</span>
+                                    </div>
+                                    <h2 className="text-5xl md:text-7xl font-black tracking-tighter uppercase italic leading-none mb-8 text-white">
+                                        {masterclassEpisodes[0]?.title || "The Masterclass"}
+                                    </h2>
+                                    
+                                    <div className="flex items-center gap-4">
+                                        <button 
+                                            onClick={() => { playMasterclass(masterclassEpisodes[0]); setShowAbout(false); }}
+                                            className="bg-white text-black px-10 py-3 rounded font-black flex items-center gap-2 hover:bg-white/90 transition-all text-sm uppercase tracking-widest"
+                                        >
+                                            <Play size={20} fill="black" /> Play
+                                        </button>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-10 h-10 rounded-full border-2 border-white/30 flex items-center justify-center text-white hover:border-white transition-all cursor-pointer">
+                                                <Sparkles size={18} />
+                                            </div>
+                                            <div className="w-10 h-10 rounded-full border-2 border-white/30 flex items-center justify-center text-white hover:border-white transition-all cursor-pointer">
+                                                <Info size={18} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* CONTENT AREA */}
+                            <div className="p-12 space-y-12">
+                                {/* Grid Meta + Synopsis */}
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+                                    <div className="lg:col-span-2 space-y-6">
+                                        <div className="flex items-center gap-3 text-sm font-bold text-green-500">
+                                            <span>98% Match</span>
+                                            <span className="text-white/50 border border-white/20 px-1.5 py-0.5 text-[10px] rounded">Ultra HD</span>
+                                            <span className="text-white/50">2026</span>
+                                        </div>
+                                        <p className={`text-lg leading-relaxed font-medium ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
+                                            Before the silicon chip, before the transistor, there was a dream of universal logic. <strong>The Architect's Legacy</strong> traces the lineage of human thought—from the physical mechanical looms of the industrial revolution to the abstract mathematical breakthroughs that birthed the digital age. Deconstruct the minds of Babbage, Lovelace, and Turing to understand not just how computers work, but why they exist.
+                                        </p>
+                                    </div>
+                                    
+                                    <div className="space-y-4">
+                                        <div className="text-xs">
+                                            <span className="text-white/40">Cast: </span>
+                                            <span className="text-white/80">Dr. Aria, Dr. Nova</span>
+                                        </div>
+                                        <div className="text-xs">
+                                            <span className="text-white/40">Genres: </span>
+                                            <span className="text-white/80">Educational, Cinematic, AI-Narrated</span>
+                                        </div>
+                                        <div className="text-xs">
+                                            <span className="text-white/40">This series is: </span>
+                                            <span className="text-white/80">Provocative, Intellectual, Visionary</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* EPISODES LIST */}
+                                <div>
+                                    <div className="flex items-center justify-between mb-8">
+                                        <h3 className="text-2xl font-black tracking-tight uppercase italic">Episodes</h3>
+                                        <span className="text-sm font-bold opacity-50">Chapter 1: The Machine Era</span>
+                                    </div>
+                                    
+                                    <div className="space-y-2">
+                                        {masterclassEpisodes.map((ep, i) => (
+                                            <div 
+                                                key={ep.id}
+                                                onClick={() => { playMasterclass(ep); setShowAbout(false); }}
+                                                className={`group flex flex-col md:flex-row items-center gap-6 p-6 rounded-lg transition-all border border-transparent hover:border-white/10 ${isDark ? 'hover:bg-[#333]' : 'hover:bg-gray-100'}`}
+                                            >
+                                                <span className="text-2xl font-black text-white/30 group-hover:text-white transition-colors w-8 shrink-0">
+                                                    {i + 1}
+                                                </span>
+                                                <div className="relative w-full md:w-40 h-24 rounded-lg overflow-hidden shrink-0 bg-zinc-800">
+                                                    <img src={ep.thumbnail_url || ep.topicImage || CS_CHAPTERS[0].coverUrl} className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" />
+                                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <Play size={24} fill="white" className="text-white" />
+                                                    </div>
+                                                </div>
+                                                <div className="flex-1">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <h4 className="text-sm font-black uppercase tracking-tight">{ep.title}</h4>
+                                                        <span className="text-xs font-bold opacity-50">12m</span>
+                                                    </div>
+                                                    <p className={`text-xs line-clamp-2 leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                                        {ep.summary}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* MORE LIKE THIS / THEMES */}
+                                <div>
+                                    <h3 className="text-xl font-black tracking-tight uppercase italic mb-8">More Like This</h3>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                        {['Abstraction', 'Logic Substrates', 'Universal Machines'].map(theme => (
+                                            <div key={theme} className={`p-6 rounded-lg border transition-all ${isDark ? 'bg-[#2f2f2f] border-white/5 hover:border-white/20' : 'bg-gray-100'}`}>
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <div className="w-1.5 h-4 bg-red-600 rounded-full" />
+                                                    <h4 className="text-[10px] font-black uppercase tracking-widest">{theme}</h4>
+                                                </div>
+                                                <p className="text-[10px] opacity-50 leading-relaxed italic">Deep exploration of the underlying principles of computational reality.</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

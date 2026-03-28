@@ -3,11 +3,71 @@ import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-mo
 import api from "../api/axios";
 import { useTheme } from "../auth/ThemeContext";
 import {
-    X, Mic, MicOff, Send, MoreHorizontal, CheckCircle2,
-    AlertCircle, Briefcase, ChevronRight, Cpu, Code2,
-    CloudIcon, Database, Terminal, UserSquare2, Timer,
-    ShieldAlert, Zap, TrendingUp, DollarSign
+    X, Mic, MicOff, Send, CheckCircle2,
+    Briefcase, ChevronRight, Cpu, Code2,
+    CloudIcon, Terminal, UserSquare2, Timer,
+    ShieldAlert, Zap, TrendingUp, DollarSign,
+    Brain, Layers, Users, Star
 } from "lucide-react";
+
+// Static Tailwind color classes — dynamic interpolation is stripped by JIT
+const MODE_STYLE = {
+    indigo: {
+        icon: 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20',
+        sub:  'text-indigo-400/70',
+        bar:  'group-hover:bg-indigo-500/50',
+    },
+    violet: {
+        icon: 'bg-violet-500/10 text-violet-400 border border-violet-500/20',
+        sub:  'text-violet-400/70',
+        bar:  'group-hover:bg-violet-500/50',
+    },
+    emerald: {
+        icon: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
+        sub:  'text-emerald-400/70',
+        bar:  'group-hover:bg-emerald-500/50',
+    },
+    amber: {
+        icon: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
+        sub:  'text-amber-400/70',
+        bar:  'group-hover:bg-amber-500/50',
+    },
+};
+
+const INTERVIEW_MODES = [
+    {
+        id: 'STANDARD',
+        label: 'Standard Protocol',
+        sublabel: 'Full 6-phase evaluation',
+        description: 'Complete interview covering intro, experience, technical, high-pressure, behavioral, and closing phases.',
+        icon: <Layers size={28} />,
+        color: 'indigo',
+    },
+    {
+        id: 'TECHNICAL',
+        label: 'Technical Deep-Dive',
+        sublabel: 'DSA · Systems · Architecture',
+        description: 'Pure technical session. Algorithms, data structures, distributed systems, complexity analysis. No soft-skills.',
+        icon: <Cpu size={28} />,
+        color: 'violet',
+    },
+    {
+        id: 'BEHAVIORAL',
+        label: 'Behavioral Focus',
+        sublabel: 'STAR · Leadership · Culture',
+        description: 'STAR-method scenarios only. Leadership, conflict, teamwork, and career growth. No technical questions.',
+        icon: <Users size={28} />,
+        color: 'emerald',
+    },
+    {
+        id: 'SYSTEM_DESIGN',
+        label: 'System Design Round',
+        sublabel: 'Scale · Architecture · Trade-offs',
+        description: 'Design real-world distributed systems at scale. URL shorteners, chat apps, recommendation engines.',
+        icon: <Brain size={28} />,
+        color: 'amber',
+    },
+];
 
 // Waveform configuration
 const WAVEFORM_BARS = 40;
@@ -103,6 +163,16 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
     // Pick a random opening variant once per mount
     const openingVariant = useRef(OPENING_VARIANTS[Math.floor(Math.random() * OPENING_VARIANTS.length)]).current;
 
+    const [step, setStep] = useState('mode'); // 'mode' | 'role'
+    const [selectedMode, setSelectedMode] = useState(null);
+    const [interviewHistory, setInterviewHistory] = useState([]);
+
+    useEffect(() => {
+        api.get('/ai/interview/history')
+            .then(res => setInterviewHistory(res.data.sessions || []))
+            .catch(() => {});
+    }, []);
+
     const [isStarted, setIsStarted] = useState(false);
     const [selectedRole, setSelectedRole] = useState(null);
     const [customRole, setCustomRole] = useState("");
@@ -113,14 +183,19 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [isFlashing, setIsFlashing] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [conversationId] = useState(() => {
-        if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-            const r = Math.random() * 16 | 0;
-            const v = c === 'x' ? r : (r & 0x3 | 0x8);
-            return v.toString(16);
-        });
-    });
+    // Regenerated each time an interview starts — prevents duplicate key on re-use
+    const conversationIdRef = useRef(null);
+    const getOrCreateConversationId = () => {
+        if (!conversationIdRef.current) {
+            conversationIdRef.current = (typeof crypto !== 'undefined' && crypto.randomUUID)
+                ? crypto.randomUUID()
+                : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+                    const r = Math.random() * 16 | 0;
+                    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+                });
+        }
+        return conversationIdRef.current;
+    };
     const [isFullScreen, setIsFullScreen] = useState(false);
     const [scorecard, setScorecard] = useState(null);
     const [analytics, setAnalytics] = useState(null);
@@ -344,12 +419,21 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
 
         if (!job || !String(job).trim()) return;
 
+        // Generate a fresh UUID for every new session — prevents duplicate key on retry
+        conversationIdRef.current = (typeof crypto !== 'undefined' && crypto.randomUUID)
+            ? crypto.randomUUID()
+            : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+                const r = Math.random() * 16 | 0;
+                return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+            });
+
         setIsStarted(true);
         setLoading(true);
         try {
             const res = await api.post("/ai/interview/start", {
                 targetJob: job,
-                conversationId
+                conversationId: conversationIdRef.current,
+                mode: selectedMode || 'STANDARD'
             });
             const reply = res.data.reply || "Connection established. Marcus Stering here. Ready when you are.";
             setIsFlashing(true);
@@ -384,7 +468,7 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
 
             const res = await api.post("/ai/interview/chat", {
                 message: textToSend,
-                conversationId,
+                conversationId: conversationIdRef.current,
                 currentPhase: phase,
                 targetJob: selectedRole?.id === 9 ? customRole : selectedRole?.title
             });
@@ -455,21 +539,29 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
         setIsFlashing(true);
         setTimeout(() => setIsFlashing(false), 600);
 
-        // Kill anything currently playing
         killAudio();
 
         const { cleanText } = parseProsody(rawText);
         if (!cleanText || !cleanText.trim()) return;
 
-        // Freeze these into local variables — no closures over mutable refs
         const textSnapshot = cleanText;
         const totalChars = (textSnapshot || "").length;
 
-        try {
-            setIsSpeaking(true);
-            setRevealedLength(0);
-            if (recognitionRef.current) try { recognitionRef.current.stop(); } catch (e) {}
+        setIsSpeaking(true);
+        setRevealedLength(0);
+        if (recognitionRef.current) try { recognitionRef.current.stop(); } catch (e) {}
 
+        // Start text reveal IMMEDIATELY — don't block on TTS round-trip
+        const CHARS_PER_SEC = 160;
+        const revealStart = Date.now();
+        textIntervalRef.current = setInterval(() => {
+            const elapsed = (Date.now() - revealStart) / 1000;
+            const charTarget = Math.min(Math.floor(elapsed * CHARS_PER_SEC), totalChars);
+            setRevealedLength(charTarget);
+            setVoiceIntensity(0.6 + Math.random() * 0.4);
+        }, 50);
+
+        try {
             const response = await api.post(
                 '/tts',
                 { text: textSnapshot, voice: 'en-US-BrianNeural' },
@@ -480,42 +572,36 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
                 throw new Error('Empty audio response');
             }
 
-
+            // Audio ready — switch to audio-synced reveal
+            clearInterval(textIntervalRef.current);
+            textIntervalRef.current = null;
 
             const url = URL.createObjectURL(response.data);
             const audio = new Audio(url);
             audioRef.current = audio;
 
-            // Word-boundary map built once
             const words = textSnapshot.split(' ').filter(Boolean);
             const wordBoundaries = [];
             let pos = 0;
             for (const w of words) {
-                pos += w.length + 1; // +1 for space
+                pos += w.length + 1;
                 wordBoundaries.push(Math.min(pos, totalChars || 0));
             }
 
             audio.onplay = () => {
-                // Poll audio.currentTime every 50ms — simple, safe, reliable
                 textIntervalRef.current = setInterval(() => {
                     const a = audioRef.current;
                     if (!a || !a.duration || isNaN(a.duration) || a.duration <= 0) return;
-
                     const progress = Math.min(a.currentTime / (a.duration || 1), 1);
                     const charTarget = Math.floor(progress * totalChars);
-
-                    // Find last word boundary that fits within charTarget
                     let reveal = 0;
                     for (const boundary of wordBoundaries) {
                         if (boundary <= charTarget + 2) reveal = boundary;
                         else break;
                     }
-
                     setRevealedLength(Math.min(reveal, totalChars));
                     setVoiceIntensity(0.6 + Math.random() * 0.4);
                 }, 50);
-
-
             };
 
             audio.onended = () => {
@@ -544,10 +630,16 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
             await audio.play();
 
         } catch (err) {
-            killAudio();
+            // TTS failed — text is already revealing via the pre-reveal timer.
+            // Let it finish naturally then stop.
             const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message;
             console.error(`%c[Neural-Audio] Synthesis Failure: ${errorMsg}`, 'color: #ef4444; font-weight: bold;');
-            setIsSpeaking(false);
+            const msRemaining = Math.max(0, (totalChars / CHARS_PER_SEC) * 1000 - (Date.now() - revealStart));
+            setTimeout(() => {
+                if (textIntervalRef.current) { clearInterval(textIntervalRef.current); textIntervalRef.current = null; }
+                setRevealedLength(totalChars);
+                setIsSpeaking(false);
+            }, msRemaining + 200);
         }
     };
 
@@ -607,94 +699,169 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
                                 </div>
                             </div>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-                            {!selectedRole ? (
-                                ROLES.map((role) => (
-                                    <button
-                                        key={role.id}
-                                        onClick={() => setSelectedRole(role)}
-                                        className={`p-6 rounded-2xl border transition-all text-left group relative backdrop-blur-md overflow-hidden ${isDark
-                                            ? 'bg-slate-900/40 border-slate-800 hover:border-indigo-500/50 hover:bg-slate-900/60 shadow-lg'
-                                            : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-indigo-50'} `}
-                                    >
-                                        <div className="flex flex-col h-full justify-between relative z-10">
-                                            <div className="mb-4">
-                                                <div className={`text-[8px] font-black uppercase tracking-[0.4em] mb-3 ${isDark ? 'text-indigo-500/60' : 'text-indigo-600'}`}>
-                                                    {role.branches ? 'Strategic Division' : 'Standard Ops'}
+                        {step === 'mode' ? (
+                            <>
+                                <p className={`text-[10px] font-black uppercase tracking-[0.5em] mb-10 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Select Interview Format</p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-12 w-full max-w-3xl">
+                                    {INTERVIEW_MODES.map((mode) => {
+                                        const s = MODE_STYLE[mode.color] || MODE_STYLE.indigo;
+                                        return (
+                                            <motion.button
+                                                key={mode.id}
+                                                whileHover={{ scale: 1.02 }}
+                                                whileTap={{ scale: 0.98 }}
+                                                onClick={() => { setSelectedMode(mode.id); setStep('role'); }}
+                                                className={`p-7 rounded-2xl border text-left group relative overflow-hidden transition-all ${isDark
+                                                    ? 'bg-slate-900/40 border-slate-800 hover:border-indigo-500/40 hover:bg-slate-900/70'
+                                                    : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-md'}`}
+                                            >
+                                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-5 ${s.icon}`}>
+                                                    {mode.icon}
                                                 </div>
-                                                <h4 className={`text-lg font-black tracking-tight leading-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                                                    {role.title}
-                                                </h4>
-                                            </div>
+                                                <div className={`text-[8px] font-black uppercase tracking-[0.5em] mb-2 ${s.sub}`}>{mode.sublabel}</div>
+                                                <h4 className={`text-base font-black tracking-tight mb-3 ${isDark ? 'text-white' : 'text-slate-900'}`}>{mode.label}</h4>
+                                                <p className={`text-[11px] leading-relaxed ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{mode.description}</p>
+                                                <div className={`absolute bottom-0 left-0 right-0 h-[2px] bg-transparent ${s.bar} transition-all duration-300`} />
+                                            </motion.button>
+                                        );
+                                    })}
+                                </div>
 
-                                            <div className="flex items-center justify-between mt-auto pt-6 border-t border-indigo-500/5">
-                                                <span className={`text-[8px] font-black uppercase tracking-[0.3em] ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
-                                                    ACCESS Dossier
-                                                </span>
-                                                <ChevronRight size={14} className={`transition-transform group-hover:translate-x-2 ${isDark ? 'text-indigo-500' : 'text-indigo-400'}`} />
+                                {/* Past Sessions History */}
+                                {interviewHistory.filter(s => s.is_completed && s.scorecard).length > 0 && (
+                                    <div className="w-full max-w-3xl mt-4 mb-8">
+                                        <div className={`text-[9px] font-black uppercase tracking-[0.5em] mb-5 flex items-center gap-3 ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
+                                            <Star size={10} />
+                                            Past Sessions
+                                        </div>
+                                        <div className="space-y-3">
+                                            {interviewHistory.filter(s => s.is_completed && s.scorecard).slice(0, 5).map((session) => {
+                                                const sc = typeof session.scorecard === 'string' ? JSON.parse(session.scorecard) : session.scorecard;
+                                                const score = sc?.technical_score ?? '—';
+                                                const verdict = sc?.verdict || '—';
+                                                const level = sc?.level || '—';
+                                                const modeLabel = INTERVIEW_MODES.find(m => m.id === (session.mode || 'STANDARD'))?.label || 'Standard Protocol';
+                                                const date = new Date(session.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                                                const verdictColor = verdict === 'Hire' ? 'text-emerald-400' : 'text-red-400';
+                                                const scoreColor = score >= 80 ? 'text-emerald-400' : score >= 60 ? 'text-amber-400' : 'text-red-400';
+                                                return (
+                                                    <div key={session.id} className={`flex items-center justify-between px-5 py-4 rounded-2xl border ${isDark ? 'bg-slate-900/30 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                                                        <div className="flex items-center gap-4">
+                                                            <div className={`text-2xl font-black tabular-nums ${scoreColor}`}>{score}</div>
+                                                            <div>
+                                                                <div className={`text-[11px] font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>{session.target_job}</div>
+                                                                <div className={`text-[9px] font-bold uppercase tracking-widest ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>{modeLabel} · {date}</div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <div className={`text-[10px] font-black uppercase tracking-wider ${verdictColor}`}>{verdict}</div>
+                                                            <div className={`text-[9px] font-bold uppercase tracking-widest ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>{level}</div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            <>
+                                <div className="flex items-center gap-4 mb-8 w-full max-w-3xl">
+                                    <button
+                                        onClick={() => { setStep('mode'); setSelectedRole(null); setSelectedBranch(null); setSelectedSubRole(null); }}
+                                        className={`text-[9px] font-black uppercase tracking-[0.4em] flex items-center gap-2 transition-colors ${isDark ? 'text-slate-600 hover:text-indigo-400' : 'text-slate-400 hover:text-indigo-500'}`}
+                                    >
+                                        ← Change Mode
+                                    </button>
+                                    {selectedMode && (
+                                        <div className={`px-4 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-[0.4em] ${isDark ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400' : 'bg-indigo-50 border-indigo-200 text-indigo-600'}`}>
+                                            {INTERVIEW_MODES.find(m => m.id === selectedMode)?.label}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+                                    {!selectedRole ? (
+                                        ROLES.map((role) => (
+                                            <button
+                                                key={role.id}
+                                                onClick={() => setSelectedRole(role)}
+                                                className={`p-6 rounded-2xl border transition-all text-left group relative backdrop-blur-md overflow-hidden ${isDark
+                                                    ? 'bg-slate-900/40 border-slate-800 hover:border-indigo-500/50 hover:bg-slate-900/60 shadow-lg'
+                                                    : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-indigo-50'} `}
+                                            >
+                                                <div className="flex flex-col h-full justify-between relative z-10">
+                                                    <div className="mb-4">
+                                                        <div className={`text-[8px] font-black uppercase tracking-[0.4em] mb-3 ${isDark ? 'text-indigo-500/60' : 'text-indigo-600'}`}>
+                                                            {role.branches ? 'Strategic Division' : 'Standard Ops'}
+                                                        </div>
+                                                        <h4 className={`text-lg font-black tracking-tight leading-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                                                            {role.title}
+                                                        </h4>
+                                                    </div>
+                                                    <div className="flex items-center justify-between mt-auto pt-6 border-t border-indigo-500/5">
+                                                        <span className={`text-[8px] font-black uppercase tracking-[0.3em] ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>ACCESS Dossier</span>
+                                                        <ChevronRight size={14} className={`transition-transform group-hover:translate-x-2 ${isDark ? 'text-indigo-500' : 'text-indigo-400'}`} />
+                                                    </div>
+                                                </div>
+                                                <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-indigo-500/20 rounded-tr-sm group-hover:border-indigo-500/50 transition-colors" />
+                                                <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-indigo-500/20 rounded-bl-sm group-hover:border-indigo-500/50 transition-colors" />
+                                            </button>
+                                        ))
+                                    ) : selectedRole.branches && !selectedBranch ? (
+                                        <div className="col-span-full space-y-8 py-10">
+                                            <button onClick={() => setSelectedRole(null)} className="text-[10px] font-black text-indigo-500 hover:text-indigo-400 mb-4 flex items-center gap-2 tracking-[0.3em]">← RE-INITIALIZE ROLES</button>
+                                            <h3 className="text-3xl font-black text-white uppercase tracking-[0.3em] mb-10 text-center">Division Selection</h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                                                {selectedRole.branches.map(branch => (
+                                                    <button key={branch.id} onClick={() => setSelectedBranch(branch)} className={`p-8 rounded-2xl border transition-all text-left flex flex-col justify-between group backdrop-blur-md ${isDark ? 'bg-slate-900/40 border-slate-800 hover:border-indigo-500/50' : 'bg-white border-slate-200 hover:border-indigo-300'}`}>
+                                                        <div className="mb-8">
+                                                            <div className={`text-[10px] font-black uppercase tracking-[0.3em] mb-3 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>DIVISION</div>
+                                                            <div className={`text-xl font-black uppercase tracking-[0.4em] ${isDark ? 'text-white' : 'text-slate-900'}`}>{branch.title}</div>
+                                                        </div>
+                                                        <div className="flex items-center justify-between pt-4 border-t border-slate-800/10">
+                                                            <span className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Initialize Protocol</span>
+                                                            <ChevronRight size={16} className={`transition-transform group-hover:translate-x-1 ${isDark ? 'text-indigo-500' : 'text-indigo-400'}`} />
+                                                        </div>
+                                                    </button>
+                                                ))}
                                             </div>
                                         </div>
-
-                                        {/* HUD Corner Accents */}
-                                        <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-indigo-500/20 rounded-tr-sm group-hover:border-indigo-500/50 transition-colors" />
-                                        <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-indigo-500/20 rounded-bl-sm group-hover:border-indigo-500/50 transition-colors" />
-                                    </button>
-                                ))
-                            ) : selectedRole.branches && !selectedBranch ? (
-                                <div className="col-span-full space-y-8 py-10">
-                                    <button onClick={() => setSelectedRole(null)} className="text-[10px] font-black text-indigo-500 hover:text-indigo-400 mb-4 flex items-center gap-2 tracking-[0.3em]">← RE-INITIALIZE ROLES</button>
-                                    <h3 className="text-3xl font-black text-white uppercase tracking-[0.3em] mb-10 text-center">Division Selection</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                                        {selectedRole.branches.map(branch => (
-                                            <button key={branch.id} onClick={() => setSelectedBranch(branch)} className={`p-8 rounded-2xl border transition-all text-left flex flex-col justify-between group backdrop-blur-md ${isDark ? 'bg-slate-900/40 border-slate-800 hover:border-indigo-500/50' : 'bg-white border-slate-200 hover:border-indigo-300'}`}>
-                                                <div className="mb-8">
-                                                    <div className={`text-[10px] font-black uppercase tracking-[0.3em] mb-3 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
-                                                        DIVISION
-                                                    </div>
-                                                    <div className={`text-xl font-black uppercase tracking-[0.4em] ${isDark ? 'text-white' : 'text-slate-900'}`}>{branch.title}</div>
-                                                </div>
-                                                <div className="flex items-center justify-between pt-4 border-t border-slate-800/10">
-                                                    <span className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Initialize Protocol</span>
-                                                    <ChevronRight size={16} className={`transition-transform group-hover:translate-x-1 ${isDark ? 'text-indigo-500' : 'text-indigo-400'}`} />
-                                                </div>
-                                            </button>
-                                        ))}
-                                    </div>
+                                    ) : selectedBranch && !selectedSubRole ? (
+                                        <div className="col-span-full space-y-8 py-10">
+                                            <button onClick={() => setSelectedBranch(null)} className="text-[10px] font-black text-indigo-500 hover:text-indigo-400 mb-4 flex items-center gap-2 tracking-[0.3em]">← RETURN TO DIVISIONS</button>
+                                            <h3 className="text-3xl font-black text-white uppercase tracking-[0.3em] mb-10 text-center">Neural Profile Selection</h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                                {selectedBranch.subRoles.map(sub => (
+                                                    <button key={sub} onClick={() => setSelectedSubRole(sub)} className={`p-6 rounded-2xl border transition-all text-center relative group overflow-hidden ${isDark ? 'bg-slate-900/40 border-slate-800 hover:border-indigo-500/50' : 'bg-white border-slate-200 hover:border-indigo-300'}`}>
+                                                        <div className={`text-[11px] font-black uppercase tracking-[0.25em] relative z-10 ${isDark ? 'text-white' : 'text-slate-900'}`}>{sub}</div>
+                                                        <div className="absolute inset-x-0 bottom-0 h-1 bg-indigo-500/0 group-hover:bg-indigo-500/50 transition-all duration-300" />
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="col-span-full py-16 px-10 rounded-[4rem] bg-indigo-600/5 border border-indigo-500/20 text-center backdrop-blur-xl">
+                                            <div className="w-16 h-16 rounded-full bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center mx-auto mb-8">
+                                                <CheckCircle2 className="text-indigo-400" size={32} />
+                                            </div>
+                                            <h3 className="text-3xl font-black text-white uppercase tracking-[0.4em] mb-4">PROFILE LOCKED</h3>
+                                            <p className="text-sm font-bold text-indigo-400 uppercase tracking-[0.3em] mb-10">{selectedSubRole || selectedRole.title}</p>
+                                            <button onClick={() => { setSelectedRole(null); setSelectedBranch(null); setSelectedSubRole(null); }} className="text-[10px] font-black text-slate-500 hover:text-indigo-400 underline tracking-[0.3em] transition-all">ABORT & RE-CALIBRATE</button>
+                                        </div>
+                                    )}
                                 </div>
-                            ) : selectedBranch && !selectedSubRole ? (
-                                <div className="col-span-full space-y-8 py-10">
-                                    <button onClick={() => setSelectedBranch(null)} className="text-[10px] font-black text-indigo-500 hover:text-indigo-400 mb-4 flex items-center gap-2 tracking-[0.3em]">← RETURN TO DIVISIONS</button>
-                                    <h3 className="text-3xl font-black text-white uppercase tracking-[0.3em] mb-10 text-center">Neural Profile Selection</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                        {selectedBranch.subRoles.map(sub => (
-                                            <button key={sub} onClick={() => setSelectedSubRole(sub)} className={`p-6 rounded-2xl border transition-all text-center relative group overflow-hidden ${isDark ? 'bg-slate-900/40 border-slate-800 hover:border-indigo-500/50' : 'bg-white border-slate-200 hover:border-indigo-300'}`}>
-                                                <div className={`text-[11px] font-black uppercase tracking-[0.25em] relative z-10 ${isDark ? 'text-white' : 'text-slate-900'}`}>{sub}</div>
-                                                <div className="absolute inset-x-0 bottom-0 h-1 bg-indigo-500/0 group-hover:bg-indigo-500/50 transition-all duration-300" />
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="col-span-full py-16 px-10 rounded-[4rem] bg-indigo-600/5 border border-indigo-500/20 text-center backdrop-blur-xl">
-                                    <div className="w-16 h-16 rounded-full bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center mx-auto mb-8">
-                                        <CheckCircle2 className="text-indigo-400" size={32} />
-                                    </div>
-                                    <h3 className="text-3xl font-black text-white uppercase tracking-[0.4em] mb-4">PROFILE LOCKED</h3>
-                                    <p className="text-sm font-bold text-indigo-400 uppercase tracking-[0.3em] mb-10">{selectedSubRole || selectedRole.title}</p>
-                                    <button onClick={() => { setSelectedRole(null); setSelectedBranch(null); setSelectedSubRole(null); }} className="text-[10px] font-black text-slate-500 hover:text-indigo-400 underline tracking-[0.3em] transition-all">ABORT & RE-CALIBRATE</button>
-                                </div>
-                            )}
-                        </div>
-                        {selectedRole?.id === 9 && (
-                            <input type="text" value={customRole} onChange={(e) => setCustomRole(String(e.target.value))} placeholder="Define your custom trajectory..." className={`w-full mb-8 ${isDark ? 'bg-slate-900 border-slate-800 text-white' : 'bg-gray-50 border-gray-100 text-slate-900'} border rounded-xl px-6 py-4 font-bold focus:border-indigo-500 outline-none`} />
+                                {selectedRole?.id === 9 && (
+                                    <input type="text" value={customRole} onChange={(e) => setCustomRole(String(e.target.value))} placeholder="Define your custom trajectory..." className={`w-full mb-8 ${isDark ? 'bg-slate-900 border-slate-800 text-white' : 'bg-gray-50 border-gray-100 text-slate-900'} border rounded-xl px-6 py-4 font-bold focus:border-indigo-500 outline-none`} />
+                                )}
+                                <button
+                                    onClick={() => startInterview(selectedSubRole || selectedRole?.title)}
+                                    disabled={!selectedRole || (selectedRole.id === 9 && !customRole.trim()) || (selectedRole.branches && !selectedSubRole)}
+                                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-5 rounded-2xl transition-all shadow-xl shadow-indigo-500/30 uppercase tracking-[0.5em] text-xs disabled:opacity-30"
+                                >
+                                    Initialize Swain System
+                                </button>
+                            </>
                         )}
-                        <button
-                            onClick={() => startInterview(selectedSubRole || selectedRole?.title)}
-                            disabled={!selectedRole || (selectedRole.id === 9 && !customRole.trim()) || (selectedRole.branches && !selectedSubRole)}
-                            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-5 rounded-2xl transition-all shadow-xl shadow-indigo-500/30 uppercase tracking-[0.5em] text-xs disabled:opacity-30"
-                        >
-                            Initialize Swain System
-                        </button>
                     </motion.div>
                 ) : (
                     <motion.div

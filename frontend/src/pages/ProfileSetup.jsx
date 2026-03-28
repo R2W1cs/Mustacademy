@@ -161,7 +161,7 @@ export default function ProfileSetup() {
                 </div>
             )}
 
-            <div className="max-w-6xl mx-auto px-6 sm:px-12 py-10 lg:py-16 relative z-10">
+            <div className="max-w-6xl mx-auto px-6 sm:px-12 pt-20 lg:pt-24 pb-16 relative z-10">
 
                 {/* ── Page header ── */}
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-16 gap-6">

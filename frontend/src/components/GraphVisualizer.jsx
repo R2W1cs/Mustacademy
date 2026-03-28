@@ -23,7 +23,8 @@ import {
     Play, 
     Search, 
     Boxes, 
-    CheckCircle2 
+    CheckCircle2,
+    HelpCircle 
 } from 'lucide-react';
 
 const nodeNames = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");

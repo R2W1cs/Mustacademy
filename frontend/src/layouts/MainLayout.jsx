@@ -16,7 +16,20 @@ const MainLayout = ({ children }) => {
   const { showPlanBuilder, closeBuilder, onPlanGenerated } = usePlan();
   const isDark = theme === 'dark';
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const location = useLocation();
+
+  // Close mobile nav on route change
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [location.pathname]);
+
+  // Listen for hamburger event from Navbar
+  useEffect(() => {
+    const handler = () => setMobileNavOpen(true);
+    window.addEventListener('open-mobile-nav', handler);
+    return () => window.removeEventListener('open-mobile-nav', handler);
+  }, []);
 
   useEffect(() => {
     // Load sidebar state
@@ -33,17 +46,31 @@ const MainLayout = ({ children }) => {
     window.dispatchEvent(new CustomEvent('sidebarToggle', { detail: { isCollapsed: newState } }));
   };
 
-  const isImmersiveRoute = location.pathname.startsWith('/dashboard') || location.pathname.includes('/roadmap') || location.pathname.startsWith('/topics') || location.pathname.startsWith('/podcast-studio');
+  const isImmersiveRoute = location.pathname.startsWith('/dashboard') || location.pathname.includes('/roadmap') || location.pathname.startsWith('/topics') || location.pathname.startsWith('/podcast-studio') || location.pathname.startsWith('/library') || location.pathname.startsWith('/profile/setup') || location.pathname.startsWith('/creator-corner') || location.pathname.startsWith('/market');
   const isCelestialRoute = location.pathname.startsWith('/library') || location.pathname.startsWith('/courses') || location.pathname.startsWith('/topics');
 
   return (
-    <div className={`flex min-h-screen relative transition-colors duration-500 ${isDark ? 'bg-[#050810] text-slate-100' : 'bg-[#FAFAFF] text-slate-900'}`}>
+    <div className={`flex ${isImmersiveRoute ? 'h-screen overflow-hidden' : 'min-h-screen'} relative transition-colors duration-500 ${isDark ? 'bg-[#050810] text-slate-100' : 'bg-[#FAFAFF] text-slate-900'}`}>
       {/* Global Cute Glows */}
       <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-indigo-500/5 blur-[120px] rounded-full pointer-events-none"></div>
       <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-pink-500/5 blur-[100px] rounded-full pointer-events-none"></div>
-      <Sidebar isDark={isDark} toggleTheme={toggleTheme} isCollapsed={isCollapsed} toggleSidebar={toggleSidebar} />
+      {/* Mobile sidebar backdrop */}
+      {mobileNavOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          onClick={() => setMobileNavOpen(false)}
+        />
+      )}
+      <Sidebar
+        isDark={isDark}
+        toggleTheme={toggleTheme}
+        isCollapsed={isCollapsed}
+        toggleSidebar={toggleSidebar}
+        mobileOpen={mobileNavOpen}
+        onMobileClose={() => setMobileNavOpen(false)}
+      />
       <main
-        className={`flex-1 min-w-0 max-w-full relative z-10 overflow-x-hidden ${!isImmersiveRoute && 'px-4 md:px-6 lg:px-10 py-10'} transition-all duration-300 ${isDark ? (isCelestialRoute ? 'mesh-bg' : 'bg-[#050810]') : 'bg-white'}`}
+        className={`flex-1 min-w-0 w-full relative z-10 overflow-x-hidden overflow-y-auto ${!isImmersiveRoute && 'px-4 md:px-6 lg:px-10 py-10'} transition-all duration-300 ${isDark ? (isCelestialRoute ? 'mesh-bg' : 'bg-[#050810]') : 'bg-white'}`}
       >
         <AnimatePresence mode="wait">
           <motion.div
@@ -52,6 +79,7 @@ const MainLayout = ({ children }) => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -5 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
+            className={isImmersiveRoute ? 'h-full' : ''}
           >
             {children}
           </motion.div>

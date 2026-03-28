@@ -1,0 +1,421 @@
+(node:24296) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.
+In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.
+
+To prepare for this change:
+- If you want the current behavior, explicitly use 'sslmode=verify-full'
+- If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'
+
+See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+=== asset_hiding ===
+id (integer)
+asset_id (integer)
+user_id (integer)
+created_at (timestamp without time zone)
+
+=== asset_reviews ===
+id (integer)
+asset_id (integer)
+reviewer_id (integer)
+rating (integer)
+comment (text)
+created_at (timestamp without time zone)
+
+=== career_paths ===
+id (integer)
+name (character varying)
+
+=== career_roadmaps ===
+id (integer)
+user_id (integer)
+target_job (character varying)
+architecture_json (jsonb)
+roadmap_steps_json (jsonb)
+created_at (timestamp without time zone)
+updated_at (timestamp without time zone)
+
+=== chat_members ===
+room_id (integer)
+user_id (integer)
+is_voice_active (boolean)
+joined_at (timestamp without time zone)
+
+=== chat_messages ===
+id (integer)
+room_id (integer)
+sender_id (integer)
+text (text)
+attachment_url (text)
+attachment_type (character varying)
+created_at (timestamp without time zone)
+user_id (integer)
+role (character varying)
+chat_type (character varying)
+message (text)
+conversation_id (uuid)
+
+=== chat_rooms ===
+id (integer)
+name (character varying)
+type (character varying)
+admin_id (integer)
+created_at (timestamp without time zone)
+password (character varying)
+
+=== cheatsheets ===
+id (integer)
+user_id (integer)
+title (character varying)
+file_url (text)
+category (character varying)
+upvotes (integer)
+created_at (timestamp without time zone)
+
+=== course_career ===
+course_id (integer)
+career_id (integer)
+
+=== course_skills ===
+course_id (integer)
+skill_id (integer)
+
+=== courses ===
+id (integer)
+name (character varying)
+description (text)
+year_id (integer)
+semester_id (integer)
+
+=== creator_projects ===
+id (integer)
+title (text)
+description (text)
+owner_id (integer)
+status (text)
+skills_required (ARRAY)
+created_at (timestamp with time zone)
+updated_at (timestamp with time zone)
+github_repo (text)
+
+=== daily_goals ===
+id (integer)
+user_id (integer)
+description (text)
+is_completed (boolean)
+deadline (timestamp without time zone)
+created_at (timestamp without time zone)
+difficulty (character varying)
+
+=== daily_plans ===
+id (uuid)
+user_id (text)
+date (date)
+technique (character varying)
+schedule (jsonb)
+status (character varying)
+created_at (timestamp without time zone)
+
+=== forum_comments ===
+id (integer)
+thread_id (integer)
+user_id (integer)
+content (text)
+parent_comment_id (integer)
+status (text)
+created_at (timestamp with time zone)
+
+=== forum_threads ===
+id (integer)
+title (text)
+content (text)
+user_id (integer)
+topic_id (integer)
+type (text)
+status (text)
+last_activity_at (timestamp with time zone)
+created_at (timestamp with time zone)
+
+=== forum_upvotes ===
+id (integer)
+user_id (integer)
+thread_id (integer)
+comment_id (integer)
+created_at (timestamp with time zone)
+
+=== goal_submissions ===
+id (integer)
+goal_id (integer)
+user_id (integer)
+submission_text (text)
+ai_grade (integer)
+ai_feedback (text)
+submitted_at (timestamp without time zone)
+
+=== interview_sessions ===
+id (uuid)
+user_id (integer)
+target_job (text)
+current_phase (text)
+metadata (jsonb)
+is_completed (boolean)
+created_at (timestamp without time zone)
+updated_at (timestamp without time zone)
+
+=== learning_path_courses ===
+path_id (integer)
+course_id (integer)
+order_index (integer)
+
+=== learning_paths ===
+id (integer)
+name (character varying)
+description (text)
+
+=== lexicon_terms ===
+id (integer)
+term (text)
+definition (text)
+depth_level (integer)
+created_at (timestamp without time zone)
+updated_at (timestamp without time zone)
+
+=== market_news ===
+id (integer)
+title (character varying)
+content_summary (text)
+source_url (text)
+source_name (character varying)
+company_name (character varying)
+job_title (character varying)
+category (character varying)
+location (character varying)
+salary_value (integer)
+demand_growth (integer)
+salary_index (integer)
+skill_match (integer)
+impact_logic (text)
+expires_at (timestamp with time zone)
+created_at (timestamp with time zone)
+trend_context (text)
+verification_type (character varying)
+external_id (character varying)
+live_metrics (jsonb)
+is_live (boolean)
+
+=== masterclass_episodes ===
+id (integer)
+title (character varying)
+summary (text)
+segments (jsonb)
+part_number (integer)
+thumbnail_url (text)
+published_at (timestamp without time zone)
+created_at (timestamp without time zone)
+
+=== modules ===
+id (integer)
+course_id (integer)
+title (character varying)
+order_index (integer)
+
+=== notifications ===
+id (integer)
+user_id (integer)
+type (character varying)
+message (text)
+related_id (integer)
+read (boolean)
+created_at (timestamp without time zone)
+
+=== peer_videos ===
+id (integer)
+user_id (integer)
+course_id (integer)
+title (text)
+video_url (text)
+description (text)
+likes (integer)
+created_at (timestamp without time zone)
+uploader_note (text)
+is_public (boolean)
+
+=== project_requests ===
+id (integer)
+project_id (integer)
+user_id (integer)
+status (text)
+message (text)
+created_at (timestamp with time zone)
+motivation (text)
+skills (text)
+contribution (text)
+
+=== projects ===
+id (integer)
+course_id (integer)
+title (character varying)
+difficulty (character varying)
+description (text)
+
+=== resources ===
+id (integer)
+course_id (integer)
+title (character varying)
+url (text)
+type (character varying)
+
+=== scholarly_assets ===
+id (integer)
+user_id (integer)
+title (character varying)
+file_url (text)
+asset_type (character varying)
+subject_area (character varying)
+status (character varying)
+created_at (timestamp without time zone)
+is_hidden (boolean)
+
+=== semesters ===
+id (integer)
+year_number (integer)
+semester_number (integer)
+
+=== skills ===
+id (integer)
+name (character varying)
+
+=== synaptic_messages ===
+id (integer)
+room_id (integer)
+sender_id (integer)
+text (text)
+attachment_url (text)
+attachment_type (character varying)
+created_at (timestamp with time zone)
+
+=== topic_lexicon_map ===
+topic_id (integer)
+lexicon_id (integer)
+
+=== topics ===
+id (integer)
+course_id (integer)
+title (character varying)
+importance_level (text)
+module_id (integer)
+content (text)
+first_principles (text)
+architectural_logic (text)
+forge_snippet (text)
+master_notes (text)
+forge_protocol (text)
+ethical_dilemma (jsonb)
+difficulty (USER-DEFINED)
+estimated_time_minutes (integer)
+learning_objectives (jsonb)
+prerequisites (jsonb)
+career_context (jsonb)
+library_links (jsonb)
+hall_of_shame (jsonb)
+production_standard (jsonb)
+last_reviewed_at (timestamp without time zone)
+breadcrumb_path (text)
+estimated_time (character varying)
+historical_context (text)
+structural_breakdown (text)
+deep_dive (jsonb)
+applied_practice (jsonb)
+failure_analysis (text)
+updated_at (timestamp without time zone)
+scholarly_references (jsonb)
+staff_engineer_note (text)
+content_markdown (text)
+content_easy_markdown (text)
+content_deep_markdown (text)
+song_url (text)
+song_lyrics (jsonb)
+
+=== user_badges ===
+id (integer)
+user_id (integer)
+badge_key (text)
+earned_at (timestamp without time zone)
+
+=== user_contributions ===
+id (integer)
+user_id (integer)
+action_type (text)
+points (integer)
+course_id (integer)
+created_at (timestamp without time zone)
+
+=== user_courses ===
+id (integer)
+user_id (integer)
+course_id (integer)
+status (character varying)
+started_at (timestamp without time zone)
+completed_at (timestamp without time zone)
+
+=== user_projects ===
+user_id (integer)
+project_id (integer)
+status (character varying)
+github_link (text)
+
+=== user_skills ===
+user_id (integer)
+skill_id (integer)
+level (integer)
+
+=== user_stats ===
+user_id (integer)
+contribution_score (integer)
+level (text)
+current_asc (integer)
+
+=== user_topic_progress ===
+user_id (integer)
+topic_id (integer)
+completed (boolean)
+quiz_score (integer)
+
+=== users ===
+id (integer)
+name (character varying)
+email (character varying)
+password_hash (text)
+role (character varying)
+created_at (timestamp without time zone)
+year (integer)
+semester (integer)
+avatar_url (text)
+bio (text)
+passion (text)
+status (text)
+streak_current (integer)
+streak_last_active_date (date)
+current_asc (integer)
+last_active_at (timestamp without time zone)
+dream_job (text)
+target_company (text)
+technical_pillar (text)
+
+=== video_feedback ===
+id (integer)
+video_id (integer)
+user_id (integer)
+feedback_text (text)
+created_at (timestamp without time zone)
+rating (integer)
+
+=== video_reactions ===
+id (integer)
+video_id (integer)
+user_id (integer)
+created_at (timestamp without time zone)
+
+=== years ===
+id (integer)
+year_number (integer)

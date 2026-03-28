@@ -34,10 +34,10 @@ export const updateInterviewSession = async (userId, conversationId, phase, scor
 /**
  * Initializes a new interview session
  */
-export const startInterviewSession = async (userId, conversationId, targetJob) => {
+export const startInterviewSession = async (userId, conversationId, targetJob, mode = 'STANDARD') => {
     await pool.query(
-        `INSERT INTO interview_sessions (id, user_id, current_phase, target_job) 
-         VALUES ($1, $2, 'INTRO', $3)`,
-        [conversationId, userId, targetJob]
+        `INSERT INTO interview_sessions (id, user_id, current_phase, target_job, mode)
+         VALUES ($1, $2, 'INTRO', $3, $4)`,
+        [conversationId, userId, targetJob, mode]
     );
 };

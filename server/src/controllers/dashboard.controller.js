@@ -1,17 +1,22 @@
 import pool from "../config/db.js";
 import { validateStreak } from "../services/streak.service.js";
-
 import { getCareerAlignment } from "../services/vocation.service.js";
+import { cacheGet, cacheSet, cacheKey } from "../utils/aiCache.js";
 
 export const getDashboardStats = async (req, res) => {
   const userId = req.user.id;
 
   try {
-    // 1. Update heartbeat for Online Status
+    // 1. Update heartbeat for Online Status (always runs — not cached)
     await pool.query("UPDATE users SET last_active_at = NOW() WHERE id = $1", [userId]);
 
+    // 2. Short-circuit with cached response if available (60s TTL)
+    const dashKey = cacheKey('dashboard', userId);
+    const cached = cacheGet(dashKey);
+    if (cached) return res.json(cached);
+
     // 2. Fetch parallel data
-    const [streak, userRes, activityRes, onlineRes, contribStatsRes, cohortPercentileRes, completedNamesRes, activity7WeeksRes, skillsRes, lastInterviewRes, projectStatsRes, recentActivityRes, lastActiveCourseRes] = await Promise.all([
+    const [streak, userRes, activityRes, onlineRes, contribStatsRes, cohortPercentileRes, completedNamesRes, activity7WeeksRes, skillsRes, lastInterviewRes, projectStatsRes, recentActivityRes, lastActiveCourseRes, courseStatsRes, topicStatsRes] = await Promise.all([
       validateStreak(userId).catch(e => { console.error("Streak validation failed:", e.message); return 0; }),
       pool.query("SELECT streak_last_active_date, name, year, semester, dream_job FROM users WHERE id = $1", [userId]).catch(e => { console.error("UserRes failed:", e.message); return { rows: [{ streak_last_active_date: null, name: null, year: null, semester: null, dream_job: null }] }; }),
       pool.query(`WITH last_7_days AS (
@@ -120,34 +125,31 @@ export const getDashboardStats = async (req, res) => {
         JOIN courses c ON uc.course_id = c.id
         WHERE uc.user_id = $1
         ORDER BY uc.started_at DESC LIMIT 1
-      `, [userId]).catch(() => ({ rows: [] }))
+      `, [userId]).catch(() => ({ rows: [] })),
+      pool.query(`SELECT
+        COUNT(*) FILTER(WHERE status = 'planned') AS planned,
+        COUNT(*) FILTER(WHERE status = 'in_progress') AS in_progress,
+        COUNT(*) FILTER(WHERE status = 'completed') AS completed,
+        COUNT(*) AS total
+        FROM user_courses
+        WHERE user_id = $1`, [userId]).catch(e => { console.error("CourseStatsRes failed:", e.message); return { rows: [{ planned: 0, in_progress: 0, completed: 0, total: 0 }] }; }),
+      pool.query(`
+        WITH enrolled_topics AS (
+          SELECT t.id
+          FROM user_courses uc
+          JOIN topics t ON uc.course_id = t.course_id
+          WHERE uc.user_id = $1
+        )
+        SELECT
+          (SELECT COUNT(*) FROM user_topic_progress WHERE user_id = $1 AND completed = true) AS completed_topics,
+          (SELECT COUNT(*) FROM enrolled_topics) AS total_topics
+      `, [userId]).catch(e => { console.error("TopicStatsRes failed:", e.message); return { rows: [{ completed_topics: 0, total_topics: 0 }] }; })
     ]);
 
     const lastInterview = lastInterviewRes.rows[0] || null;
     const projectStats = projectStatsRes.rows[0] || { joined_projects: 0, owned_projects: 0 };
     const recentActivity = recentActivityRes.rows || [];
     const lastActiveCourse = lastActiveCourseRes.rows[0] || null;
-
-    // 2.1 Fetch basic counts separately or reusing original but ensuring counts are accurate
-    const courseStatsRes = await pool.query(`SELECT
-    COUNT(*) FILTER(WHERE status = 'planned') AS planned,
-      COUNT(*) FILTER(WHERE status = 'in_progress') AS in_progress,
-        COUNT(*) FILTER(WHERE status = 'completed') AS completed,
-          COUNT(*) AS total
-           FROM user_courses
-           WHERE user_id = $1`, [userId]);
-
-    const topicStatsRes = await pool.query(`
-      WITH enrolled_topics AS(
-            SELECT t.id
-        FROM user_courses uc
-        JOIN topics t ON uc.course_id = t.course_id
-        WHERE uc.user_id = $1
-          )
-    SELECT
-      (SELECT COUNT(*) FROM user_topic_progress WHERE user_id = $1 AND completed = true) AS completed_topics,
-        (SELECT COUNT(*) FROM enrolled_topics) AS total_topics
-    `, [userId]);
 
     // Process results
     const courses = courseStatsRes.rows[0];
@@ -279,7 +281,7 @@ export const getDashboardStats = async (req, res) => {
     // 3. Career Oracle Data
     const careerOracle = getCareerAlignment(dream_job, completedNamesRes.rows);
 
-    res.json({
+    const payload = {
       user: { id: userId, name, year, semester },
       courses,
       topics,
@@ -306,7 +308,10 @@ export const getDashboardStats = async (req, res) => {
         lastActiveCourse
       },
       careerOracle
-    });
+    };
+
+    cacheSet(dashKey, payload, 60 * 1000);
+    res.json(payload);
   } catch (error) {
     console.error("Dashboard stats error:", error);
     res.status(500).json({ message: "Failed to load dashboard stats" });

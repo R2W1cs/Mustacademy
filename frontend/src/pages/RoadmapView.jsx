@@ -6,6 +6,7 @@ import { getCareerRoadmap, generateTrajectory } from "../api/career";
 import { getMyProfile } from "../api/profile";
 import { useTheme } from "../auth/ThemeContext";
 import ScholarlyFeedbackModal from "../components/ScholarlyFeedbackModal";
+import toast from "react-hot-toast";
 
 const VideoCard = ({ video, onLike, onFeedback }) => {
     const { theme } = useTheme();
@@ -77,7 +78,7 @@ const UploadModal = ({ isOpen, onClose, courseId, onUploadSuccess }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!file) {
-            alert("Please select a video file.");
+            toast.error("Please select a video file.");
             return;
         }
 
@@ -100,7 +101,7 @@ const UploadModal = ({ isOpen, onClose, courseId, onUploadSuccess }) => {
         } catch (err) {
             console.error("Upload Error Details:", err);
             const errorMsg = err.response?.data?.message || "Transmission failed.";
-            alert(`DATA UPLINK FAILED: ${errorMsg}`);
+            toast.error(`DATA UPLINK FAILED: ${errorMsg}`);
         } finally {
             setUploading(false);
         }

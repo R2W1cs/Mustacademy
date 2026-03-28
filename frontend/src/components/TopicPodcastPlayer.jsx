@@ -1,365 +1,465 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Pause, AlertCircle, Mic, MicOff, Send, Bot, Loader2 } from 'lucide-react';
+import { Mic, MicOff, Send, Square, ChevronRight, BookOpen, MessageSquare } from 'lucide-react';
 import api from '../api/axios';
-import { useTheme } from '../auth/ThemeContext';
+
+// Dr. Nova voice — locked to server TTS, consistent across all browsers
+const NOVA_VOICE = 'en-US-GuyNeural';
+
+async function serverTTS(text, signal) {
+    const response = await api.post('/tts', { text, voice: NOVA_VOICE }, { responseType: 'blob', signal });
+    if (!response.data || response.data.size < 500) throw new Error('Invalid audio response');
+    return URL.createObjectURL(response.data);
+}
 
 export default function InteractivePodcastPlayer({ topic }) {
-    const { isDark } = useTheme();
-    const [messages, setMessages] = useState([]);
-    const [inputValue, setInputValue] = useState("");
+    // Session phases: 'idle' | 'lesson' | 'qa'
+    const [phase, setPhase] = useState('idle');
+    const [lessonParagraphs, setLessonParagraphs] = useState([]);
+    const [currentParagraphIdx, setCurrentParagraphIdx] = useState(0);
+    const [transcript, setTranscript] = useState([]); // { role: 'nova'|'user', text: string }
+    const [inputValue, setInputValue] = useState('');
     const [isListening, setIsListening] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
-    const [isPlaying, setIsPlaying] = useState(false);
-    const [isAudioLoading, setIsAudioLoading] = useState(false);
-    const [hasStarted, setHasStarted] = useState(false);
+    const [isSpeaking, setIsSpeaking] = useState(false);
+    const [isLoadingLesson, setIsLoadingLesson] = useState(false);
     const [error, setError] = useState(null);
+    const [phaseOffset, setPhaseOffset] = useState(0);
 
     const audioRef = useRef(null);
-    const messagesEndRef = useRef(null);
+    const currentBlobUrl = useRef(null);
     const recognitionRef = useRef(null);
-    const utteranceRef = useRef(null); 
+    const transcriptEndRef = useRef(null);
+    const abortControllerRef = useRef(null);
+    const animFrameRef = useRef(null);
 
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    };
-
+    // Wave animation loop
     useEffect(() => {
-        scrollToBottom();
-    }, [messages, isGenerating]);
+        const tick = () => {
+            setPhaseOffset(p => p + (isSpeaking ? 0.04 : 0.01));
+            animFrameRef.current = requestAnimationFrame(tick);
+        };
+        animFrameRef.current = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(animFrameRef.current);
+    }, [isSpeaking]);
 
+    // Setup Speech Recognition
     useEffect(() => {
-        // Setup Speech Recognition
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (SpeechRecognition) {
-            recognitionRef.current = new SpeechRecognition();
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SR) {
+            recognitionRef.current = new SR();
             recognitionRef.current.continuous = false;
             recognitionRef.current.interimResults = false;
             recognitionRef.current.lang = 'en-US';
-
-            recognitionRef.current.onresult = (event) => {
-                const transcript = event.results[0][0].transcript;
-                setInputValue(prev => prev ? prev + " " + transcript : transcript);
+            recognitionRef.current.onresult = (e) => {
+                setInputValue(e.results[0][0].transcript);
                 setIsListening(false);
             };
-
-            recognitionRef.current.onerror = (event) => {
-                console.error("Speech recognition error", event.error);
-                if (event.error === 'network') {
-                    setError("Microphone connection failed. Please check your internet.");
-                }
-                setIsListening(false);
-            };
-
-            recognitionRef.current.onend = () => {
-                setIsListening(false);
-            };
+            recognitionRef.current.onerror = () => setIsListening(false);
+            recognitionRef.current.onend = () => setIsListening(false);
         }
-
-        return stopAllAudio;
+        return () => stopAudio();
     }, [topic]);
 
-    const startSession = () => {
-        setHasStarted(true);
-        const greeting = `Welcome to the studio. Today we're exploring ${topic?.title || "this topic"}. I'm Dr. Nova. What would you like to know?`;
-        setMessages([{ role: 'assistant', content: greeting }]);
-        playAudio(greeting, 'expert');
-    };
+    useEffect(() => {
+        transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [transcript, isGenerating]);
 
-    const stopAllAudio = () => {
+    const stopAudio = useCallback(() => {
+        if (abortControllerRef.current) abortControllerRef.current.abort();
         if (audioRef.current) {
             audioRef.current.pause();
-            audioRef.current.src = "";
+            audioRef.current.onended = null;
+            audioRef.current.onerror = null;
             audioRef.current = null;
         }
-        window.speechSynthesis.cancel();
-        setIsPlaying(false);
+        if (currentBlobUrl.current) {
+            URL.revokeObjectURL(currentBlobUrl.current);
+            currentBlobUrl.current = null;
+        }
+        setIsSpeaking(false);
+    }, []);
+
+    const playText = useCallback(async (text, onEnd) => {
+        stopAudio();
+        abortControllerRef.current = new AbortController();
+        setIsSpeaking(true);
+        try {
+            const blobUrl = await serverTTS(text, abortControllerRef.current.signal);
+            currentBlobUrl.current = blobUrl;
+            const audio = new Audio(blobUrl);
+            audioRef.current = audio;
+            audio.onended = () => {
+                URL.revokeObjectURL(blobUrl);
+                currentBlobUrl.current = null;
+                setIsSpeaking(false);
+                if (onEnd) onEnd();
+            };
+            audio.onerror = () => {
+                URL.revokeObjectURL(blobUrl);
+                currentBlobUrl.current = null;
+                setIsSpeaking(false);
+                if (onEnd) onEnd();
+            };
+            await audio.play();
+        } catch (err) {
+            if (err.name !== 'AbortError' && err.name !== 'CanceledError') {
+                console.error('[Dr. Nova] TTS error:', err);
+            }
+            setIsSpeaking(false);
+        }
+    }, [stopAudio]);
+
+    // Play lesson paragraphs sequentially
+    const playLessonFrom = useCallback(async (paragraphs, startIdx) => {
+        if (startIdx >= paragraphs.length) {
+            // Lesson done — move to Q&A
+            setPhase('qa');
+            return;
+        }
+        setCurrentParagraphIdx(startIdx);
+        const para = paragraphs[startIdx];
+        setTranscript(prev => [...prev, { role: 'nova', text: para }]);
+        await playText(para, () => playLessonFrom(paragraphs, startIdx + 1));
+    }, [playText]);
+
+    const startSession = async () => {
+        setIsLoadingLesson(true);
+        setError(null);
+        setTranscript([]);
+        try {
+            const res = await api.post('/ai/nova-lesson', { topicTitle: topic?.title });
+            const paragraphs = res.data.paragraphs;
+            if (!paragraphs || paragraphs.length === 0) throw new Error('No lesson content');
+            setLessonParagraphs(paragraphs);
+            setPhase('lesson');
+            setIsLoadingLesson(false);
+            await playLessonFrom(paragraphs, 0);
+        } catch (err) {
+            console.error('[Dr. Nova] Lesson generation failed:', err);
+            setError('Failed to start session. Please try again.');
+            setIsLoadingLesson(false);
+        }
+    };
+
+    const handleSubmit = async (e) => {
+        if (e) e.preventDefault();
+        if (!inputValue.trim() || isGenerating || isSpeaking) return;
+
+        const userMsg = inputValue.trim();
+        setInputValue('');
+        stopAudio();
+
+        const updatedTranscript = [...transcript, { role: 'user', text: userMsg }];
+        setTranscript(updatedTranscript);
+        setIsGenerating(true);
+        setError(null);
+
+        try {
+            const history = updatedTranscript.map(m => ({
+                role: m.role === 'nova' ? 'assistant' : 'user',
+                content: m.text
+            }));
+            const res = await api.post('/ai/interactive-podcast', {
+                topicTitle: topic?.title,
+                history
+            });
+            const reply = res.data.reply;
+            setTranscript(prev => [...prev, { role: 'nova', text: reply }]);
+            setIsGenerating(false);
+            await playText(reply);
+        } catch (err) {
+            console.error('[Dr. Nova] Q&A error:', err);
+            setError('Failed to get a response. Please try again.');
+            setIsGenerating(false);
+        }
     };
 
     const toggleListening = () => {
-        if (!recognitionRef.current) {
-            alert("Your browser does not support Speech Recognition.");
-            return;
-        }
-
+        if (!recognitionRef.current) { alert('Speech recognition not supported in this browser.'); return; }
         if (isListening) {
             recognitionRef.current.stop();
         } else {
+            setInputValue('');
             recognitionRef.current.start();
             setIsListening(true);
         }
     };
 
-    const getBaseURL = () => {
-        const raw = import.meta.env.VITE_API_URL || (window.location.hostname !== 'localhost' ? "https://mustacademy-backend.onrender.com" : "http://localhost:5000");
-        return raw.endsWith('/api') ? raw.slice(0, -4) : raw;
-    };
-    const baseURL = getBaseURL();
-
-    const handleSubmit = async (e) => {
-        if (e) e.preventDefault();
-        if (!inputValue.trim() || isGenerating) return;
-
-        const userMsg = inputValue.trim();
-        setInputValue("");
-        stopAllAudio();
-
-        const updatedMessages = [...messages, { role: 'user', content: userMsg }];
-        setMessages(updatedMessages);
-        setIsGenerating(true);
-        setError(null);
-
-        try {
-            const res = await api.post(`/ai/interactive-podcast`, {
-                topicTitle: topic?.title,
-                history: updatedMessages
-            });
-
-            const replyText = res.data.reply;
-            setMessages([...updatedMessages, { role: 'assistant', content: replyText }]);
-            
-            await playAudio(replyText, 'expert');
-
-        } catch (err) {
-            console.error("Failed to fetch interactive response:", err);
-            setError("Failed to generate response. Please try again.");
-        } finally {
-            setIsGenerating(false);
-        }
+    // Orb waveform lines
+    const WaveLine = ({ amplitude, frequency, opacity, yOffset = 0 }) => {
+        const W = 200, H = 80, mid = H / 2 + yOffset;
+        const pts = 80;
+        const activeAmp = isSpeaking ? amplitude : amplitude * 0.15;
+        const d = Array.from({ length: pts + 1 }, (_, i) => {
+            const x = (i / pts) * W;
+            const env = Math.sin((i / pts) * Math.PI);
+            const y = mid + activeAmp * env * Math.sin((i / pts) * frequency * Math.PI * 2 + phaseOffset);
+            return `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
+        }).join(' ');
+        return <path d={d} fill="none" stroke="rgba(99,102,241,1)" strokeWidth="1.5" strokeLinecap="round" style={{ opacity }} />;
     };
 
-    const playAudio = async (text, speaker) => {
-        stopAllAudio();
-        setIsAudioLoading(true);
-        setIsPlaying(false);
-
-        try {
-            const encodedText = encodeURIComponent(text);
-            const encodedTopic = encodeURIComponent(topic?.title || '');
-            const url = `${baseURL}/api/ai/podcast/speech?text=${encodedText}&speaker=${speaker}&topicTitle=${encodedTopic}&index=0&interactive=true`;
-            
-            const audio = new Audio(url);
-            audioRef.current = audio;
-
-            audio.oncanplaythrough = () => {
-                setIsAudioLoading(false);
-                setIsPlaying(true);
-                audio.play().catch(e => {
-                    if (e.name !== 'NotAllowedError') {
-                        console.warn("Autoplay blocked, attempting fallback...");
-                        playBrowserFallback(text);
-                    }
-                });
-            };
-            
-            audio.onended = () => {
-                setIsPlaying(false);
-                setIsAudioLoading(false);
-            };
-            
-            audio.onerror = () => {
-                setIsAudioLoading(false);
-                console.warn("[Neural-Audio] Hosted Audio failed, falling back to browser synthesis.");
-                playBrowserFallback(text);
-            };
-
-        } catch (err) {
-            setIsAudioLoading(false);
-            playBrowserFallback(text);
-        }
-    };
-
-    const playBrowserFallback = (text) => {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        
-        const setVoice = () => {
-            const voices = window.speechSynthesis.getVoices();
-            if (voices.length > 0) {
-                const maleVoices = voices.filter(v => 
-                    v.name.includes('David') || 
-                    v.name.includes('Google UK English Male') ||
-                    v.name.includes('Mark')
-                );
-
-                utterance.voice = maleVoices[0] || voices[0];
-                utterance.rate = 1.05;
-                utterance.pitch = 1.0;
-                utteranceRef.current = utterance;
-                window.speechSynthesis.speak(utterance);
-            }
-        };
-
-        if (window.speechSynthesis.getVoices().length > 0) {
-            setVoice();
-        } else {
-            window.speechSynthesis.onvoiceschanged = setVoice;
-        }
-
-        utterance.onend = () => setIsPlaying(false);
-        utterance.onerror = (e) => {
-            console.error("Speech fallback failed:", e);
-            setIsPlaying(false);
-        };
-    };
+    const lessonProgress = lessonParagraphs.length > 0
+        ? Math.min(((currentParagraphIdx + (isSpeaking ? 0 : 1)) / lessonParagraphs.length) * 100, 100)
+        : 0;
 
     return (
-        <div className={`mt-8 rounded-xl border p-6 flex flex-col h-[600px] shadow-[0_8px_30px_rgb(0,0,0,0.12)] overflow-hidden transition-all duration-300
-            ${isDark ? 'bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700' : 'bg-gradient-to-br from-white to-gray-50 border-gray-100'}`}>
-            
+        <div className="mt-8 rounded-2xl overflow-hidden border border-slate-800 shadow-2xl"
+            style={{ background: 'linear-gradient(145deg, #0c0f1a 0%, #0f1420 50%, #0a0d18 100%)' }}>
+
             {/* Header */}
-            <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
-                <div className="flex items-center space-x-3">
-                    <div className={`p-2 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center`}>
-                        <Bot size={24} />
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800/60">
+                <div className="flex items-center gap-3">
+                    <div className="relative flex items-center justify-center w-9 h-9">
+                        <div className={`absolute inset-0 rounded-full bg-indigo-500/20 ${isSpeaking ? 'animate-ping' : ''}`} />
+                        <div className="relative w-7 h-7 rounded-full bg-indigo-600/30 border border-indigo-500/50 flex items-center justify-center">
+                            <span className="text-indigo-300 text-xs font-bold">N</span>
+                        </div>
                     </div>
                     <div>
-                        <h3 className={`font-semibold text-lg flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                            Interactive Tutor
-                        </h3>
-                        <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Dr. Nova</p>
+                        <p className="text-white font-semibold text-sm tracking-wide">Dr. Nova</p>
+                        <p className="text-slate-500 text-xs">1-on-1 AI Tutor</p>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-700">
-                        {isAudioLoading ? (
-                            <Loader2 className="h-3 w-3 animate-spin text-indigo-500" />
-                        ) : isPlaying ? (
-                            <span className="flex h-3 w-3 relative items-center justify-center">
-                                <span className="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-indigo-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-indigo-500"></span>
-                            </span>
-                        ) : (
-                            <span className={`h-2.5 w-2.5 rounded-full ${isDark ? 'bg-gray-600' : 'bg-gray-300'}`}></span>
-                        )}
-                        <span className={`text-xs font-semibold ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                            {isAudioLoading ? 'LOADING VOICE...' : isPlaying ? 'SPEAKING' : 'IDLE'}
+                <div className="flex items-center gap-3">
+                    {phase !== 'idle' && (
+                        <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${
+                            phase === 'lesson'
+                                ? 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30'
+                                : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+                        }`}>
+                            {phase === 'lesson' ? <BookOpen size={11} /> : <MessageSquare size={11} />}
+                            {phase === 'lesson' ? 'LECTURE' : 'Q&A'}
+                        </div>
+                    )}
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/60 border border-slate-700/40">
+                        <span className={`w-1.5 h-1.5 rounded-full ${isSpeaking ? 'bg-indigo-400 animate-pulse' : isGenerating ? 'bg-amber-400 animate-pulse' : 'bg-slate-600'}`} />
+                        <span className="text-slate-400 text-xs font-medium">
+                            {isSpeaking ? 'SPEAKING' : isGenerating ? 'THINKING' : isListening ? 'LISTENING' : 'IDLE'}
                         </span>
                     </div>
-                    
-                    <button
-                        onClick={stopAllAudio}
-                        disabled={!isPlaying && !isAudioLoading}
-                        className={`p-2.5 rounded-full transition-all ${isPlaying || isAudioLoading ? 'bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 shadow-sm' : 'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-600 cursor-not-allowed hidden'}`}
-                    >
-                        <Pause size={18} fill="currentColor" />
-                    </button>
                 </div>
             </div>
 
-            {!hasStarted ? (
-                <div className="flex-1 flex flex-col items-center justify-center space-y-4">
-                    <div className={`p-6 rounded-full ${isDark ? 'bg-indigo-900/20 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>
-                        <Mic size={48} />
-                    </div>
-                    <div className="text-center max-w-sm">
-                        <h4 className={`text-lg font-semibold mb-2 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>Ready to talk?</h4>
-                        <p className={`text-sm mb-6 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                            Start your interactive tutoring session. You can type or use your microphone to ask questions.
-                        </p>
+            {/* Main body */}
+            <div className="flex flex-col" style={{ height: '560px' }}>
+
+                {/* Idle / Start screen */}
+                {phase === 'idle' && (
+                    <div className="flex-1 flex flex-col items-center justify-center gap-6 px-8">
+                        {/* Orb */}
+                        <div className="relative w-32 h-32 flex items-center justify-center">
+                            <div className="absolute inset-0 rounded-full"
+                                style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)' }} />
+                            <div className="absolute w-24 h-24 rounded-full border border-indigo-500/20 animate-pulse" />
+                            <div className="absolute w-32 h-32 rounded-full border border-indigo-500/10" />
+                            <div className="w-16 h-16 rounded-full border border-indigo-400/40 bg-indigo-950/60 flex items-center justify-center shadow-lg shadow-indigo-900/50">
+                                <span className="text-indigo-200 text-2xl font-light">N</span>
+                            </div>
+                        </div>
+
+                        <div className="text-center max-w-sm">
+                            <h3 className="text-white text-xl font-semibold mb-1">
+                                {topic?.title || 'Select a Topic'}
+                            </h3>
+                            <p className="text-slate-400 text-sm leading-relaxed">
+                                Dr. Nova will deliver a private lecture, then stay for your questions.
+                            </p>
+                        </div>
+
                         <button
                             onClick={startSession}
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-xl font-semibold shadow-lg shadow-indigo-500/30 transition-all hover:scale-105 active:scale-95"
+                            disabled={isLoadingLesson}
+                            className="flex items-center gap-2 px-8 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all shadow-lg shadow-indigo-900/50 hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            Start Session
+                            {isLoadingLesson ? (
+                                <>
+                                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    Preparing lecture...
+                                </>
+                            ) : (
+                                <>
+                                    <ChevronRight size={16} />
+                                    Begin Session
+                                </>
+                            )}
                         </button>
+
+                        {error && <p className="text-red-400 text-xs text-center">{error}</p>}
                     </div>
-                </div>
-            ) : (
-                <>
-                    {/* Chat History */}
-            <div className="flex-1 overflow-y-auto pr-2 space-y-6 mb-4 custom-scrollbar">
-                <AnimatePresence>
-                    {messages.map((msg, idx) => (
-                        <motion.div
-                            key={idx}
-                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                        >
-                            <div className={`max-w-[85%] rounded-2xl px-5 py-3.5 shadow-sm ${
-                                msg.role === 'user' 
-                                ? 'bg-indigo-600 text-white rounded-br-none' 
-                                : isDark ? 'bg-gray-800 text-gray-200 border border-gray-700 rounded-bl-none' : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none'
-                            }`}>
-                                <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
-                            </div>
-                        </motion.div>
-                    ))}
-                    {isGenerating && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="flex justify-start"
-                        >
-                            <div className={`rounded-2xl px-5 py-4 rounded-bl-none border ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'}`}>
-                                <div className="flex space-x-1.5">
-                                    <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                                    <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                                    <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce"></div>
+                )}
+
+                {/* Lesson + Q&A active */}
+                {phase !== 'idle' && (
+                    <>
+                        {/* Orb visualizer */}
+                        <div className="flex flex-col items-center pt-5 pb-2 gap-2">
+                            <div className="relative w-24 h-24 flex items-center justify-center">
+                                {isSpeaking && (
+                                    <>
+                                        <div className="absolute inset-0 rounded-full bg-indigo-500/5 animate-ping" />
+                                        <div className="absolute w-20 h-20 rounded-full border border-indigo-500/30 animate-pulse" />
+                                    </>
+                                )}
+                                <div className={`w-14 h-14 rounded-full border flex items-center justify-center transition-all duration-500 ${
+                                    isSpeaking
+                                        ? 'border-indigo-400/60 bg-indigo-950/80 shadow-lg shadow-indigo-500/30'
+                                        : 'border-slate-700/60 bg-slate-900/60'
+                                }`}>
+                                    <span className={`text-xl font-light transition-colors ${isSpeaking ? 'text-indigo-300' : 'text-slate-500'}`}>N</span>
                                 </div>
                             </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-                <div ref={messagesEndRef} />
+
+                            {/* Waveform */}
+                            <svg width="200" height="40" viewBox="0 0 200 80" className="-mt-1">
+                                <WaveLine amplitude={16} frequency={3.5} opacity={0.9} yOffset={-10} />
+                                <WaveLine amplitude={10} frequency={5} opacity={0.5} yOffset={0} />
+                                <WaveLine amplitude={6} frequency={7} opacity={0.25} yOffset={6} />
+                            </svg>
+
+                            {/* Lesson progress bar */}
+                            {phase === 'lesson' && lessonParagraphs.length > 0 && (
+                                <div className="w-48 mt-1">
+                                    <div className="flex justify-between text-slate-600 text-[10px] mb-1">
+                                        <span>Lecture progress</span>
+                                        <span>{Math.round(lessonProgress)}%</span>
+                                    </div>
+                                    <div className="h-0.5 bg-slate-800 rounded-full overflow-hidden">
+                                        <motion.div
+                                            className="h-full bg-indigo-500 rounded-full"
+                                            animate={{ width: `${lessonProgress}%` }}
+                                            transition={{ duration: 0.5 }}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Transcript */}
+                        <div className="flex-1 overflow-y-auto px-5 py-3 space-y-4 custom-scrollbar">
+                            <AnimatePresence initial={false}>
+                                {transcript.map((msg, idx) => (
+                                    <motion.div
+                                        key={idx}
+                                        initial={{ opacity: 0, y: 8 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ duration: 0.3 }}
+                                        className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                                    >
+                                        {msg.role === 'nova' && (
+                                            <div className="w-5 h-5 rounded-full bg-indigo-900/60 border border-indigo-700/40 flex items-center justify-center mr-2 mt-0.5 shrink-0">
+                                                <span className="text-indigo-400 text-[9px] font-bold">N</span>
+                                            </div>
+                                        )}
+                                        <div className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm leading-relaxed ${
+                                            msg.role === 'user'
+                                                ? 'bg-indigo-600/20 text-indigo-100 border border-indigo-500/20 rounded-br-none'
+                                                : 'bg-slate-800/50 text-slate-200 border border-slate-700/30 rounded-bl-none'
+                                        }`}>
+                                            {msg.text}
+                                        </div>
+                                    </motion.div>
+                                ))}
+
+                                {isGenerating && (
+                                    <motion.div
+                                        key="thinking"
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        className="flex justify-start"
+                                    >
+                                        <div className="w-5 h-5 rounded-full bg-indigo-900/60 border border-indigo-700/40 flex items-center justify-center mr-2 mt-0.5 shrink-0">
+                                            <span className="text-indigo-400 text-[9px] font-bold">N</span>
+                                        </div>
+                                        <div className="bg-slate-800/50 border border-slate-700/30 rounded-xl rounded-bl-none px-4 py-3">
+                                            <div className="flex gap-1.5 items-center">
+                                                <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                                                <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                                                <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce" />
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                )}
+
+                                {phase === 'lesson' && !isGenerating && isSpeaking && (
+                                    <motion.div
+                                        key="lecturing"
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        className="flex justify-center"
+                                    >
+                                        <span className="text-slate-600 text-xs italic">Dr. Nova is speaking...</span>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                            <div ref={transcriptEndRef} />
+                        </div>
+
+                        {/* Error */}
+                        {error && (
+                            <div className="mx-5 mb-2 px-3 py-2 rounded-lg bg-red-950/40 border border-red-900/40 text-red-400 text-xs">
+                                {error}
+                            </div>
+                        )}
+
+                        {/* Input dock */}
+                        <div className="px-5 pb-5 pt-2 border-t border-slate-800/60">
+                            {phase === 'lesson' && (
+                                <p className="text-slate-600 text-xs text-center mb-3">
+                                    Lecture in progress — questions unlock after Dr. Nova finishes.
+                                </p>
+                            )}
+                            <form onSubmit={handleSubmit} className="flex gap-2">
+                                <div className="relative flex-1">
+                                    <input
+                                        type="text"
+                                        value={inputValue}
+                                        onChange={e => setInputValue(e.target.value)}
+                                        placeholder={phase === 'lesson' ? 'Listening to lecture...' : 'Ask Dr. Nova anything...'}
+                                        disabled={isGenerating || isSpeaking || phase === 'lesson'}
+                                        className="w-full rounded-xl pl-4 pr-12 py-3 text-sm outline-none transition-all
+                                            bg-slate-800/60 border border-slate-700/50 text-white placeholder-slate-600
+                                            focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30
+                                            disabled:opacity-40 disabled:cursor-not-allowed"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={toggleListening}
+                                        disabled={isGenerating || isSpeaking || phase === 'lesson'}
+                                        className={`absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg transition-all ${
+                                            isListening
+                                                ? 'bg-red-500/20 text-red-400 animate-pulse'
+                                                : 'text-slate-500 hover:text-indigo-400 hover:bg-slate-700/50'
+                                        } disabled:opacity-30 disabled:cursor-not-allowed`}
+                                    >
+                                        {isListening ? <MicOff size={15} /> : <Mic size={15} />}
+                                    </button>
+                                </div>
+
+                                {isSpeaking ? (
+                                    <button
+                                        type="button"
+                                        onClick={stopAudio}
+                                        className="p-3 rounded-xl bg-red-600/20 text-red-400 border border-red-600/30 hover:bg-red-600/30 transition-all"
+                                    >
+                                        <Square size={16} fill="currentColor" />
+                                    </button>
+                                ) : (
+                                    <button
+                                        type="submit"
+                                        disabled={!inputValue.trim() || isGenerating || phase === 'lesson'}
+                                        className="p-3 rounded-xl transition-all bg-indigo-600 text-white hover:bg-indigo-500 shadow-lg shadow-indigo-900/40 hover:scale-[1.02] active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:bg-indigo-600"
+                                    >
+                                        <Send size={16} />
+                                    </button>
+                                )}
+                            </form>
+                        </div>
+                    </>
+                )}
             </div>
-
-            {error && (
-                <div className={`p-3 mb-4 rounded-lg flex items-center gap-2 text-sm ${
-                    isDark ? 'bg-red-900/20 text-red-400 border border-red-900/50' : 'bg-red-50 text-red-600 border border-red-100'
-                }`}>
-                    <AlertCircle size={16} />
-                    {error}
-                </div>
-            )}
-
-            {/* Input Dock */}
-            <form onSubmit={handleSubmit} className="flex gap-3 relative mt-auto pt-2">
-                <div className="relative flex-1 group">
-                    <input 
-                        type="text"
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        placeholder="Ask Prof. Nova something..."
-                        disabled={isGenerating}
-                        className={`w-full rounded-2xl pl-5 pr-14 py-4 outline-none transition-all ${
-                            isDark 
-                            ? 'bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500' 
-                            : 'bg-white border border-gray-200 text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 shadow-sm'
-                        }`}
-                    />
-                    <button
-                        type="button"
-                        onClick={toggleListening}
-                        disabled={isGenerating}
-                        className={`absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-xl transition-all ${
-                            isListening 
-                            ? 'bg-red-100 text-red-600 animate-pulse outline outline-2 outline-red-200' 
-                            : isDark 
-                                ? 'bg-gray-700 text-gray-400 hover:text-indigo-400 hover:bg-gray-600' 
-                                : 'bg-gray-100 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50'
-                        }`}
-                    >
-                        {isListening ? <MicOff size={18} /> : <Mic size={18} />}
-                    </button>
-                </div>
-                
-                <button
-                    type="submit"
-                    disabled={!inputValue.trim() || isGenerating}
-                    className={`p-4 rounded-2xl flex items-center justify-center transition-all ${
-                        inputValue.trim() && !isGenerating
-                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 hover:bg-indigo-700 hover:scale-[1.02] active:scale-95'
-                        : isDark ? 'bg-gray-800 text-gray-600 cursor-not-allowed border border-gray-700' : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    }`}
-                >
-                    <Send size={20} className={inputValue.trim() && !isGenerating ? 'ml-1' : ''} />
-                </button>
-            </form>
-            </>
-            )}
         </div>
     );
 }

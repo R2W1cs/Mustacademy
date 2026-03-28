@@ -14,9 +14,9 @@ const TopicDetails = lazy(() => import("../pages/TopicDetails"));
 const ProfileSetup = lazy(() => import("../pages/ProfileSetup"));
 const Profile = lazy(() => import("../pages/Profile"));
 const RoadmapView = lazy(() => import("../pages/RoadmapView"));
+const CareerRoadmap = lazy(() => import("../pages/CareerRoadmap"));
 const KnowledgeMapPage = lazy(() => import("../pages/KnowledgeMapPage"));
 const LibraryPage = lazy(() => import("../pages/LibraryPage"));
-const ExamPage = lazy(() => import("../pages/ExamPage"));
 const ExamSession = lazy(() => import("../pages/ExamSession"));
 const ThreadDetailsPage = lazy(() => import("../pages/ThreadDetailsPage"));
 const NeuralClashPage = lazy(() => import("../pages/NeuralClashPage"));
@@ -26,6 +26,9 @@ const ForumHub = lazy(() => import("../pages/ForumHub"));
 const InterviewPage = lazy(() => import("../pages/InterviewPage"));
 const CreatorCorner = lazy(() => import("../pages/CreatorCorner"));
 const PodcastStudio = lazy(() => import("../pages/PodcastStudio"));
+const NotFound = lazy(() => import("../pages/NotFound"));
+const UpgradePage = lazy(() => import("../pages/UpgradePage"));
+const AdminKBPage = lazy(() => import("../pages/AdminKBPage"));
 
 const PageLoader = () => (
   <div className="flex h-full min-h-[50vh] w-full items-center justify-center">
@@ -125,6 +128,15 @@ export default function AppRoutes() {
       />
 
       <Route
+        path="/arena"
+        element={
+          <MainLayout>
+            {withSuspense(NeuralClashPage)}
+          </MainLayout>
+        }
+      />
+
+      <Route
         path="/exams/session"
         element={
           <MainLayout>
@@ -154,7 +166,16 @@ export default function AppRoutes() {
         path="/career/roadmap"
         element={
           <MainLayout>
-            {withSuspense(RoadmapView)}
+            {withSuspense(CareerRoadmap)}
+          </MainLayout>
+        }
+      />
+
+      <Route
+        path="/career"
+        element={
+          <MainLayout>
+            {withSuspense(CareerRoadmap)}
           </MainLayout>
         }
       />
@@ -200,10 +221,28 @@ export default function AppRoutes() {
         }
       />
 
+      <Route
+        path="/upgrade"
+        element={
+          <MainLayout>
+            {withSuspense(UpgradePage)}
+          </MainLayout>
+        }
+      />
+      <Route
+        path="/admin/kb"
+        element={
+          <MainLayout>
+            {withSuspense(AdminKBPage)}
+          </MainLayout>
+        }
+      />
+
+      <Route path="/accomplishments" element={<Navigate to="/profile" replace />} />
       <Route path="/forum" element={<Navigate to="/market" replace />} />
       <Route path="/protocols" element={<Navigate to="/market" replace />} />
-      {/* Fallback */}
-      <Route path="*" element={<Navigate to="/" />} />
+      {/* 404 */}
+      <Route path="*" element={withSuspense(NotFound)} />
     </Routes>
   );
 }

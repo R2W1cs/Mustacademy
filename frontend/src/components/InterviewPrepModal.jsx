@@ -6,8 +6,68 @@ import {
     X, Mic, MicOff, Send, MoreHorizontal, CheckCircle2,
     AlertCircle, Briefcase, ChevronRight, Cpu, Code2,
     CloudIcon, Database, Terminal, UserSquare2, Timer,
-    ShieldAlert, Zap, TrendingUp, DollarSign
+    ShieldAlert, Zap, TrendingUp, DollarSign,
+    Layers, Brain, Users, Star
 } from "lucide-react";
+
+// Static Tailwind color classes — dynamic interpolation stripped by JIT
+const MODE_STYLE = {
+    indigo: {
+        icon: 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20',
+        sub:  'text-indigo-400/70',
+        bar:  'group-hover:bg-indigo-500/50',
+    },
+    violet: {
+        icon: 'bg-violet-500/10 text-violet-400 border border-violet-500/20',
+        sub:  'text-violet-400/70',
+        bar:  'group-hover:bg-violet-500/50',
+    },
+    emerald: {
+        icon: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
+        sub:  'text-emerald-400/70',
+        bar:  'group-hover:bg-emerald-500/50',
+    },
+    amber: {
+        icon: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
+        sub:  'text-amber-400/70',
+        bar:  'group-hover:bg-amber-500/50',
+    },
+};
+
+const INTERVIEW_MODES = [
+    {
+        id: 'STANDARD',
+        label: 'Standard Protocol',
+        sublabel: 'Full 6-phase evaluation',
+        description: 'Complete interview covering intro, experience, technical, high-pressure, behavioral, and closing phases.',
+        icon: <Layers size={28} />,
+        color: 'indigo',
+    },
+    {
+        id: 'TECHNICAL',
+        label: 'Technical Deep-Dive',
+        sublabel: 'DSA · Systems · Architecture',
+        description: 'Pure technical session. Algorithms, data structures, distributed systems, complexity analysis. No soft-skills.',
+        icon: <Cpu size={28} />,
+        color: 'violet',
+    },
+    {
+        id: 'BEHAVIORAL',
+        label: 'Behavioral Focus',
+        sublabel: 'STAR · Leadership · Culture',
+        description: 'STAR-method scenarios only. Leadership, conflict, teamwork, and career growth. No technical questions.',
+        icon: <Users size={28} />,
+        color: 'emerald',
+    },
+    {
+        id: 'SYSTEM_DESIGN',
+        label: 'System Design Round',
+        sublabel: 'Scale · Architecture · Trade-offs',
+        description: 'Design real-world distributed systems at scale. URL shorteners, chat apps, recommendation engines.',
+        icon: <Brain size={28} />,
+        color: 'amber',
+    },
+];
 
 // Waveform configuration
 const WAVEFORM_BARS = 40;
@@ -93,6 +153,9 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
     // Pick a random opening variant once per mount
     const openingVariant = useRef(OPENING_VARIANTS[Math.floor(Math.random() * OPENING_VARIANTS.length)]).current;
 
+    const [step, setStep] = useState('mode'); // 'mode' | 'role'
+    const [selectedMode, setSelectedMode] = useState(null);
+    const [interviewHistory, setInterviewHistory] = useState([]);
     const [isStarted, setIsStarted] = useState(false);
     const [selectedRole, setSelectedRole] = useState(null);
     const [customRole, setCustomRole] = useState("");
@@ -102,14 +165,19 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
     const [isListening, setIsListening] = useState(false);
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [conversationId] = useState(() => {
-        if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-            const r = Math.random() * 16 | 0;
-            const v = c === 'x' ? r : (r & 0x3 | 0x8);
-            return v.toString(16);
-        });
-    });
+    // Regenerated on every new interview start — prevents duplicate key violation
+    const conversationIdRef = useRef(null);
+    const getConversationId = () => {
+        if (!conversationIdRef.current) {
+            conversationIdRef.current = (typeof crypto !== 'undefined' && crypto.randomUUID)
+                ? crypto.randomUUID()
+                : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+                    const r = Math.random() * 16 | 0;
+                    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+                });
+        }
+        return conversationIdRef.current;
+    };
     const [isFullScreen, setIsFullScreen] = useState(false);
     const [scorecard, setScorecard] = useState(null);
     const [analytics, setAnalytics] = useState(null);
@@ -117,6 +185,8 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
     const [selectedSubRole, setSelectedSubRole] = useState(null);
     const [revealedLength, setRevealedLength] = useState(0);
     const [audioData, setAudioData] = useState(new Array(WAVEFORM_BARS).fill(0));
+    const [selectedVoice, setSelectedVoice] = useState(null);
+    const [micError, setMicError] = useState(null);
 
     // 3D Parallax Hooks
     const mouseX = useMotionValue(0);
@@ -142,6 +212,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
     const scrollRef = useRef(null);
     const timerRef = useRef(null);
     const inputRef = useRef("");
+    const speechSynthesisRef = useRef(window.speechSynthesis);
 
     const [phase_offset, setPhaseOffset] = useState(0);
     const [voiceIntensity, setVoiceIntensity] = useState(0);
@@ -166,7 +237,11 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                 recognitionRef.current.stop(); 
             } catch (e) { }
         }
-        // 4. Reset State
+        // 4. Force Synthesis Silence
+        if (speechSynthesisRef.current) {
+            speechSynthesisRef.current.cancel();
+        }
+        // 5. Reset State
         setIsSpeaking(false);
         setIsListening(false);
         if (onClose) onClose();
@@ -183,6 +258,49 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
         frame = requestAnimationFrame(animate);
         return () => cancelAnimationFrame(frame);
     }, [isSpeaking, isListening]);
+
+    // Premium Voice Engine Loading (Male Voice Only for Boardroom)
+    useEffect(() => {
+        const loadVoices = () => {
+            const availableVoices = window.speechSynthesis.getVoices();
+            if (availableVoices.length > 0) {
+                // Filter out obviously female voices to enforce "man only"
+                const maleVoices = availableVoices.filter(v => {
+                    const name = v.name.toLowerCase();
+                    const isEnglish = v.lang.includes("en-US") || v.lang.includes("en-GB");
+                    const isFemale = name.includes("female") || name.includes("zira") || name.includes("aria") || name.includes("jenny") || name.includes("susan") || name.includes("stephanie");
+                    return isEnglish && !isFemale;
+                });
+
+                // Top Tier Premium Male Voices
+                const premiumMales = maleVoices.filter(v => v.name.includes("Natural") || v.name.includes("Neural") || v.name.includes("Online"));
+                const topTierMaleNames = ["Christopher", "Eric", "Guy", "Andrew", "Brian", "Steffan", "Roger"];
+                
+                let premium = null;
+                for (const name of topTierMaleNames) {
+                    premium = premiumMales.find(v => v.name.includes(name));
+                    if (premium) break;
+                }
+
+                // Priority: Microsoft Natural Male -> Google Male -> First available Male
+                if (!premium) premium = premiumMales[0];
+                if (!premium) premium = maleVoices.find(v => v.name.includes("Google") && v.name.toLowerCase().includes("male"));
+                if (!premium) premium = maleVoices.find(v => v.name.toLowerCase().includes("david") || v.name.toLowerCase().includes("mark"));
+                if (!premium) premium = maleVoices[0];
+                if (!premium) premium = availableVoices.find(v => v.lang.includes("en-US")); // ultimate fallback
+
+                setSelectedVoice(premium);
+                console.log(`%c[Voice-Engine] Premium Male Profile Loaded: ${premium?.name}`, "color: #10b981; font-weight: bold;");
+            }
+        };
+
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+        loadVoices();
+        
+        return () => {
+            window.speechSynthesis.onvoiceschanged = null;
+        };
+    }, []);
 
 
     const WaveCore = ({ amplitude, frequency, opacity, color, strokeWidth = 1.5 }) => {
@@ -288,8 +406,12 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
 
             recognitionRef.current.onerror = (e) => {
                 console.error("[Mic] Engine Error:", e.error);
+                setMicError(e.error);
                 setIsListening(false);
                 isListeningRef.current = false;
+                if (e.error === 'network') {
+                    console.error("[Mic] Network Layer Failure. Disabling auto-restart.");
+                }
                 if (e.error === 'no-speech') {
                     console.warn("[Mic] No speech detected. Stopping listening core.");
                 }
@@ -331,6 +453,12 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
         }
     }, [timeLeft]);
 
+    useEffect(() => {
+        api.get('/ai/interview/history')
+            .then(res => setInterviewHistory(res.data.sessions || []))
+            .catch(() => {});
+    }, []);
+
     const startInterview = async (roleTitle) => {
         let job = roleTitle;
         if (roleTitle === "Custom Role") job = customRole;
@@ -338,13 +466,22 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
 
         if (!job || !String(job).trim()) return;
 
+        // Fresh UUID on every start — prevents duplicate key violation on retry
+        conversationIdRef.current = (typeof crypto !== 'undefined' && crypto.randomUUID)
+            ? crypto.randomUUID()
+            : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+                const r = Math.random() * 16 | 0;
+                return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+            });
+
         setIsStarted(true);
         setLoading(true);
         loadingRef.current = true;
         try {
             const res = await api.post("/ai/interview/start", {
                 targetJob: job,
-                conversationId
+                conversationId: conversationIdRef.current,
+                mode: selectedMode || 'STANDARD'
             });
             const reply = res.data.reply || "Connection established. Marcus Stering here. Ready when you are.";
             setMessages([{ sender: 'ai', text: String(reply) }]);
@@ -380,7 +517,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
 
             const res = await api.post("/ai/interview/chat", {
                 message: textToSend,
-                conversationId,
+                conversationId: conversationIdRef.current,
                 currentPhase: phase,
                 targetJob: selectedRole?.id === 9 ? customRole : selectedRole?.title
             });
@@ -438,23 +575,56 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
             audioRef.current.pause();
             audioRef.current = null;
         }
+        // Stop any native speech synthesis
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+        }
 
         const { cleanText } = parseProsody(text);
         if (!cleanText) return;
 
         try {
-            setIsSpeaking(true);
-            isSpeakingRef.current = true;
-            setRevealedLength(0);
-            if (recognitionRef.current) try { recognitionRef.current.stop(); } catch (e) { }
+            // Stop recognition if it's active
+            if (recognitionRef.current) {
+                try { recognitionRef.current.stop(); } catch (e) { }
+            }
 
             // Clear any lingering intervals
             if (textIntervalRef.current) {
-                clearInterval(textIntervalRef.current);
+                cancelAnimationFrame(textIntervalRef.current);
                 textIntervalRef.current = null;
             }
 
-            // Fetch Neural TTS from Backend explicitly for Marcus (Male Premium)
+            // Neural cloud TTS only — consistent voice across all browsers
+            executeCloudTTS(cleanText);
+
+        } catch (err) {
+            console.error("[Speak] Global Error:", err);
+            setIsSpeaking(false);
+            isSpeakingRef.current = false;
+        }
+    };
+
+    const handleSpeechEnd = (fullText) => {
+        setIsSpeaking(false);
+        isSpeakingRef.current = false;
+        setRevealedLength(fullText.length);
+        if (!scorecard && !loadingRef.current) {
+            setTimeout(() => {
+                if (recognitionRef.current && !isListeningRef.current && !isSpeakingRef.current && !loadingRef.current) {
+                    try { recognitionRef.current.start(); } catch (e) { }
+                }
+            }, 800);
+        }
+    };
+
+    const executeCloudTTS = async (cleanText) => {
+        try {
+            setIsSpeaking(true);
+            isSpeakingRef.current = true;
+            setRevealedLength(0);
+            console.log("%c[Neural-Audio] Marcus Sterling high-fidelity stream active.", "color: #3b82f6; font-weight: bold;");
+            // Fetch Neural TTS from Backend
             const response = await api.post("/tts", 
                 { text: cleanText, voice: "en-US-BrianNeural" },
                 { responseType: 'blob' }
@@ -464,60 +634,15 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                 throw new Error("Empty audio response from cloud");
             }
 
-            console.log("%c[Neural-Audio] Marcus Sterling high-fidelity stream active.", "color: #3b82f6; font-weight: bold;");
             const url = URL.createObjectURL(response.data);
             const audio = new Audio(url);
             audioRef.current = audio;
 
-            audio.onplay = () => {
-                const words = cleanText.split(' ').filter(w => w.trim().length > 0);
-                
-                const sync = () => {
-                    const audio = audioRef.current;
-                    if (!audio || !audio.duration || audio.paused || audio.ended) {
-                        return;
-                    }
-                    
-                    const clean = cleanText || "";
-                    const progress = audio.currentTime / audio.duration;
-                    const charTarget = Math.floor(progress * clean.length);
-                    
-                    let currentLen = 0;
-                    let lastWordBoundary = 0;
-                    const wordList = words || [];
-                    
-                    for (const word of wordList) {
-                        if (!word) continue;
-                        if (currentLen + word.length <= charTarget + 1) {
-                            currentLen += word.length + 1;
-                            lastWordBoundary = currentLen;
-                        } else {
-                            break;
-                        }
-                    }
-                    
-                    setRevealedLength(Math.min(lastWordBoundary, clean.length));
-                    setVoiceIntensity(0.6 + Math.random() * 0.4);
-
-                    textIntervalRef.current = requestAnimationFrame(sync);
-                };
-
-                textIntervalRef.current = requestAnimationFrame(sync);
-                console.log(`%c[GOD-MODE] Precision Word-Sync Active. Words: ${words.length}`, "color: #a855f7; font-weight: bold;");
-            };
+            audio.onplay = () => syncAudioWithText(audio, cleanText);
 
             audio.onended = () => {
-                setIsSpeaking(false);
-                isSpeakingRef.current = false;
-                setRevealedLength(cleanText.length);
+                handleSpeechEnd(cleanText);
                 URL.revokeObjectURL(url);
-                if (!scorecard && !loadingRef.current) {
-                    setTimeout(() => {
-                        if (recognitionRef.current && !isListeningRef.current && !isSpeakingRef.current && !loadingRef.current) {
-                            try { recognitionRef.current.start(); } catch (e) { }
-                        }
-                    }, 800);
-                }
             };
 
             audio.onerror = () => {
@@ -528,14 +653,36 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
             };
 
             await audio.play();
-
         } catch (err) {
-            const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message;
-            console.error(`%c[Neural-Audio] Marcus Synthesis Failure: ${errorMsg}`, "color: #ef4444; font-weight: bold;");
+            console.error(`%c[Neural-Audio] Marcus Synthesis Failure: ${err.message}`, "color: #ef4444; font-weight: bold;");
             setIsSpeaking(false);
             isSpeakingRef.current = false;
         }
     };
+
+    const syncAudioWithText = (audio, text) => {
+        const words = text.split(' ').filter(w => w.trim().length > 0);
+        const sync = () => {
+            if (!audio || !audio.duration || audio.paused || audio.ended) return;
+            const progress = audio.currentTime / audio.duration;
+            const charTarget = Math.floor(progress * text.length);
+            
+            let currentLen = 0;
+            let lastWordBoundary = 0;
+            for (const word of words) {
+                if (!word) continue;
+                if (currentLen + word.length <= charTarget + 1) {
+                    currentLen += word.length + 1;
+                    lastWordBoundary = currentLen;
+                } else break;
+            }
+            setRevealedLength(Math.min(lastWordBoundary, text.length));
+            setVoiceIntensity(0.6 + Math.random() * 0.4);
+            textIntervalRef.current = requestAnimationFrame(sync);
+        };
+        textIntervalRef.current = requestAnimationFrame(sync);
+    };
+
 
     const getAttitudeColor = (att) => {
         switch (att) {
@@ -549,6 +696,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
     const getPhaseProgress = () => ((PHASES.indexOf(phase) + 1) / PHASES.length) * 100;
 
     const toggleListening = () => {
+        setMicError(null);
         if (isListening) {
             setIsListening(false);
             isListeningRef.current = false;
@@ -590,93 +738,164 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                                 </div>
                             </div>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-                            {!selectedRole ? (
-                                ROLES.map((role) => (
-                                    <button
-                                        key={role.id}
-                                        onClick={() => setSelectedRole(role)}
-                                        className={`p-6 rounded-2xl border transition-all text-left group relative backdrop-blur-md overflow-hidden ${isDark
-                                            ? 'bg-slate-900/40 border-slate-800 hover:border-indigo-500/50 hover:bg-slate-900/60 shadow-lg'
-                                            : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-indigo-50'} `}
-                                    >
-                                        <div className="flex flex-col h-full justify-between">
-                                            <div className="mb-4">
-                                                <div className={`text-[10px] font-black uppercase tracking-[0.2em] mb-2 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
-                                                    {role.branches ? 'Strategic Division' : 'Standard Protocol'}
-                                                </div>
-                                                <h4 className={`text-base font-bold tracking-tight leading-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                                                    {role.title}
-                                                </h4>
-                                            </div>
 
-                                            <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-800/20">
-                                                <span className={`text-[9px] font-bold uppercase tracking-widest ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                                                    View Dossier
-                                                </span>
-                                                <ChevronRight size={14} className={`transition-transform group-hover:translate-x-1 ${isDark ? 'text-indigo-500' : 'text-indigo-400'}`} />
+                        {/* ── STEP 1: Mode Selector ── */}
+                        {step === 'mode' ? (
+                            <>
+                                <p className={`text-[10px] font-black uppercase tracking-[0.5em] mb-8 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Select Interview Format</p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-10 w-full max-w-3xl">
+                                    {INTERVIEW_MODES.map((mode) => {
+                                        const s = MODE_STYLE[mode.color] || MODE_STYLE.indigo;
+                                        return (
+                                            <motion.button
+                                                key={mode.id}
+                                                whileHover={{ scale: 1.02 }}
+                                                whileTap={{ scale: 0.98 }}
+                                                onClick={() => { setSelectedMode(mode.id); setStep('role'); }}
+                                                className={`p-7 rounded-2xl border text-left group relative overflow-hidden transition-all ${isDark
+                                                    ? 'bg-slate-900/40 border-slate-800 hover:border-indigo-500/40 hover:bg-slate-900/70'
+                                                    : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-md'}`}
+                                            >
+                                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-5 ${s.icon}`}>
+                                                    {mode.icon}
+                                                </div>
+                                                <div className={`text-[8px] font-black uppercase tracking-[0.5em] mb-2 ${s.sub}`}>{mode.sublabel}</div>
+                                                <h4 className={`text-base font-black tracking-tight mb-3 ${isDark ? 'text-white' : 'text-slate-900'}`}>{mode.label}</h4>
+                                                <p className={`text-[11px] leading-relaxed ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{mode.description}</p>
+                                                <div className={`absolute bottom-0 left-0 right-0 h-[2px] bg-transparent ${s.bar} transition-all duration-300`} />
+                                            </motion.button>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Past Sessions */}
+                                {interviewHistory.filter(s => s.is_completed && s.scorecard).length > 0 && (
+                                    <div className="w-full max-w-3xl mb-6">
+                                        <div className={`text-[9px] font-black uppercase tracking-[0.5em] mb-4 flex items-center gap-2 ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
+                                            <Star size={10} /> Past Sessions
+                                        </div>
+                                        <div className="space-y-2">
+                                            {interviewHistory.filter(s => s.is_completed && s.scorecard).slice(0, 4).map((session) => {
+                                                const sc = typeof session.scorecard === 'string' ? JSON.parse(session.scorecard) : session.scorecard;
+                                                const score = sc?.technical_score ?? '—';
+                                                const verdict = sc?.verdict || '—';
+                                                const modeLabel = INTERVIEW_MODES.find(m => m.id === (session.mode || 'STANDARD'))?.label || 'Standard';
+                                                const date = new Date(session.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                                                const verdictColor = verdict === 'Hire' ? 'text-emerald-400' : 'text-red-400';
+                                                const scoreColor = score >= 80 ? 'text-emerald-400' : score >= 60 ? 'text-amber-400' : 'text-red-400';
+                                                return (
+                                                    <div key={session.id} className={`flex items-center justify-between px-4 py-3 rounded-xl border ${isDark ? 'bg-slate-900/30 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={`text-xl font-black tabular-nums ${scoreColor}`}>{score}</div>
+                                                            <div>
+                                                                <div className={`text-[11px] font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>{session.target_job}</div>
+                                                                <div className={`text-[9px] font-bold uppercase tracking-widest ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>{modeLabel} · {date}</div>
+                                                            </div>
+                                                        </div>
+                                                        <div className={`text-[10px] font-black uppercase tracking-wider ${verdictColor}`}>{verdict}</div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            /* ── STEP 2: Role Selector ── */
+                            <>
+                                <div className="flex items-center gap-4 mb-8 w-full max-w-3xl">
+                                    <button
+                                        onClick={() => { setStep('mode'); setSelectedRole(null); setSelectedBranch(null); setSelectedSubRole(null); }}
+                                        className={`text-[9px] font-black uppercase tracking-[0.4em] flex items-center gap-2 transition-colors ${isDark ? 'text-slate-600 hover:text-indigo-400' : 'text-slate-400 hover:text-indigo-500'}`}
+                                    >
+                                        ← Change Mode
+                                    </button>
+                                    {selectedMode && (
+                                        <div className={`px-3 py-1 rounded-lg border text-[8px] font-black uppercase tracking-[0.4em] ${isDark ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400' : 'bg-indigo-50 border-indigo-200 text-indigo-600'}`}>
+                                            {INTERVIEW_MODES.find(m => m.id === selectedMode)?.label}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+                                    {!selectedRole ? (
+                                        ROLES.map((role) => (
+                                            <button
+                                                key={role.id}
+                                                onClick={() => setSelectedRole(role)}
+                                                className={`p-6 rounded-2xl border transition-all text-left group relative backdrop-blur-md overflow-hidden ${isDark
+                                                    ? 'bg-slate-900/40 border-slate-800 hover:border-indigo-500/50 hover:bg-slate-900/60 shadow-lg'
+                                                    : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-indigo-50'}`}
+                                            >
+                                                <div className="flex flex-col h-full justify-between">
+                                                    <div className="mb-4">
+                                                        <div className={`text-[10px] font-black uppercase tracking-[0.2em] mb-2 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
+                                                            {role.branches ? 'Strategic Division' : 'Standard Protocol'}
+                                                        </div>
+                                                        <h4 className={`text-base font-bold tracking-tight leading-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>{role.title}</h4>
+                                                    </div>
+                                                    <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-800/20">
+                                                        <span className={`text-[9px] font-bold uppercase tracking-widest ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>View Dossier</span>
+                                                        <ChevronRight size={14} className={`transition-transform group-hover:translate-x-1 ${isDark ? 'text-indigo-500' : 'text-indigo-400'}`} />
+                                                    </div>
+                                                </div>
+                                                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/0 via-transparent to-indigo-500/0 group-hover:from-indigo-500/[0.03] transition-colors pointer-events-none" />
+                                            </button>
+                                        ))
+                                    ) : selectedRole.branches && !selectedBranch ? (
+                                        <div className="col-span-full space-y-8 py-10">
+                                            <button onClick={() => setSelectedRole(null)} className="text-[10px] font-black text-indigo-500 hover:text-indigo-400 mb-4 flex items-center gap-2 tracking-[0.3em]">← RE-INITIALIZE ROLES</button>
+                                            <h3 className="text-3xl font-black text-white uppercase tracking-[0.3em] mb-10 text-center">Division Selection</h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                                                {selectedRole.branches.map(branch => (
+                                                    <button key={branch.id} onClick={() => setSelectedBranch(branch)} className={`p-8 rounded-2xl border transition-all text-left flex flex-col justify-between group backdrop-blur-md ${isDark ? 'bg-slate-900/40 border-slate-800 hover:border-indigo-500/50' : 'bg-white border-slate-200 hover:border-indigo-300'}`}>
+                                                        <div className="mb-8">
+                                                            <div className={`text-[10px] font-black uppercase tracking-[0.3em] mb-3 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>DIVISION</div>
+                                                            <div className={`text-xl font-black uppercase tracking-[0.4em] ${isDark ? 'text-white' : 'text-slate-900'}`}>{branch.title}</div>
+                                                        </div>
+                                                        <div className="flex items-center justify-between pt-4 border-t border-slate-800/10">
+                                                            <span className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Initialize Protocol</span>
+                                                            <ChevronRight size={16} className={`transition-transform group-hover:translate-x-1 ${isDark ? 'text-indigo-500' : 'text-indigo-400'}`} />
+                                                        </div>
+                                                    </button>
+                                                ))}
                                             </div>
                                         </div>
-
-                                        {/* Subtle background glow on hover */}
-                                        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/0 via-transparent to-indigo-500/0 group-hover:from-indigo-500/[0.03] transition-colors pointer-events-none" />
-                                    </button>
-                                ))
-                            ) : selectedRole.branches && !selectedBranch ? (
-                                <div className="col-span-full space-y-8 py-10">
-                                    <button onClick={() => setSelectedRole(null)} className="text-[10px] font-black text-indigo-500 hover:text-indigo-400 mb-4 flex items-center gap-2 tracking-[0.3em]">← RE-INITIALIZE ROLES</button>
-                                    <h3 className="text-3xl font-black text-white uppercase tracking-[0.3em] mb-10 text-center">Division Selection</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                                        {selectedRole.branches.map(branch => (
-                                            <button key={branch.id} onClick={() => setSelectedBranch(branch)} className={`p-8 rounded-2xl border transition-all text-left flex flex-col justify-between group backdrop-blur-md ${isDark ? 'bg-slate-900/40 border-slate-800 hover:border-indigo-500/50' : 'bg-white border-slate-200 hover:border-indigo-300'}`}>
-                                                <div className="mb-8">
-                                                    <div className={`text-[10px] font-black uppercase tracking-[0.3em] mb-3 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
-                                                        DIVISION
-                                                    </div>
-                                                    <div className={`text-xl font-black uppercase tracking-[0.4em] ${isDark ? 'text-white' : 'text-slate-900'}`}>{branch.title}</div>
-                                                </div>
-                                                <div className="flex items-center justify-between pt-4 border-t border-slate-800/10">
-                                                    <span className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Initialize Protocol</span>
-                                                    <ChevronRight size={16} className={`transition-transform group-hover:translate-x-1 ${isDark ? 'text-indigo-500' : 'text-indigo-400'}`} />
-                                                </div>
-                                            </button>
-                                        ))}
-                                    </div>
+                                    ) : selectedBranch && !selectedSubRole ? (
+                                        <div className="col-span-full space-y-8 py-10">
+                                            <button onClick={() => setSelectedBranch(null)} className="text-[10px] font-black text-indigo-500 hover:text-indigo-400 mb-4 flex items-center gap-2 tracking-[0.3em]">← RETURN TO DIVISIONS</button>
+                                            <h3 className="text-3xl font-black text-white uppercase tracking-[0.3em] mb-10 text-center">Neural Profile Selection</h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                                {selectedBranch.subRoles.map(sub => (
+                                                    <button key={sub} onClick={() => setSelectedSubRole(sub)} className={`p-6 rounded-2xl border transition-all text-center relative group overflow-hidden ${isDark ? 'bg-slate-900/40 border-slate-800 hover:border-indigo-500/50' : 'bg-white border-slate-200 hover:border-indigo-300'}`}>
+                                                        <div className={`text-[11px] font-black uppercase tracking-[0.25em] relative z-10 ${isDark ? 'text-white' : 'text-slate-900'}`}>{sub}</div>
+                                                        <div className="absolute inset-x-0 bottom-0 h-1 bg-indigo-500/0 group-hover:bg-indigo-500/50 transition-all duration-300" />
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="col-span-full py-16 px-10 rounded-[4rem] bg-indigo-600/5 border border-indigo-500/20 text-center backdrop-blur-xl">
+                                            <div className="w-16 h-16 rounded-full bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center mx-auto mb-8">
+                                                <CheckCircle2 className="text-indigo-400" size={32} />
+                                            </div>
+                                            <h3 className="text-3xl font-black text-white uppercase tracking-[0.4em] mb-4">PROFILE LOCKED</h3>
+                                            <p className="text-sm font-bold text-indigo-400 uppercase tracking-[0.3em] mb-10">{selectedSubRole || selectedRole.title}</p>
+                                            <button onClick={() => { setSelectedRole(null); setSelectedBranch(null); setSelectedSubRole(null); }} className="text-[10px] font-black text-slate-500 hover:text-indigo-400 underline tracking-[0.3em] transition-all">ABORT & RE-CALIBRATE</button>
+                                        </div>
+                                    )}
                                 </div>
-                            ) : selectedBranch && !selectedSubRole ? (
-                                <div className="col-span-full space-y-8 py-10">
-                                    <button onClick={() => setSelectedBranch(null)} className="text-[10px] font-black text-indigo-500 hover:text-indigo-400 mb-4 flex items-center gap-2 tracking-[0.3em]">← RETURN TO DIVISIONS</button>
-                                    <h3 className="text-3xl font-black text-white uppercase tracking-[0.3em] mb-10 text-center">Neural Profile Selection</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                        {selectedBranch.subRoles.map(sub => (
-                                            <button key={sub} onClick={() => setSelectedSubRole(sub)} className={`p-6 rounded-2xl border transition-all text-center relative group overflow-hidden ${isDark ? 'bg-slate-900/40 border-slate-800 hover:border-indigo-500/50' : 'bg-white border-slate-200 hover:border-indigo-300'}`}>
-                                                <div className={`text-[11px] font-black uppercase tracking-[0.25em] relative z-10 ${isDark ? 'text-white' : 'text-slate-900'}`}>{sub}</div>
-                                                <div className="absolute inset-x-0 bottom-0 h-1 bg-indigo-500/0 group-hover:bg-indigo-500/50 transition-all duration-300" />
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="col-span-full py-16 px-10 rounded-[4rem] bg-indigo-600/5 border border-indigo-500/20 text-center backdrop-blur-xl">
-                                    <div className="w-16 h-16 rounded-full bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center mx-auto mb-8">
-                                        <CheckCircle2 className="text-indigo-400" size={32} />
-                                    </div>
-                                    <h3 className="text-3xl font-black text-white uppercase tracking-[0.4em] mb-4">PROFILE LOCKED</h3>
-                                    <p className="text-sm font-bold text-indigo-400 uppercase tracking-[0.3em] mb-10">{selectedSubRole || selectedRole.title}</p>
-                                    <button onClick={() => { setSelectedRole(null); setSelectedBranch(null); setSelectedSubRole(null); }} className="text-[10px] font-black text-slate-500 hover:text-indigo-400 underline tracking-[0.3em] transition-all">ABORT & RE-CALIBRATE</button>
-                                </div>
-                            )}
-                        </div>
-                        {selectedRole?.id === 9 && (
-                            <input type="text" value={customRole} onChange={(e) => setCustomRole(String(e.target.value))} placeholder="Define your custom trajectory..." className={`w-full mb-8 ${isDark ? 'bg-slate-900 border-slate-800 text-white' : 'bg-gray-50 border-gray-100 text-slate-900'} border rounded-xl px-6 py-4 font-bold focus:border-indigo-500 outline-none`} />
+                                {selectedRole?.id === 9 && (
+                                    <input type="text" value={customRole} onChange={(e) => setCustomRole(String(e.target.value))} placeholder="Define your custom trajectory..." className={`w-full mb-8 max-w-3xl ${isDark ? 'bg-slate-900 border-slate-800 text-white' : 'bg-gray-50 border-gray-100 text-slate-900'} border rounded-xl px-6 py-4 font-bold focus:border-indigo-500 outline-none`} />
+                                )}
+                                <button
+                                    onClick={() => startInterview(selectedSubRole || selectedRole?.title)}
+                                    disabled={!selectedRole || (selectedRole.id === 9 && !customRole.trim()) || (selectedRole.branches && !selectedSubRole)}
+                                    className="w-full max-w-3xl bg-indigo-600 hover:bg-indigo-500 text-white font-black py-5 rounded-2xl transition-all shadow-xl shadow-indigo-500/30 uppercase tracking-[0.5em] text-xs disabled:opacity-30"
+                                >
+                                    Initialize Swain System
+                                </button>
+                            </>
                         )}
-                        <button
-                            onClick={() => startInterview(selectedSubRole || selectedRole?.title)}
-                            disabled={!selectedRole || (selectedRole.id === 9 && !customRole.trim()) || (selectedRole.branches && !selectedSubRole)}
-                            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-5 rounded-2xl transition-all shadow-xl shadow-indigo-500/30 uppercase tracking-[0.5em] text-xs disabled:opacity-30"
-                        >
-                            Initialize Swain System
-                        </button>
                     </motion.div>
                 ) : (
                     <motion.div
@@ -744,7 +963,17 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
 
                                 {/* Live reaction tooltip */}
                                 <AnimatePresence>
-                                    {liveReaction && (
+                                    {micError && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: -10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: -10 }}
+                                            className="absolute top-4 left-1/2 -translate-x-1/2 px-5 py-2 rounded-2xl bg-red-950/90 border border-red-500/30 text-[10px] font-black text-red-400 uppercase tracking-widest backdrop-blur-md whitespace-nowrap z-10"
+                                        >
+                                            Engine Critical: {micError}
+                                        </motion.div>
+                                    )}
+                                    {!micError && liveReaction && (
                                         <motion.div
                                             initial={{ opacity: 0, y: -10 }}
                                             animate={{ opacity: 1, y: 0 }}

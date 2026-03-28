@@ -1,5 +1,5 @@
 import pool from "../config/db.js";
-import { CAREER_ARCHITECT_PROMPT } from "../utils/aiRules.js";
+import { CAREER_ARCHITECT_PROMPT, FULL_ROADMAP_PROMPT } from "../utils/aiRules.js";
 import { callAI } from "../utils/aiClient.js";
 
 const safeStringify = (val) => {
@@ -127,5 +127,20 @@ export const getCareerRoadmap = async (req, res) => {
         res.json(result.rows[0]);
     } catch (err) {
         res.status(500).json({ message: "Failed to fetch trajectory archives." });
+    }
+};
+
+export const generateFullRoadmap = async (req, res) => {
+    const { career } = req.body;
+    if (!career?.trim()) {
+        return res.status(400).json({ message: 'career field is required' });
+    }
+    try {
+        const prompt = FULL_ROADMAP_PROMPT.replace(/{career}/g, career.trim());
+        const data = await callAI(prompt, true);
+        res.json(data);
+    } catch (err) {
+        console.error('[Career] Full roadmap generation error:', err.message);
+        res.status(500).json({ message: 'Failed to generate roadmap. Please retry.' });
     }
 };

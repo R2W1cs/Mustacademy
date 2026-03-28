@@ -1,693 +1,709 @@
-import { useEffect, useState, Suspense, lazy } from "react";
+import { useEffect, useState, Suspense, lazy, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import api from "../api/axios";
 import {
-    Bell, Search, ArrowRight, Brain,
-    Activity, TrendingUp, ChevronLeft, PenTool,
-    Target, Sparkles, Briefcase, MessageSquare,
-    Heart, Star, Coffee
+    Bell, ArrowRight, Brain, Flame, TrendingUp, Target, Sparkles,
+    MessageSquare, Swords, Trophy, Zap, BookOpen, Users, Award,
+    ChevronRight, FileText, Star, Shield, Briefcase, Activity,
+    CheckCircle, Clock, BarChart2, GitBranch
 } from "lucide-react";
 import { useTheme } from "../auth/ThemeContext";
-import { 
-    ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, 
-    PolarRadiusAxis, Radar, AreaChart, CartesianGrid, XAxis, 
-    YAxis, Tooltip, Area 
+import {
+    ResponsiveContainer, BarChart, Bar, XAxis, Tooltip, Cell,
+    RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar
 } from 'recharts';
-
-// Mock data removed (fetching real data now)
-import { io } from "socket.io-client";
 import { useSocket } from "../hooks/useSocket";
 
-// Helper for relative time
-const timeAgo = (date) => {
-    if (!date) return 'Just now';
-    const parsed = new Date(date);
-    if (isNaN(parsed.getTime())) return 'Just now';
-    const seconds = Math.floor((new Date() - parsed) / 1000);
-    if (seconds < 5) return 'Just now';
-    let interval = seconds / 31536000;
-    if (interval > 1) return Math.floor(interval) + "y ago";
-    interval = seconds / 2592000;
-    if (interval > 1) return Math.floor(interval) + "mo ago";
-    interval = seconds / 86400;
-    if (interval > 1) return Math.floor(interval) + "d ago";
-    interval = seconds / 3600;
-    if (interval > 1) return Math.floor(interval) + "h ago";
-    interval = seconds / 60;
-    if (interval > 1) return Math.floor(interval) + "m ago";
-    return Math.floor(seconds) + "s ago";
-};
-
-const LeaderboardModal = lazy(() => import("../components/LeaderboardModal"));
-const AiMentorModal = lazy(() => import("../components/AiMentorModal"));
-const QuizModal = lazy(() => import("../components/QuizModal"));
-const InterviewPrepModal = lazy(() => import("../components/InterviewPrepModal"));
+/* ─── Lazy modals ─────────────────────────────────────────────────────────── */
+const LeaderboardModal     = lazy(() => import("../components/LeaderboardModal"));
+const AiMentorModal        = lazy(() => import("../components/AiMentorModal"));
+const QuizModal            = lazy(() => import("../components/QuizModal"));
+const InterviewPrepModal   = lazy(() => import("../components/InterviewPrepModal"));
 const MultiplayerQuizModal = lazy(() => import("../components/MultiplayerQuizModal"));
 const ScholarlyFeedbackModal = lazy(() => import("../components/ScholarlyFeedbackModal"));
-const DashboardSkeleton = lazy(() => import("../components/DashboardSkeleton"));
-import StreakWidget from "../components/StreakWidget";
 
-export default function Dashboard() {
-    const { theme } = useTheme();
-    const isDark = theme === 'dark';
-    const navigate = useNavigate();
-    const [stats, setStats] = useState(null);
-    const [contrib, setContrib] = useState(null);
-    const [notifications, setNotifications] = useState([]); // Real-time pulse data
-    const [error, setError] = useState(null);
-    const [skillMode, setSkillMode] = useState('general'); // 'general' or 'academic'
-    const [selectedWeek, setSelectedWeek] = useState(null); // null means showing all weeks
+/* ─── Helpers ─────────────────────────────────────────────────────────────── */
+const timeAgo = (date) => {
+    if (!date) return 'Just now';
+    const s = Math.floor((Date.now() - new Date(date)) / 1000);
+    if (s < 60)    return 'Just now';
+    if (s < 3600)  return `${Math.floor(s / 60)}m ago`;
+    if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+    return `${Math.floor(s / 86400)}d ago`;
+};
 
-    // Modal States
-    const [showMentor, setShowMentor] = useState(false);
-    const [showSubmit, setShowSubmit] = useState(false);
-    const [showQuiz, setShowQuiz] = useState(false);
-    const [showFeedback, setShowFeedback] = useState(false);
-    const [showInterview, setShowInterview] = useState(false);
-    const [showMultiplayer, setShowMultiplayer] = useState(false);
-    const [showNotifications, setShowNotifications] = useState(false);
-    const [showLeaderboard, setShowLeaderboard] = useState(false);
-    const [selectedGoal, setSelectedGoal] = useState(null); // For submit modal
-    const [hoveredTrend, setHoveredTrend] = useState(null); // For hover tooltips
-    const socket = useSocket();
+const RANKS = [
+    { min: 31, label: 'Zenith',  color: '#a78bfa', glow: 'rgba(167,139,250,0.3)' },
+    { min: 16, label: 'Omega',   color: '#22d3ee', glow: 'rgba(34,211,238,0.3)'  },
+    { min: 6,  label: 'Sigma',   color: '#34d399', glow: 'rgba(52,211,153,0.3)'  },
+    { min: 1,  label: 'Alpha',   color: '#fbbf24', glow: 'rgba(251,191,36,0.3)'  },
+    { min: 0,  label: 'Novice',  color: '#94a3b8', glow: 'rgba(148,163,184,0.15)'},
+];
+const getRank = (n) => RANKS.find(r => n >= r.min) || RANKS[4];
 
-    useEffect(() => {
-        const loadData = async () => {
-            try {
-                // Try to fetch real data with a decent timeout
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s API timeout
+const greetingFor = (h) => h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
 
-                const [statsRes, contribRes, notifRes] = await Promise.all([
-                    api.get("/dashboard/stats", { signal: controller.signal }),
-                    api.get("/contributions/me", { signal: controller.signal }),
-                    api.get("/notifications", { signal: controller.signal })
-                ]);
-
-                clearTimeout(timeoutId);
-                setStats(statsRes.data);
-                if (statsRes.data?.user?.name) {
-                    localStorage.setItem("userName", statsRes.data.user.name);
-                }
-                setContrib(contribRes.data);
-                setNotifications(notifRes.data);
-                setError(null);
-            } catch (err) {
-                console.warn("Dashboard API unavailable, switching to offline mode.", err);
-                // Graceful degrades to Mock Data
-                // Graceful degrades but DO NOT show fake data (it confuses users)
-                // Just let stats remain null (skeleton will show) or set simple empty state if preferred.
-                // For now, we set error to trigger the error UI if we want, OR we just leave it loading.
-                // Better: Set error to show the "Issue" screen.
-                setError("Unable to retrieve live telemetry.");
-            }
-        };
-
-        loadData();
-
-        // Use standardized Socket hook (already called at top level)
-
-        socket.on("notification_received", (newNotif) => {
-            setNotifications(prev => [newNotif, ...prev]);
-        });
-        // cleanup is handled by hook singleton, but we can off our specific listener
-        return () => socket.off("notification_received");
-    }, []);
-
-
-    // If error exists but we have data (fallback), don't show error screen
-    if (error && !stats) {
-        return (
-            <div className={`min-h-screen flex items-center justify-center flex-col gap-4 ${isDark ? 'bg-gray-950 text-white' : 'bg-gray-50 text-gray-900'}`}>
-                <div className="text-red-500 text-xl font-bold">⚠️ Connection Issue</div>
-                <p className="text-sm opacity-70">{error}</p>
-                <button onClick={() => window.location.reload()} className="px-4 py-2 bg-blue-600 rounded-lg text-white hover:bg-blue-700">Retry</button>
-            </div>
-        );
-    }
-
-    if (!stats) return <DashboardSkeleton isDark={isDark} />;
-
-    const streak = stats.streak_count || 0;
-    const userName = stats.user?.name || "Scholar";
-    const userInitial = userName.charAt(0);
-    const asc = contrib?.stats?.current_asc || 0;
-
-    // Dynamic "Cute" styles
-    const themeClass = isDark ? "bg-[#050810] text-white" : "light bg-[#FAFAFF] text-gray-900";
-    const cardClass = isDark
-        ? "glass-morphism rounded-[2.5rem] border-white/5 hover:border-cyan-500/30 transition-all duration-500 shadow-[0_20px_50px_rgba(0,0,0,0.3)]"
-        : "bg-white/80 backdrop-blur-xl rounded-[2.5rem] border-red-50 hover:border-red-200 transition-all duration-500 shadow-[0_15px_35px_rgba(192,22,54,0.05)]";
-    const textMuted = isDark ? "text-slate-400 font-medium" : "text-slate-500 font-medium";
-    const headingColor = isDark ? "text-white tracking-tight" : "text-slate-900";
-    const accentColor = isDark ? "#00f2ff" : "#FF4D6D"; // Softer Red/Pink for "cute"
-    const accentGlow = isDark ? "rgba(0, 242, 255, 0.4)" : "rgba(255, 77, 109, 0.2)";
-    
-    // Dynamic Rank Logic
-    const getRank = (count) => {
-        if (count >= 31) return "Zenith";
-        if (count >= 16) return "Omega";
-        if (count >= 6) return "Sigma";
-        if (count >= 1) return "Alpha";
-        return "Novice";
-    };
-    const eliteRank = getRank(stats.completed_topics || 0);
-    const totalWeeklyHours = stats.weeklyProgress?.reduce((acc, w) => acc + (w.hours || 0), 0) || 0;
-
+/* ─── SVG Ring Progress ───────────────────────────────────────────────────── */
+function Ring({ pct = 0, size = 88, stroke = 7, color = '#6366f1', children }) {
+    const r   = (size - stroke) / 2;
+    const circ = 2 * Math.PI * r;
+    const dash = (pct / 100) * circ;
     return (
-        <div className={`animate-fade-in group relative overflow-hidden ${themeClass}`}>
-            {/* Global Cute Glows */}
-            <div className={`absolute top-[-10%] left-[-5%] w-[40%] h-[40%] ${isDark ? 'bg-indigo-500/10' : 'bg-pink-400/10'} blur-[120px] rounded-full pointer-events-none transition-colors duration-1000`}></div>
-            <div className={`absolute bottom-[20%] right-[-10%] w-[35%] h-[50%] ${isDark ? 'bg-cyan-500/10' : 'bg-blue-400/10'} blur-[150px] rounded-full pointer-events-none transition-colors duration-1000`}></div>
-                      <div className="max-w-[1800px] mx-auto px-4 md:px-8 relative z-10">
-                {/* Header Section */}
-                <header className="mb-10 animate-fade-in relative z-20 pt-10">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                        {/* Welcome & Metrics Group */}
-                        <div className="flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-8">
-                            <div>
-                                <h1 className={`text-2xl font-black mb-1 ${headingColor}`}>Welcome back, {userName.split(' ')[0]}! 👋</h1>
-                                <p className={`text-xs ${textMuted}`}>Ready to continue your precision learning journey?</p>
-                            </div>
-
-                            {/* Repositioned Metrics */}
-                            <div className={`flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] font-black uppercase tracking-widest ${textMuted}`}>
-                                <div className="flex items-center gap-2">
-                                    <Brain size={14} className="text-cyan-500" />
-                                    <span>Brain Power: <span className={headingColor}>{Math.round(asc / 10)}%</span></span>
-                                </div>
-                                <span className="opacity-30">|</span>
-                                <div className="flex items-center gap-2">
-                                    <Coffee size={14} className="text-orange-500" />
-                                    <span>Focus Vibe: <span className={headingColor}>{streak > 0 ? "On Fire" : "Ready"}</span></span>
-                                </div>
-                                <span className="opacity-30">|</span>
-                                <div className="flex items-center gap-2">
-                                    <Heart size={14} className="text-pink-500" />
-                                    <span>Daily Love: <span className={headingColor}>{streak}</span></span>
-                                </div>
-                                <span className="opacity-30">|</span>
-                                <div className="flex items-center gap-2">
-                                    <Star size={14} className="text-indigo-500" />
-                                    <span>Elite Rank: <span className={headingColor}>{eliteRank}</span></span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Actions Group (Notifications + Search) */}
-                        <div className="flex items-center space-x-3 relative">
-                            <div className="relative">
-                                <button
-                                    onClick={() => setShowNotifications(!showNotifications)}
-                                    className={`group/notif p-2.5 rounded-xl transition-all relative ${isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-100 hover:bg-gray-200'} ${showNotifications ? 'ring-2 ring-cyan-500/50' : ''}`}
-                                >
-                                    <Bell className={isDark ? "text-gray-400 group-hover/notif:text-amber-400" : "text-gray-600"} size={18} />
-                                    {notifications.length > 0 && (
-                                        <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-[#050810]"></span>
-                                    )}
-                                </button>
-
-                                <AnimatePresence>
-                                    {showNotifications && (
-                                        <>
-                                            <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} />
-                                            <motion.div
-                                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                className={`absolute right-0 mt-3 w-80 p-4 rounded-3xl border shadow-2xl z-50 ${isDark ? 'bg-[#0d1222] border-white/10' : 'bg-white border-slate-200'}`}
-                                            >
-                                                <div className="flex items-center justify-between mb-4 px-2">
-                                                    <h4 className={`text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-white' : 'text-slate-900'}`}>Pulse Feed</h4>
-                                                    <button className="text-[9px] text-cyan-500 font-bold uppercase tracking-tighter" onClick={() => setNotifications([])}>Clear all</button>
-                                                </div>
-                                                <div className="space-y-3">
-                                                    {notifications.length > 0 ? (
-                                                        notifications.map((n, i) => (
-                                                            <div key={i} className={`p-3 rounded-2xl border transition-all ${isDark ? 'hover:bg-white/5 border-white/5' : 'hover:bg-black/5 border-slate-100'}`}>
-                                                                <p className={`text-xs font-semibold mb-1 ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{n.text || n.message}</p>
-                                                                <p className="text-[9px] opacity-50 font-medium">{timeAgo(n.date || n.createdAt)}</p>
-                                                            </div>
-                                                        ))
-                                                    ) : (
-                                                        <div className="py-10 text-center opacity-40">
-                                                            <Bell size={32} className={`mx-auto mb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
-                                                            <p className={`text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>System Silent</p>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </motion.div>
-                                        </>
-                                    )}
-                                </AnimatePresence>
-                            </div>
-
-                            <button
-                                onClick={() => window.dispatchEvent(new CustomEvent('open-command-palette'))}
-                                className={`group/search p-2.5 rounded-xl transition-all flex items-center gap-3 ${isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-100 hover:bg-gray-200'}`}
-                            >
-                                <Search className={isDark ? "text-gray-400 group-hover/search:text-cyan-400" : "text-gray-600"} size={18} />
-                                <div className={`hidden md:flex items-center gap-1 px-1.5 py-0.5 rounded border text-[9px] font-black transition-colors ${isDark ? 'bg-black/20 border-white/10 text-gray-500' : 'bg-white border-gray-200 text-gray-400'}`}>
-                                    <span>CTRL</span>
-                                    <span>K</span>
-                                </div>
-                            </button>
-                        </div>
-                    </div>
-                </header>
-
-                {/* ── Continue Learning Card ── */}
-                {stats?.stats?.lastActiveCourse ? (
-                    <motion.div
-                        initial={{ opacity: 0, y: 16 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5, delay: 0.1 }}
-                        className={`mb-8 p-6 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 group transition-all hover:-translate-y-0.5 ${cardClass}`}
-                    >
-                        <div className="flex items-center gap-5">
-                            <div className={`w-14 h-14 shrink-0 rounded-2xl flex items-center justify-center border transition-all ${isDark ? 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400 group-hover:bg-cyan-500/20' : 'bg-red-500/5 border-red-500/10 text-red-600 group-hover:bg-red-500/10'}`}>
-                                <TrendingUp size={24} />
-                            </div>
-                            <div>
-                                <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isDark ? 'text-cyan-400' : 'text-red-600'}`}>Continue Learning</p>
-                                <h3 className={`text-base font-black leading-tight mb-1 ${headingColor}`}>{stats.stats.lastActiveCourse.title}</h3>
-                                <p className={`text-xs ${textMuted}`}>{stats.stats.lastActiveCourse.progress ?? 0}% complete</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-4 w-full sm:w-auto">
-                            <div className="flex-1 sm:w-40">
-                                <div className={`w-full h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-white/10' : 'bg-slate-200'}`}>
-                                    <div
-                                        className={`h-full rounded-full transition-all duration-700 ${isDark ? 'bg-cyan-400' : 'bg-red-500'}`}
-                                        style={{ width: `${stats.stats.lastActiveCourse.progress ?? 0}%` }}
-                                    />
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => navigate(`/courses/${stats.stats.lastActiveCourse.id}/roadmap`)}
-                                className={`shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all hover:scale-105 ${isDark ? 'bg-cyan-500 text-black hover:bg-cyan-400' : 'bg-red-600 text-white hover:bg-red-500'}`}
-                            >
-                                Resume <ArrowRight size={14} />
-                            </button>
-                        </div>
-                    </motion.div>
-                ) : (
-                    <motion.div
-                        initial={{ opacity: 0, y: 16 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5, delay: 0.1 }}
-                        className={`mb-8 p-6 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 ${cardClass}`}
-                    >
-                        <div className="flex items-center gap-5">
-                            <div className={`w-14 h-14 shrink-0 rounded-2xl flex items-center justify-center border ${isDark ? 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400' : 'bg-red-500/5 border-red-500/10 text-red-600'}`}>
-                                <TrendingUp size={24} />
-                            </div>
-                            <div>
-                                <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isDark ? 'text-cyan-400' : 'text-red-600'}`}>Continue Learning</p>
-                                <h3 className={`text-base font-black leading-tight mb-1 ${headingColor}`}>Continue Learning</h3>
-                                <p className={`text-xs ${textMuted}`}>Select a roadmap to begin your journey</p>
-                            </div>
-                        </div>
-                        <button
-                            onClick={() => navigate('/courses')}
-                            className={`shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all hover:scale-105 ${isDark ? 'bg-cyan-500 text-black hover:bg-cyan-400' : 'bg-red-600 text-white hover:bg-red-500'}`}
-                        >
-                            Browse Courses <ArrowRight size={14} />
-                        </button>
-                    </motion.div>
-                )}
-
-                {/* Bento Grid Layout */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                    {/* 1. Skill Overview (2/3) */}
-                    <div className={`lg:col-span-2 p-6 lg:p-8 rounded-2xl border transform hover:-translate-y-1 ${cardClass}`}>
-                        <div className="flex items-center justify-between mb-6">
-                            <div>
-                                <h2 className={`text-xl font-semibold mb-1 tracking-tight ${headingColor}`}>Skill Overview</h2>
-                                <p className={textMuted}>Your current proficiency across topics</p>
-                            </div>
-                            <div className="flex bg-white/5 rounded-lg p-1 border border-white/10 shadow-inner">
-                                <button
-                                    onClick={() => setSkillMode('general')}
-                                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${skillMode === 'general' ? (isDark ? 'bg-[#6366f1] text-white shadow-sm' : 'bg-red-600 text-white shadow-sm') : 'text-gray-500 hover:text-gray-300'}`}
-                                >
-                                    General
-                                </button>
-                                <button
-                                    onClick={() => setSkillMode('academic')}
-                                    className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-md transition-all ${skillMode === 'academic' ? (isDark ? 'bg-[#00f2ff] text-black shadow-[0_0_15px_rgba(0,242,255,0.4)]' : 'bg-red-600 text-white shadow-sm') : 'text-gray-500 hover:text-gray-300'}`}
-                                >
-                                    Academic
-                                </button>
-                            </div>
-                        </div>
-                        <ResponsiveContainer width="100%" height={280}>
-                            {stats?.skills?.[skillMode]?.length > 0 ? (
-                                <RadarChart data={stats.skills[skillMode]}>
-                                    <PolarGrid stroke={isDark ? "rgba(148, 163, 184, 0.15)" : "rgba(192, 22, 54, 0.1)"} />
-                                    <PolarAngleAxis dataKey="skill" tick={{ fill: isDark ? "#94a3b8" : "#C01636", fontSize: 13 }} />
-                                    <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                                    <Radar
-                                        name="Proficiency"
-                                        dataKey="value"
-                                        stroke={accentColor}
-                                        fill={accentColor}
-                                        fillOpacity={0.15}
-                                        strokeWidth={3}
-                                    />
-                                </RadarChart>
-                            ) : (
-                                <div className="h-full flex flex-col items-center justify-center text-center">
-                                    <Brain className="w-10 h-10 text-gray-400 mb-3 opacity-50" />
-                                    <p className="text-sm text-gray-500 max-w-[200px]">Begin exploring {skillMode} topics to populate this chart.</p>
-                                </div>
-                            )}
-                        </ResponsiveContainer>
-                    </div>
-
-                    {/* 2. Streak Widget (1/3) */}
-                    <div className="lg:col-span-1">
-                        <StreakWidget
-                            streak={stats.streak || 0}
-                            lastActive={stats.lastActive}
-                            weeklyProgress={stats.weeklyProgress?.flatMap(w => w.days || []) || []}
-                            isDark={isDark}
-                        />
-                    </div>
-
-                    {/* 3. Weekly Progress (Full Width) */}
-                    <div className={`lg:col-span-3 p-6 lg:p-8 rounded-2xl border transform hover:-translate-y-1 ${cardClass}`}>
-                        <div className="flex items-center justify-between mb-6">
-                            <div>
-                                <h2 className={`text-xl font-semibold mb-1 tracking-tight ${headingColor}`}>
-                                    {selectedWeek ? `${selectedWeek.week} Breakdown` : 'Weekly Progress'}
-                                </h2>
-                                <p className={textMuted}>
-                                    {selectedWeek ? 'Daily learning hours for this week' : 'Your learning hours over the past weeks'}
-                                </p>
-                            </div>
-                            {selectedWeek ? (
-                                <button
-                                    onClick={() => setSelectedWeek(null)}
-                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors ${isDark ? 'bg-white/5 text-gray-300 hover:text-white hover:bg-white/10' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}
-                                >
-                                    <ChevronLeft size={16} /> Back to Weeks
-                                </button>
-                            ) : (
-                                <TrendingUp className="w-5 h-5 text-[#10b981]" />
-                            )}
-                        </div>
-                        <ResponsiveContainer width="100%" height={240}>
-                            {totalWeeklyHours > 0 ? (
-                                <AreaChart
-                                    data={selectedWeek ? selectedWeek.days : stats.weeklyProgress}
-                                    onClick={(e) => {
-                                        if (!selectedWeek && e?.activePayload?.[0]?.payload) {
-                                            setSelectedWeek(e.activePayload[0].payload);
-                                        }
-                                    }}
-                                    style={{ cursor: selectedWeek ? 'default' : 'pointer' }}
-                                >
-                                    <defs>
-                                        <linearGradient id="colorHours" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor={accentColor} stopOpacity={0.3} />
-                                            <stop offset="95%" stopColor={accentColor} stopOpacity={0} />
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(192, 22, 54, 0.05)"} vertical={false} />
-                                    <XAxis dataKey={selectedWeek ? "day" : "week"} stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
-                                    <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
-                                    <Tooltip
-                                        contentStyle={{
-                                            backgroundColor: isDark ? "#0f172a" : "#ffffff",
-                                            border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(192, 22, 54, 0.1)",
-                                            borderRadius: "12px",
-                                            color: isDark ? "#fff" : "#000",
-                                            fontSize: "12px",
-                                            boxShadow: isDark ? "0 10px 30px rgba(0,0,0,0.5)" : "0 10px 30px rgba(0,0,0,0.1)"
-                                        }}
-                                    />
-                                    <Area
-                                        type="monotone"
-                                        dataKey="hours"
-                                        stroke={accentColor}
-                                        strokeWidth={3}
-                                        fillOpacity={1}
-                                        fill="url(#colorHours)"
-                                        dot={{ fill: accentColor, r: 4, strokeWidth: 0, fillOpacity: 0.8 }}
-                                        activeDot={{ r: 6, stroke: accentColor, strokeWidth: 2, fill: '#fff' }}
-                                    />
-                                </AreaChart>
-                            ) : (
-                                <div className="h-full flex flex-col items-center justify-center text-center py-6">
-                                    <TrendingUp className="w-12 h-12 text-gray-400 mb-4 opacity-50" />
-                                    <p className={`text-sm font-bold ${headingColor} mb-2`}>Precision Learning Engine Calibrating</p>
-                                    <p className={`text-xs ${textMuted} max-w-[280px]`}>
-                                        Complete your first session to initialize your weekly performance analytics.
-                                    </p>
-                                </div>
-                            )}
-                        </ResponsiveContainer>
-                    </div>
-
-                    {/* 4. Learning Insights (2/3) */}
-                    <div className={`lg:col-span-2 p-6 rounded-2xl border transform hover:-translate-y-1 ${cardClass}`}>
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDark ? 'bg-cyan-500/10' : 'bg-cyan-50'}`}>
-                                <Brain size={20} className="text-cyan-500" />
-                            </div>
-                            <div>
-                                <h3 className={`text-lg font-bold ${headingColor}`}>Learning Insights</h3>
-                                <p className={`text-xs ${textMuted}`}>AI-analyzed performance patterns</p>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <div className={`p-4 rounded-xl border ${isDark ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-emerald-50 border-emerald-100'}`}>
-                                    <p className={`text-[10px] font-black uppercase tracking-widest mb-3 ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>
-                                        🟢 Strengths
-                                    </p>
-                                    <div className="space-y-2">
-                                        {(stats.skills?.general || [])
-                                            .filter(s => s.level >= 60)
-                                            .slice(0, 2)
-                                            .map((s, i) => (
-                                                <div key={i} className="flex items-center justify-between">
-                                                    <span className={`text-[10px] font-medium truncate ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{s.skill}</span>
-                                                    <span className="text-[10px] font-black text-emerald-500">{s.value}%</span>
-                                                </div>
-                                            ))
-                                        }
-                                    </div>
-                                </div>
-                                <div className={`p-4 rounded-xl border ${isDark ? 'bg-amber-500/5 border-amber-500/20' : 'bg-amber-50 border-amber-100'}`}>
-                                    <p className={`text-[10px] font-black uppercase tracking-widest mb-3 ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
-                                        🟡 Needs Work
-                                    </p>
-                                    <div className="space-y-2">
-                                        {(stats.skills?.general || [])
-                                            .filter(s => s.level > 0 && s.level < 60)
-                                            .sort((a, b) => a.level - b.level)
-                                            .slice(0, 2)
-                                            .map((s, i) => (
-                                                <div key={i} className="flex items-center justify-between">
-                                                    <span className={`text-[10px] font-medium truncate ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{s.skill}</span>
-                                                    <span className="text-[10px] font-black text-amber-500">{s.value}%</span>
-                                                </div>
-                                            ))
-                                        }
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className={`p-4 rounded-xl border ${isDark ? 'bg-indigo-500/5 border-indigo-500/20' : 'bg-red-50 border-red-100'}`}>
-                                <div className="flex items-center justify-between mb-3">
-                                    <p className={`text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-indigo-400' : 'text-red-600'}`}>
-                                        🎯 Recommended
-                                    </p>
-                                    <button onClick={() => navigate('/library')} className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-indigo-500' : 'text-red-600'} hover:underline`}>Library →</button>
-                                </div>
-                                <p className={`text-xs font-medium leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                                    {(() => {
-                                        const weakest = (stats.skills?.general || []).filter(s => s.level > 0 && s.level < 60).sort((a, b) => a.level - b.level)[0];
-                                        if (weakest) return `Focus on "${weakest.name}" — currently at ${weakest.level}%. Increase your depth.`;
-                                        return "Excellent trajectory! Maintain focus on advanced systems protocols.";
-                                    })()}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* 5. Academic Advisor (1/3) */}
-                    <div className={`lg:col-span-1 p-6 rounded-2xl border transform hover:-translate-y-1 ${cardClass}`}>
-                        <div className="flex items-start justify-between mb-6">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 gradient-purple rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/20">
-                                    <span className="text-xl">🎓</span>
-                                </div>
-                                <div>
-                                    <h3 className={`text-lg font-bold ${headingColor}`}>Advisor</h3>
-                                    <p className={`text-xs ${textMuted}`}>Session construct</p>
-                                </div>
-                            </div>
-                            <span className="w-2 h-2 bg-green-500 rounded-full shadow-lg"></span>
-                        </div>
-                        <p className={`text-xs mb-6 leading-relaxed ${isDark ? 'text-purple-200/70' : 'text-slate-600'}`}>
-                            "Build momentum and unlock new protocols. Your advisor is ready."
-                        </p>
-                        <button onClick={() => setShowMentor(true)} className={`w-full group px-4 py-3 rounded-xl text-[10px] font-black transition-all flex items-center justify-center space-x-3 text-white shadow-2xl hover:scale-[1.02] active:scale-95 ${isDark ? 'gradient-purple shadow-purple-900/40' : 'bg-[#C01636] shadow-red-900/30'}`}>
-                            <MessageSquare size={14} className="group-hover:rotate-12 transition-transform" />
-                            <span className="uppercase tracking-widest">Construct Blueprint</span>
-                        </button>
-                    </div>
-
-                    {/* 6. Precision Boardroom (1.5/3 -> treated as 1/2 in a 2-col nested or just col-span-1 each) */}
-                    {/* Since it's a 3rd col grid, let's make them both span 1.5 if we want center, or just span 1 and leave a gap? Better to have a separate grid for the bottom pair. */}
-                </div>
-
-                {/* Bottom Row Feature Pair */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-                    {/* Interview Boardroom Card */}
-                    <div
-                        onClick={() => navigate('/interview-boardroom')}
-                        className={`group relative overflow-hidden rounded-2xl border p-6 cursor-pointer transition-all duration-300 transform hover:-translate-y-1 ${cardClass}`}
-                    >
-                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-125 transition-transform duration-500">
-                            <Briefcase size={80} className={isDark ? "text-indigo-500" : "text-red-500"} />
-                        </div>
-                        <div className="relative z-10">
-                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${isDark ? 'bg-indigo-500/10' : 'bg-red-50'}`}>
-                                <Target size={24} className={isDark ? "text-indigo-500" : "text-red-600"} />
-                            </div>
-                            <h3 className={`text-xl font-bold mb-2 ${headingColor}`}>Precision Boardroom</h3>
-                            {stats?.stats?.lastInterview ? (
-                                <div className="space-y-3 mb-4">
-                                    <div className="flex items-center justify-between text-[11px]">
-                                        <span className={textMuted}>Last Session:</span>
-                                        <span className={`font-black uppercase tracking-wider px-2 py-0.5 rounded ${isDark ? 'text-indigo-500 bg-indigo-500/10' : 'text-red-600 bg-red-50'}`}>
-                                            {stats.stats.lastInterview.target_job}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center justify-between text-[11px]">
-                                        <span className={textMuted}>Status:</span>
-                                        <span className={`font-black ${stats.stats.lastInterview.current_phase === 'CLOSING' ? 'text-emerald-500' : 'text-amber-500'}`}>
-                                            {stats.stats.lastInterview.current_phase === 'CLOSING' ? 'COMPLETED' : 'IN PROGRESS'}
-                                        </span>
-                                    </div>
-                                    <div className={`text-[10px] leading-relaxed italic p-2 rounded-lg ${isDark ? 'bg-white/5 text-slate-400' : 'bg-slate-50 text-slate-500'}`}>
-                                        "Focus on system design fundamentals for your next round."
-                                    </div>
-                                </div>
-                            ) : (
-                                <p className={`text-sm mb-4 leading-relaxed ${textMuted}`}>
-                                    Simulate high-pressure technical interviews with real-time feedback and AI analysis tailored to your profile.
-                                </p>
-                            )}
-                            <div className={`flex items-center text-[10px] font-black uppercase tracking-[0.2em] gap-2 ${isDark ? 'text-cyan-400 group-hover:text-cyan-300' : 'text-red-600'}`}>
-                                Enter Session <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Creator Corner Card */}
-                    <div
-                        onClick={() => navigate('/creator-corner')}
-                        className={`group relative overflow-hidden rounded-2xl border p-6 cursor-pointer transition-all duration-300 transform hover:-translate-y-1 ${cardClass}`}
-                    >
-                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-125 transition-transform duration-500">
-                            <PenTool size={80} className={isDark ? "text-amber-500" : "text-red-500"} />
-                        </div>
-                        <div className="relative z-10">
-                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${isDark ? 'bg-amber-500/10' : 'bg-red-50'}`}>
-                                <Sparkles size={24} className={isDark ? "text-amber-500" : "text-red-600"} />
-                            </div>
-                            <h3 className={`text-xl font-bold mb-2 ${headingColor}`}>Creator Studio</h3>
-                            {stats?.stats?.projectStats?.joined_projects > 0 || stats?.stats?.projectStats?.owned_projects > 0 ? (
-                                <div className="space-y-3 mb-4">
-                                    <div className="flex gap-2">
-                                        <div className={`flex-1 p-2 rounded-xl border ${isDark ? 'bg-amber-500/5 border-amber-500/20' : 'bg-red-50 border-red-100'}`}>
-                                            <p className={`text-[9px] font-black uppercase ${isDark ? 'text-amber-500' : 'text-red-600'}`}>Joined</p>
-                                            <p className={`text-lg font-black ${headingColor}`}>{stats.stats.projectStats.joined_projects}</p>
-                                        </div>
-                                        <div className={`flex-1 p-2 rounded-xl border ${isDark ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-emerald-50 border-emerald-100'}`}>
-                                            <p className="text-[9px] font-black text-emerald-500 uppercase">Owned</p>
-                                            <p className={`text-lg font-black ${headingColor}`}>{stats.stats.projectStats.owned_projects}</p>
-                                        </div>
-                                    </div>
-                                    {stats.stats.recentActivity?.length > 0 && (
-                                        <div className="space-y-1.5 opacity-80">
-                                            {stats.stats.recentActivity.slice(0, 1).map((act, i) => (
-                                                <div key={i} className="flex items-center gap-2 text-[10px]">
-                                                    <Activity size={10} className={isDark ? "text-amber-500" : "text-red-600"} />
-                                                    <span className={textMuted}>Mission Update:</span>
-                                                    <span className={`font-bold truncate ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{act.title}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                <p className={`text-sm mb-4 leading-relaxed ${textMuted}`}>
-                                    Forge your own learning protocols, publish research, and contribute to the platform's knowledge ecosystem.
-                                </p>
-                            )}
-                            <div className={`flex items-center text-sm font-bold uppercase tracking-widest gap-2 ${isDark ? 'text-amber-500' : 'text-red-600'}`}>
-                                Start Building <ArrowRight size={16} />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* MODALS */}
-                <AnimatePresence>
-                    {showMentor && (
-                        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                            <Suspense fallback={<div className="text-white">Loading Mentor...</div>}>
-                                <AiMentorModal onClose={() => setShowMentor(false)} />
-                            </Suspense>
-                        </div>
-                    )}
-
-                    {showQuiz && (
-                        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                            <Suspense fallback={<div className="text-white">Loading Quiz...</div>}>
-                                <QuizModal onClose={() => setShowQuiz(false)} />
-                            </Suspense>
-                        </div>
-                    )}
-                    {showFeedback && (
-                        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                            <Suspense fallback={<div className="text-white">Loading Feedback...</div>}>
-                                <ScholarlyFeedbackModal onClose={() => setShowFeedback(false)} />
-                            </Suspense>
-                        </div>
-                    )}
-                    {showInterview && (
-                        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-                            <Suspense fallback={<div className="text-white">Loading Boardroom...</div>}>
-                                <InterviewPrepModal onClose={() => setShowInterview(false)} />
-                            </Suspense>
-                        </div>
-                    )}
-                    {showMultiplayer && (
-                        <div className="fixed inset-0 z-[120] flex items-center justify-center">
-                            <Suspense fallback={<div className="text-white">Initializing Arena...</div>}>
-                                <MultiplayerQuizModal onClose={() => setShowMultiplayer(false)} />
-                            </Suspense>
-                        </div>
-                    )}
-                    {showLeaderboard && (
-                        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                            <Suspense fallback={<div className="text-white">Loading Rankings...</div>}>
-                                <LeaderboardModal onClose={() => setShowLeaderboard(false)} isDark={isDark} />
-                            </Suspense>
-                        </div>
-                    )}
-                </AnimatePresence>
-            </div >
-        </div >
+        <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
+            <svg width={size} height={size} className="-rotate-90">
+                <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={stroke} />
+                <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={stroke}
+                    strokeDasharray={`${dash} ${circ - dash}`}
+                    strokeLinecap="round"
+                    style={{ filter: `drop-shadow(0 0 6px ${color}88)`, transition: 'stroke-dasharray 1s ease' }}
+                />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center flex-col">{children}</div>
+        </div>
     );
 }
 
+/* ─── Activity bar tooltip ────────────────────────────────────────────────── */
+const DayTip = ({ active, payload, label }) => {
+    if (!active || !payload?.length) return null;
+    return (
+        <div className="px-2.5 py-1.5 rounded-lg bg-[#0d1222] border border-white/10 text-xs shadow-xl">
+            <p className="text-slate-400 text-[10px]">{label}</p>
+            <p className="text-white font-bold">{payload[0].value} pts</p>
+        </div>
+    );
+};
+
+/* ─── Skill radar tooltip ─────────────────────────────────────────────────── */
+const SkillTip = ({ active, payload }) => {
+    if (!active || !payload?.length) return null;
+    return (
+        <div className="px-2.5 py-1.5 rounded-lg bg-[#0d1222] border border-white/10 text-xs shadow-xl">
+            <p className="text-slate-400 text-[10px]">{payload[0]?.payload?.skill}</p>
+            <p className="text-indigo-300 font-bold">{payload[0].value}%</p>
+        </div>
+    );
+};
+
+/* ─── Fade-up wrapper ─────────────────────────────────────────────────────── */
+const FadeUp = ({ children, delay = 0, className = '' }) => (
+    <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, delay, ease: [0.25, 0.46, 0.45, 0.94] }}
+        className={className}
+    >
+        {children}
+    </motion.div>
+);
+
+/* ══════════════════════════════════════════════════════════════════════════ */
+export default function Dashboard() {
+    const { theme } = useTheme();
+    const isDark    = theme === 'dark';
+    const navigate  = useNavigate();
+    const socket    = useSocket();
+
+    const [stats,         setStats]         = useState(null);
+    const [notifications, setNotifications] = useState([]);
+    const [error,         setError]         = useState(null);
+    const [showNotif,     setShowNotif]     = useState(false);
+    const [skillTab,      setSkillTab]      = useState('general');
+
+    // Modals
+    const [showMentor,      setShowMentor]      = useState(false);
+    const [showQuiz,        setShowQuiz]        = useState(false);
+    const [showFeedback,    setShowFeedback]    = useState(false);
+    const [showInterview,   setShowInterview]   = useState(false);
+    const [showMultiplayer, setShowMultiplayer] = useState(false);
+    const [showLeaderboard, setShowLeaderboard] = useState(false);
+
+    useEffect(() => {
+        (async () => {
+            try {
+                const ctrl = new AbortController();
+                const tid  = setTimeout(() => ctrl.abort(), 10000);
+                const [s, n] = await Promise.all([
+                    api.get("/dashboard/stats",  { signal: ctrl.signal }),
+                    api.get("/notifications",    { signal: ctrl.signal }),
+                ]);
+                clearTimeout(tid);
+                setStats(s.data);
+                if (s.data?.user?.name) localStorage.setItem("userName", s.data.user.name);
+                setNotifications(n.data || []);
+            } catch { setError("Unable to reach the server."); }
+        })();
+        socket.on("notification_received", (n) => setNotifications(p => [n, ...p]));
+        return () => socket.off("notification_received");
+    }, []);
+
+    /* ── error ── */
+    if (error && !stats) return (
+        <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-[#050810] text-white">
+            <div className="text-red-400 font-bold text-lg">Connection issue</div>
+            <p className="text-sm text-slate-400">{error}</p>
+            <button onClick={() => window.location.reload()} className="px-4 py-2 bg-indigo-600 rounded-xl text-sm font-bold">Retry</button>
+        </div>
+    );
+
+    /* ── skeleton ── */
+    if (!stats) return (
+        <div className={`min-h-screen ${isDark ? 'bg-[#050810]' : 'bg-[#f1f5f9]'} p-6 md:p-8 space-y-6 animate-pulse`}>
+            <div className="flex flex-col sm:flex-row gap-4 justify-between mb-8">
+                <div className="h-16 w-64 rounded-2xl bg-white/[0.04]" />
+                <div className="flex gap-2">
+                    {[1, 2, 3, 4].map(i => <div key={i} className="h-10 w-24 rounded-xl bg-white/[0.04]" />)}
+                </div>
+            </div>
+            <div className="h-32 w-full rounded-2xl bg-white/[0.04]" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {[1, 2, 3].map(i => <div key={i} className="h-48 rounded-2xl bg-white/[0.04]" />)}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+                <div className="md:col-span-2 h-64 rounded-2xl bg-white/[0.04]" />
+                <div className="md:col-span-2 h-64 rounded-2xl bg-white/[0.04]" />
+                <div className="md:col-span-1 h-64 rounded-2xl bg-white/[0.04]" />
+            </div>
+        </div>
+    );
+
+    /* ─── Derived ─────────────────────────────────────────────────────────── */
+    const userName     = stats.user?.name || "Scholar";
+    const firstName    = userName.split(' ')[0];
+    const streak       = stats.streak || 0;
+    const completedT   = parseInt(stats.topics?.completed_topics) || 0;
+    const totalT       = parseInt(stats.topics?.total_topics) || 1;
+    const progressPct  = stats.progressPercent || 0;
+    const cohortPct    = stats.cohortPercentile || 0;
+    const rank         = getRank(completedT);
+    const onlinePeers  = stats.onlinePeers || [];
+    const totalContrib = (stats.stats?.summaries || 0) + (stats.stats?.cheatsheets || 0) + (stats.stats?.reviews || 0);
+
+    const rawDays   = (stats.weekDays || []).map((day, i) => ({ day, pts: stats.weeklyActivity?.[i] || 0 }));
+    const hasActivity = rawDays.some(d => d.pts > 0);
+    const skills    = stats.skills?.[skillTab] || [];
+    const courseStats = stats.courses || {};
+
+    /* ─── Design tokens ───────────────────────────────────────────────────── */
+    const bg    = isDark ? '#050810'          : '#f1f5f9';
+    const card  = isDark
+        ? 'bg-[#090d1c] border border-white/[0.06]'
+        : 'bg-white border border-slate-200/70 shadow-sm';
+    const muted = isDark ? 'text-slate-500'   : 'text-slate-400';
+    const head  = isDark ? 'text-white'       : 'text-slate-900';
+    const sub   = isDark ? 'text-slate-400'   : 'text-slate-500';
+
+    /* ─── Render ──────────────────────────────────────────────────────────── */
+    return (
+        <div className="h-full w-full relative" style={{ background: bg }}>
+
+            {/* ambient glow */}
+            {isDark && <>
+                <div className="fixed top-0 left-1/3 w-[600px] h-[400px] rounded-full pointer-events-none"
+                     style={{ background: 'radial-gradient(ellipse, rgba(99,102,241,0.07) 0%, transparent 70%)' }} />
+                <div className="fixed bottom-0 right-0 w-[500px] h-[400px] rounded-full pointer-events-none"
+                     style={{ background: 'radial-gradient(ellipse, rgba(34,211,238,0.05) 0%, transparent 70%)' }} />
+            </>}
+
+            <div className="relative z-10 w-full px-3 md:px-5 lg:px-7 py-5 space-y-4">
+
+                {/* ══════════════════════════════════════════════════════════
+                    HEADER
+                ══════════════════════════════════════════════════════════ */}
+                <FadeUp delay={0}>
+                    <div className={`${card} rounded-2xl px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4`}>
+                        {/* Greeting + meta */}
+                        <div className="flex items-center gap-4">
+                            {/* Avatar */}
+                            <div className="relative shrink-0">
+                                <div className="w-11 h-11 rounded-full flex items-center justify-center font-black text-lg text-white"
+                                     style={{ background: `linear-gradient(135deg, ${rank.color}44, ${rank.color}22)`, border: `2px solid ${rank.color}55`, boxShadow: `0 0 20px ${rank.glow}` }}>
+                                    {firstName[0].toUpperCase()}
+                                </div>
+                                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-[#090d1c]" />
+                            </div>
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <h1 className={`font-black text-lg tracking-tight ${head}`}>{greetingFor(new Date().getHours())}, {firstName}</h1>
+                                    <span className="text-lg">👋</span>
+                                </div>
+                                <p className={`text-[11px] ${sub}`}>
+                                    Year {stats.user?.year} · Semester {stats.user?.semester} · {firstName}'s learning command center
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Vitals strip */}
+                        <div className="flex items-center flex-wrap gap-3">
+                            {/* Streak */}
+                            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold ${streak > 0 ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20' : isDark ? 'bg-white/5 text-slate-500 border border-white/10' : 'bg-slate-100 text-slate-400 border border-slate-200'}`}>
+                                <Flame size={13} /> {streak > 0 ? `${streak}d streak` : 'No streak yet'}
+                            </div>
+                            {/* Rank */}
+                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border"
+                                 style={{ background: `${rank.color}12`, borderColor: `${rank.color}30`, color: rank.color }}>
+                                <Award size={13} /> {rank.label}
+                            </div>
+                            {/* Online */}
+                            {onlinePeers.length > 0 && (
+                                <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold ${isDark ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-emerald-50 text-emerald-600 border border-emerald-200'}`}>
+                                    <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+                                    {onlinePeers.length} online
+                                </div>
+                            )}
+                            {/* Bell */}
+                            <div className="relative">
+                                <button onClick={() => setShowNotif(v => !v)}
+                                    className={`relative p-2 rounded-xl border transition-all ${isDark ? 'bg-white/5 hover:bg-white/10 border-white/10' : 'bg-white hover:bg-slate-50 border-slate-200'}`}>
+                                    <Bell size={16} className={sub} />
+                                    {notifications.length > 0 && <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full" />}
+                                </button>
+                                <AnimatePresence>
+                                    {showNotif && <>
+                                        <div className="fixed inset-0 z-40" onClick={() => setShowNotif(false)} />
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                                            className={`absolute right-0 mt-2 w-72 p-3 rounded-2xl border shadow-2xl z-50 ${isDark ? 'bg-[#0d1222] border-white/10' : 'bg-white border-slate-200'}`}
+                                        >
+                                            <div className="flex items-center justify-between mb-3 px-1">
+                                                <span className={`text-[10px] font-black uppercase tracking-widest ${muted}`}>Notifications</span>
+                                                {notifications.length > 0 && <button onClick={() => setNotifications([])} className="text-[10px] text-indigo-400 font-bold">Clear all</button>}
+                                            </div>
+                                            {notifications.length === 0 ? (
+                                                <p className={`text-xs text-center py-6 ${muted}`}>All caught up ✓</p>
+                                            ) : notifications.slice(0, 5).map((n, i) => (
+                                                <div key={i} className={`p-2.5 rounded-xl mb-1.5 text-xs ${isDark ? 'bg-white/5' : 'bg-slate-50'}`}>
+                                                    <p className={`font-medium ${head}`}>{n.text || n.message}</p>
+                                                    <p className={`text-[10px] mt-0.5 ${muted}`}>{timeAgo(n.date || n.createdAt)}</p>
+                                                </div>
+                                            ))}
+                                        </motion.div>
+                                    </>}
+                                </AnimatePresence>
+                            </div>
+                        </div>
+                    </div>
+                </FadeUp>
+
+                {/* ══════════════════════════════════════════════════════════
+                    CONTINUE LEARNING BANNER
+                ══════════════════════════════════════════════════════════ */}
+                <FadeUp delay={0.05}>
+                    {stats?.stats?.lastActiveCourse ? (
+                        <div className={`${card} rounded-2xl p-5 flex items-center gap-5`}
+                             style={{ background: isDark ? 'linear-gradient(135deg, #0d1030 0%, #090d1c 100%)' : undefined }}>
+                            <div className="w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center"
+                                 style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)' }}>
+                                <BookOpen size={22} className="text-indigo-400" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400 mb-0.5">Continue Learning</p>
+                                <h3 className={`font-black text-base truncate ${head}`}>{stats.stats.lastActiveCourse.title}</h3>
+                                <div className="flex items-center gap-3 mt-2">
+                                    <div className={`flex-1 h-1.5 rounded-full overflow-hidden max-w-xs ${isDark ? 'bg-white/8' : 'bg-slate-100'}`}>
+                                        <div className="h-full rounded-full bg-indigo-500 transition-all duration-1000"
+                                             style={{ width: `${stats.stats.lastActiveCourse.progress ?? 0}%`, boxShadow: '0 0 8px rgba(99,102,241,0.6)' }} />
+                                    </div>
+                                    <span className={`text-xs font-bold ${sub}`}>{stats.stats.lastActiveCourse.progress ?? 0}%</span>
+                                </div>
+                            </div>
+                            <button onClick={() => navigate(`/courses/${stats.stats.lastActiveCourse.id}/roadmap`)}
+                                className="shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black uppercase tracking-wider transition-all hover:scale-[1.02] active:scale-[0.98]">
+                                Resume <ArrowRight size={14} />
+                            </button>
+                        </div>
+                    ) : (
+                        <div className={`${card} rounded-2xl p-5 flex items-center gap-5`}>
+                            <div className="w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center bg-indigo-500/10 border border-indigo-500/20">
+                                <BookOpen size={22} className="text-indigo-400" />
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400 mb-0.5">Get started</p>
+                                <h3 className={`font-black text-base ${head}`}>Choose your first course</h3>
+                                <p className={`text-xs mt-0.5 ${muted}`}>Browse the library and enroll to begin tracking progress</p>
+                            </div>
+                            <button onClick={() => navigate('/library')}
+                                className="shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black uppercase tracking-wider transition-all">
+                                Browse <ArrowRight size={14} />
+                            </button>
+                        </div>
+                    )}
+                </FadeUp>
+
+                {/* ══════════════════════════════════════════════════════════
+                    ROW 1 — ROADMAP · ACTIVITY · COHORT
+                ══════════════════════════════════════════════════════════ */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+
+                    {/* ── ROADMAP PROGRESS ── */}
+                    <FadeUp delay={0.1}>
+                        <div className={`${card} rounded-2xl p-5 h-full flex flex-col`}>
+                            <div className="flex items-center justify-between mb-4">
+                                <div>
+                                    <p className={`text-[10px] font-black uppercase tracking-widest ${muted}`}>Roadmap Progress</p>
+                                    <h3 className={`font-black text-base mt-0.5 ${head}`}>Your Journey</h3>
+                                </div>
+                                <GitBranch size={18} className="text-indigo-400" />
+                            </div>
+
+                            <div className="flex items-center gap-5 mb-5">
+                                <Ring pct={progressPct} size={80} stroke={6} color="#6366f1">
+                                    <span className={`text-lg font-black ${head}`}>{progressPct}%</span>
+                                </Ring>
+                                <div className="space-y-2.5 flex-1">
+                                    {[
+                                        { label: 'Topics done',   val: completedT,                     total: totalT,              color: '#6366f1' },
+                                        { label: 'In progress',   val: parseInt(courseStats.in_progress)||0, total: parseInt(courseStats.total)||1, color: '#f59e0b' },
+                                        { label: 'Completed',     val: parseInt(courseStats.completed)||0,   total: parseInt(courseStats.total)||1, color: '#10b981' },
+                                    ].map(({ label, val, total, color }) => (
+                                        <div key={label}>
+                                            <div className="flex justify-between mb-1">
+                                                <span className={`text-[10px] ${muted}`}>{label}</span>
+                                                <span className="text-[10px] font-bold" style={{ color }}>{val}/{total}</span>
+                                            </div>
+                                            <div className={`h-1 rounded-full overflow-hidden ${isDark ? 'bg-white/8' : 'bg-slate-100'}`}>
+                                                <div className="h-full rounded-full transition-all duration-1000"
+                                                     style={{ width: `${total > 0 ? (val / total) * 100 : 0}%`, background: color }} />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <button onClick={() => navigate('/library')}
+                                className={`mt-auto text-[10px] font-black uppercase tracking-widest flex items-center gap-1 ${isDark ? 'text-indigo-400 hover:text-indigo-300' : 'text-indigo-600 hover:text-indigo-500'} transition-colors`}>
+                                View all courses <ChevronRight size={12} />
+                            </button>
+                        </div>
+                    </FadeUp>
+
+                    {/* ── THIS WEEK ACTIVITY ── */}
+                    <FadeUp delay={0.13}>
+                        <div className={`${card} rounded-2xl p-5 h-full flex flex-col`}>
+                            <div className="flex items-center justify-between mb-4">
+                                <div>
+                                    <p className={`text-[10px] font-black uppercase tracking-widest ${muted}`}>This Week</p>
+                                    <h3 className={`font-black text-base mt-0.5 ${head}`}>Daily Activity</h3>
+                                </div>
+                                <BarChart2 size={18} className="text-cyan-400" />
+                            </div>
+                            {hasActivity ? (
+                                <ResponsiveContainer width="100%" height={130}>
+                                    <BarChart data={rawDays} barSize={26} barCategoryGap="25%">
+                                        <XAxis dataKey="day" tick={{ fill: isDark ? '#475569' : '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
+                                        <Tooltip content={<DayTip />} cursor={false} />
+                                        <Bar dataKey="pts" radius={[5, 5, 2, 2]}>
+                                            {rawDays.map((d, i) => (
+                                                <Cell key={i} fill={d.pts > 0 ? (isDark ? '#22d3ee' : '#0891b2') : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)')} />
+                                            ))}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="flex-1 flex flex-col items-center justify-center gap-2 py-4">
+                                    <BarChart2 size={32} className={`${muted} opacity-20`} />
+                                    <p className={`text-xs text-center ${muted}`}>Complete a topic to<br />see your activity</p>
+                                </div>
+                            )}
+                            <div className={`mt-3 pt-3 border-t ${isDark ? 'border-white/5' : 'border-slate-100'} flex items-center justify-between`}>
+                                <span className={`text-[10px] ${muted}`}>Total this week</span>
+                                <span className={`text-sm font-black ${head}`}>
+                                    {rawDays.reduce((a, d) => a + d.pts, 0)} pts
+                                </span>
+                            </div>
+                        </div>
+                    </FadeUp>
+
+                    {/* ── COHORT STANDING ── */}
+                    <FadeUp delay={0.16}>
+                        <div className={`${card} rounded-2xl p-5 h-full flex flex-col`}>
+                            <div className="flex items-center justify-between mb-4">
+                                <div>
+                                    <p className={`text-[10px] font-black uppercase tracking-widest ${muted}`}>Cohort Standing</p>
+                                    <h3 className={`font-black text-base mt-0.5 ${head}`}>vs. Classmates</h3>
+                                </div>
+                                <Users size={18} className="text-emerald-400" />
+                            </div>
+
+                            <div className="flex items-center gap-4 mb-4">
+                                <Ring pct={cohortPct} size={72} stroke={6} color="#10b981">
+                                    <span className={`text-sm font-black ${head}`}>{cohortPct}%</span>
+                                </Ring>
+                                <div>
+                                    <p className={`text-xs ${muted} mb-1`}>You're ahead of</p>
+                                    <p className={`text-2xl font-black ${head}`}>{cohortPct}%</p>
+                                    <p className={`text-xs ${muted}`}>of your year group</p>
+                                </div>
+                            </div>
+
+                            {/* Online peers avatars */}
+                            {onlinePeers.length > 0 && (
+                                <div className={`p-3 rounded-xl ${isDark ? 'bg-white/4' : 'bg-slate-50'} mb-3`}>
+                                    <p className={`text-[10px] font-black uppercase tracking-widest ${muted} mb-2`}>Online now</p>
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                        {onlinePeers.slice(0, 6).map((peer, i) => (
+                                            <div key={i} title={peer.name}
+                                                 className="w-7 h-7 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-[10px] font-black text-indigo-300">
+                                                {peer.name?.[0]?.toUpperCase()}
+                                            </div>
+                                        ))}
+                                        {onlinePeers.length > 6 && (
+                                            <span className={`text-[10px] font-bold ${muted}`}>+{onlinePeers.length - 6}</span>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            <button onClick={() => setShowLeaderboard(true)}
+                                className={`mt-auto text-[10px] font-black uppercase tracking-widest flex items-center gap-1 ${isDark ? 'text-emerald-400 hover:text-emerald-300' : 'text-emerald-600 hover:text-emerald-500'} transition-colors`}>
+                                View leaderboard <ChevronRight size={12} />
+                            </button>
+                        </div>
+                    </FadeUp>
+                </div>
+
+                {/* ══════════════════════════════════════════════════════════
+                    ROW 2 — SKILLS · CONTRIBUTIONS · CAREER
+                ══════════════════════════════════════════════════════════ */}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-5">
+
+                    {/* ── SKILL RADAR (2/5) ── */}
+                    <FadeUp delay={0.2} className="xl:col-span-2">
+                        <div className={`${card} rounded-2xl p-5 h-full flex flex-col`}>
+                            <div className="flex items-center justify-between mb-3">
+                                <div>
+                                    <p className={`text-[10px] font-black uppercase tracking-widest ${muted}`}>Skill Map</p>
+                                    <h3 className={`font-black text-base mt-0.5 ${head}`}>Proficiency</h3>
+                                </div>
+                                <div className={`flex text-[10px] font-bold rounded-xl overflow-hidden border ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
+                                    {['general', 'academic'].map(tab => (
+                                        <button key={tab} onClick={() => setSkillTab(tab)}
+                                            className={`px-3 py-1.5 capitalize transition-all ${skillTab === tab
+                                                ? (isDark ? 'bg-indigo-600 text-white' : 'bg-indigo-600 text-white')
+                                                : (isDark ? 'text-slate-500 hover:text-white' : 'text-slate-500 hover:text-slate-700')
+                                            }`}>
+                                            {tab}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            {skills.length > 0 ? (
+                                <ResponsiveContainer width="100%" height={200}>
+                                    <RadarChart data={skills} margin={{ top: 8, right: 20, bottom: 8, left: 20 }}>
+                                        <PolarGrid stroke={isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'} />
+                                        <PolarAngleAxis dataKey="skill" tick={{ fill: isDark ? '#64748b' : '#94a3b8', fontSize: 10 }} />
+                                        <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                                        <Radar name="skill" dataKey="value" stroke="#6366f1" fill="#6366f1" fillOpacity={0.15} strokeWidth={2} />
+                                        <Tooltip content={<SkillTip />} />
+                                    </RadarChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="flex-1 flex flex-col items-center justify-center gap-2 py-8">
+                                    <Brain size={32} className={`${muted} opacity-20`} />
+                                    <p className={`text-xs text-center ${muted}`}>Enroll in courses to<br />build your skill map</p>
+                                </div>
+                            )}
+                        </div>
+                    </FadeUp>
+
+                    {/* ── CONTRIBUTIONS (1.5/5) ── */}
+                    <FadeUp delay={0.23} className="xl:col-span-2">
+                        <div className={`${card} rounded-2xl p-5 h-full flex flex-col gap-3`}>
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className={`text-[10px] font-black uppercase tracking-widest ${muted}`}>Contributions</p>
+                                    <h3 className={`font-black text-base mt-0.5 ${head}`}>Knowledge Given</h3>
+                                </div>
+                                <Star size={18} className="text-amber-400" />
+                            </div>
+
+                            {/* Big total */}
+                            <div className="flex items-end gap-2">
+                                <span className={`text-5xl font-black tracking-tighter ${head}`}>{totalContrib}</span>
+                                <span className={`text-xs ${muted} mb-2`}>contributions</span>
+                            </div>
+
+                            {/* Breakdown */}
+                            {[
+                                { icon: FileText, label: 'Summaries',   val: stats.stats?.summaries   || 0, color: 'text-indigo-400',  bg: isDark ? 'bg-indigo-500/10' : 'bg-indigo-50'  },
+                                { icon: Shield,   label: 'Cheatsheets', val: stats.stats?.cheatsheets || 0, color: 'text-cyan-400',    bg: isDark ? 'bg-cyan-500/10'   : 'bg-cyan-50'    },
+                                { icon: Star,     label: 'Reviews',     val: stats.stats?.reviews     || 0, color: 'text-amber-400',   bg: isDark ? 'bg-amber-500/10'  : 'bg-amber-50'   },
+                            ].map(({ icon: Icon, label, val, color, bg }) => (
+                                <div key={label} className={`flex items-center justify-between p-3 rounded-xl ${bg}`}>
+                                    <div className="flex items-center gap-2">
+                                        <Icon size={14} className={color} />
+                                        <span className={`text-xs font-semibold ${sub}`}>{label}</span>
+                                    </div>
+                                    <span className={`text-sm font-black ${head}`}>{val}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </FadeUp>
+
+                    {/* ── CAREER ORACLE (0.5/5 → full) ── */}
+                    <FadeUp delay={0.26} className="xl:col-span-1">
+                        <div className={`${card} rounded-2xl p-5 h-full flex flex-col`}
+                             style={{ background: isDark ? 'linear-gradient(160deg, #0d0f22 0%, #090d1c 100%)' : undefined }}>
+                            <div className="flex items-center justify-between mb-3">
+                                <p className={`text-[10px] font-black uppercase tracking-widest ${muted}`}>Career Oracle</p>
+                                <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                            </div>
+
+                            <div className="mb-3">
+                                <p className="text-indigo-400 text-[10px] font-bold uppercase tracking-widest mb-1">Target Role</p>
+                                <p className={`font-black text-sm ${head}`}>{stats.user?.dream_job || stats.careerOracle?.targetRole || 'Not set'}</p>
+                            </div>
+
+                            {stats.careerOracle?.alignment && (
+                                <div className="mb-3">
+                                    <div className="flex justify-between mb-1">
+                                        <span className={`text-[10px] ${muted}`}>Alignment</span>
+                                        <span className="text-[10px] font-bold text-indigo-400">{stats.careerOracle.alignment}%</span>
+                                    </div>
+                                    <div className={`h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-white/8' : 'bg-slate-100'}`}>
+                                        <div className="h-full rounded-full bg-indigo-500 transition-all"
+                                             style={{ width: `${stats.careerOracle.alignment}%` }} />
+                                    </div>
+                                </div>
+                            )}
+
+                            {stats.careerOracle?.recommendation && (
+                                <p className={`text-[11px] leading-relaxed ${muted} flex-1`}>
+                                    "{stats.careerOracle.recommendation}"
+                                </p>
+                            )}
+
+                            <button onClick={() => navigate('/career')}
+                                className={`mt-3 text-[10px] font-black uppercase tracking-widest flex items-center gap-1 ${isDark ? 'text-indigo-400 hover:text-indigo-300' : 'text-indigo-600'} transition-colors`}>
+                                Career path <ChevronRight size={12} />
+                            </button>
+                        </div>
+                    </FadeUp>
+                </div>
+
+                {/* ══════════════════════════════════════════════════════════
+                    ROW 3 — QUICK ACTIONS
+                ══════════════════════════════════════════════════════════ */}
+                <FadeUp delay={0.3}>
+                    <div className={`${card} rounded-2xl p-5`}>
+                        <p className={`text-[10px] font-black uppercase tracking-widest ${muted} mb-4`}>Quick Actions</p>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            {[
+                                { icon: Swords,        label: 'Neural Clash',   desc: 'Live quiz battle',     color: '#818cf8', bg: 'rgba(129,140,248,0.08)', action: () => setShowMultiplayer(true) },
+                                { icon: Zap,           label: 'Quick Quiz',     desc: 'Test knowledge now',   color: '#22d3ee', bg: 'rgba(34,211,238,0.08)',  action: () => setShowQuiz(true)        },
+                                { icon: Trophy,        label: 'Leaderboard',    desc: 'Global rankings',      color: '#fbbf24', bg: 'rgba(251,191,36,0.08)',  action: () => setShowLeaderboard(true) },
+                                { icon: MessageSquare, label: 'Creator Corner', desc: 'Projects & submissions', color: '#a78bfa', bg: 'rgba(167,139,250,0.08)', action: () => navigate('/creator-corner') },
+                            ].map(({ icon: Icon, label, desc, color, bg, action }) => (
+                                <button key={label} onClick={action}
+                                    className={`group relative p-4 rounded-xl text-left transition-all hover:-translate-y-0.5 active:scale-[0.97] border ${isDark ? 'border-white/[0.06] hover:border-white/[0.12]' : 'border-slate-200 hover:border-slate-300 bg-slate-50'}`}
+                                    style={{ background: isDark ? bg : undefined }}>
+                                    <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3 transition-transform group-hover:scale-110"
+                                         style={{ background: bg, border: `1px solid ${color}22` }}>
+                                        <Icon size={17} style={{ color }} />
+                                    </div>
+                                    <p className={`font-bold text-sm ${head}`}>{label}</p>
+                                    <p className={`text-[11px] mt-0.5 ${muted}`}>{desc}</p>
+                                    <div className="absolute bottom-3.5 right-3.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <ChevronRight size={14} style={{ color }} />
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </FadeUp>
+
+                {/* ══════════════════════════════════════════════════════════
+                    ROW 4 — FEATURE SPOTLIGHT
+                ══════════════════════════════════════════════════════════ */}
+                <FadeUp delay={0.35}>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pb-10">
+
+                        {/* Interview Boardroom */}
+                        <div onClick={() => navigate('/interview-boardroom')}
+                             className={`group ${card} rounded-2xl p-5 cursor-pointer hover:-translate-y-0.5 transition-all relative overflow-hidden`}>
+                            <div className="absolute -top-4 -right-4 w-24 h-24 rounded-full opacity-5 group-hover:opacity-10 transition-opacity"
+                                 style={{ background: '#6366f1' }} />
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3 bg-indigo-500/10 border border-indigo-500/20">
+                                <Target size={20} className="text-indigo-400" />
+                            </div>
+                            <h3 className={`font-black text-sm mb-1 ${head}`}>Interview Boardroom</h3>
+                            {stats?.stats?.lastInterview ? (
+                                <div className="space-y-1.5">
+                                    <p className={`text-[11px] ${muted}`}>Last: <span className="text-indigo-400 font-semibold">{stats.stats.lastInterview.target_job}</span></p>
+                                    <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[10px] font-bold ${stats.stats.lastInterview.current_phase === 'CLOSING' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}`}>
+                                        <CheckCircle size={10} />
+                                        {stats.stats.lastInterview.current_phase === 'CLOSING' ? 'Completed' : 'In progress'}
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className={`text-[11px] ${muted}`}>Simulate real technical interviews with AI</p>
+                            )}
+                            <div className="mt-4 flex items-center gap-1 text-[11px] font-bold text-indigo-400 group-hover:gap-2 transition-all">
+                                Enter session <ArrowRight size={12} />
+                            </div>
+                        </div>
+
+                        {/* Creator Corner */}
+                        <div onClick={() => navigate('/creator-corner')}
+                             className={`group ${card} rounded-2xl p-5 cursor-pointer hover:-translate-y-0.5 transition-all relative overflow-hidden`}>
+                            <div className="absolute -top-4 -right-4 w-24 h-24 rounded-full opacity-5 group-hover:opacity-10 transition-opacity"
+                                 style={{ background: '#f59e0b' }} />
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3 bg-amber-500/10 border border-amber-500/20">
+                                <Sparkles size={20} className="text-amber-400" />
+                            </div>
+                            <h3 className={`font-black text-sm mb-1 ${head}`}>Creator Corner</h3>
+                            {(stats?.stats?.projectStats?.owned_projects > 0 || stats?.stats?.projectStats?.joined_projects > 0) ? (
+                                <div className="flex gap-2">
+                                    <div className={`flex-1 p-2 rounded-lg text-center ${isDark ? 'bg-white/5' : 'bg-slate-50'}`}>
+                                        <p className={`text-[10px] ${muted}`}>Owned</p>
+                                        <p className={`text-lg font-black ${head}`}>{stats.stats.projectStats.owned_projects}</p>
+                                    </div>
+                                    <div className={`flex-1 p-2 rounded-lg text-center ${isDark ? 'bg-white/5' : 'bg-slate-50'}`}>
+                                        <p className={`text-[10px] ${muted}`}>Joined</p>
+                                        <p className={`text-lg font-black ${head}`}>{stats.stats.projectStats.joined_projects}</p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className={`text-[11px] ${muted}`}>Build projects and collaborate with peers</p>
+                            )}
+                            <div className="mt-4 flex items-center gap-1 text-[11px] font-bold text-amber-400 group-hover:gap-2 transition-all">
+                                Explore <ArrowRight size={12} />
+                            </div>
+                        </div>
+
+                        {/* AI Mentor */}
+                        <div onClick={() => setShowMentor(true)}
+                             className={`group ${card} rounded-2xl p-5 cursor-pointer hover:-translate-y-0.5 transition-all relative overflow-hidden`}>
+                            <div className="absolute -top-4 -right-4 w-24 h-24 rounded-full opacity-5 group-hover:opacity-10 transition-opacity"
+                                 style={{ background: '#10b981' }} />
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3 bg-emerald-500/10 border border-emerald-500/20">
+                                <Brain size={20} className="text-emerald-400" />
+                            </div>
+                            <h3 className={`font-black text-sm mb-1 ${head}`}>AI Mentor</h3>
+                            <p className={`text-[11px] ${muted}`}>Get a personalized learning blueprint from Dr. Nova</p>
+                            <div className={`mt-2 flex items-center gap-1.5 text-[10px] px-2.5 py-1 rounded-lg w-fit ${isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>
+                                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" /> Online
+                            </div>
+                            <div className="mt-4 flex items-center gap-1 text-[11px] font-bold text-emerald-400 group-hover:gap-2 transition-all">
+                                Ask Dr. Nova <ArrowRight size={12} />
+                            </div>
+                        </div>
+                    </div>
+                </FadeUp>
+            </div>
+
+            {/* ── MODALS ──────────────────────────────────────────────────── */}
+            <AnimatePresence>
+                {showMentor && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"><Suspense fallback={null}><AiMentorModal onClose={() => setShowMentor(false)} /></Suspense></div>}
+                {showQuiz && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"><Suspense fallback={null}><QuizModal isOpen={true} onClose={() => setShowQuiz(false)} /></Suspense></div>}
+                {showFeedback && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"><Suspense fallback={null}><ScholarlyFeedbackModal onClose={() => setShowFeedback(false)} /></Suspense></div>}
+                {showInterview && <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 backdrop-blur-md p-4"><Suspense fallback={null}><InterviewPrepModal onClose={() => setShowInterview(false)} /></Suspense></div>}
+                {showMultiplayer && <div className="fixed inset-0 z-[120] flex items-center justify-center"><Suspense fallback={null}><MultiplayerQuizModal onClose={() => setShowMultiplayer(false)} /></Suspense></div>}
+                {showLeaderboard && <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"><Suspense fallback={null}><LeaderboardModal onClose={() => setShowLeaderboard(false)} isDark={isDark} /></Suspense></div>}
+            </AnimatePresence>
+        </div>
+    );
+}

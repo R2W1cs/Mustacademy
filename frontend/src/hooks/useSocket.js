@@ -15,10 +15,10 @@ export const useSocket = () => {
             reconnection: true
         });
 
-        const userId = localStorage.getItem("userId");
+        const token = localStorage.getItem("token");
         const userName = localStorage.getItem("userName") || "Scholar";
-        if (userId) {
-            socketInstance.emit("authenticate", { userId, userName });
+        if (token) {
+            socketInstance.emit("authenticate", { token, userName });
         }
     }
 

@@ -587,6 +587,24 @@ body {
   --primary: #c01636;
   --primary-foreground: #ffffff;
   --secondary: #4b5563;
+  /* Sidebar tokens */
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1a1a1a;
+  --sidebar-primary: #c01636;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f3f4f6;
+  --sidebar-accent-foreground: #374151;
+  --sidebar-border: #e5e7eb;
+  --sidebar-ring: #c01636;
+  /* Gradient → red */
+  --gradient-primary: linear-gradient(135deg, #c01636 0%, #e11d48 100%);
+  --gradient-secondary: linear-gradient(135deg, #e11d48 0%, #9b1c2e 100%);
+  /* Chart colors → red palette */
+  --chart-1: #c01636;
+  --chart-2: #e11d48;
+  --chart-3: #10b981;
+  --chart-4: #f59e0b;
+  --chart-5: #6b7280;
   --secondary-foreground: #ffffff;
   --muted: #f3f4f6;
   --muted-foreground: #6b7280;
@@ -657,6 +675,15 @@ body {
 .light [class*="bg-blue-"].text-white,
 .light [class*="bg-[#"].text-white,
 .light [class*="bg-gradient-"].text-white,
+.light button .text-white,
+.light a .text-white,
+.light [class*="bg-indigo-"] .text-white,
+.light [class*="bg-slate-9"] .text-white,
+.light [class*="bg-slate-8"] .text-white,
+.light [class*="bg-purple-"] .text-white,
+.light [class*="bg-blue-"] .text-white,
+.light [class*="bg-[#"] .text-white,
+.light [class*="bg-gradient-"] .text-white,
 .light .studio-btn-primary {
   color: #ffffff !important;
 }
@@ -717,3 +744,284 @@ body {
 .light .studio-card h3 {
   color: #000000;
 }
+
+/* ==========================================================
+   LIGHT THEME — COMPREHENSIVE WHITE / GREY / RED SYSTEM
+   ========================================================== */
+
+/* --- Glass & backdrop utilities --- */
+.light .glass-morphism {
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06), inset 0 0 0 1px rgba(255,255,255,0.8);
+}
+.light .glass-morphism:hover {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(192, 22, 54, 0.12);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.08);
+}
+.light .glass-morphism-strong {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+}
+.light .studio-glass {
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  box-shadow: none;
+}
+.light .glass-border {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* --- HUD nodes → white cards --- */
+.light .hud-node {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+.light .hud-node:hover {
+  border-color: rgba(192, 22, 54, 0.18) !important;
+  background: #ffffff !important;
+  box-shadow: 0 8px 32px rgba(192, 22, 54, 0.07);
+}
+
+/* --- Studio button → red gradient --- */
+.light .studio-btn-primary {
+  background: linear-gradient(135deg, #c01636 0%, #e11d48 100%) !important;
+}
+.light .studio-btn-primary:hover {
+  box-shadow: 0 0 30px rgba(192, 22, 54, 0.35) !important;
+  transform: translateY(-2px);
+}
+
+/* --- Studio card hover glow → red --- */
+.light .studio-card::before {
+  background: radial-gradient(circle at top left, rgba(192, 22, 54, 0.08), transparent 70%);
+}
+
+/* --- Nav items → red accent --- */
+.light .nav-item:hover {
+  background: linear-gradient(90deg, rgba(192, 22, 54, 0.07), transparent);
+  border-left-color: #c01636;
+}
+.light .nav-item.active {
+  background: linear-gradient(90deg, rgba(192, 22, 54, 0.1), transparent);
+  border-left-color: #c01636;
+}
+
+/* --- Step connector & pulse ring → red --- */
+.light .step-connector {
+  background: linear-gradient(90deg, #c01636, #e11d48);
+}
+@keyframes pulse-ring-light {
+  0%   { box-shadow: 0 0 0 0   rgba(192, 22, 54, 0.4); }
+  70%  { box-shadow: 0 0 0 10px rgba(192, 22, 54, 0); }
+  100% { box-shadow: 0 0 0 0   rgba(192, 22, 54, 0); }
+}
+.light .pulse-ring { animation: pulse-ring-light 2s infinite; }
+
+/* --- Mesh background → clean off-white --- */
+.light .mesh-bg { background-color: #f8fafc; }
+.light .mesh-bg::before {
+  background-image:
+    radial-gradient(at 0%   0%, rgba(192, 22, 54, 0.03) 0, transparent 50%),
+    radial-gradient(at 50%  0%, rgba(107,114,128, 0.02) 0, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(192, 22, 54, 0.03) 0, transparent 50%);
+}
+
+/* --- Nebula utilities → red gradient --- */
+.light .text-nebula {
+  background: linear-gradient(135deg, #c01636 0%, #e11d48 55%, #9b1c2e 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: none;
+}
+.light .bg-nebula {
+  background: linear-gradient(135deg, #c01636 0%, #e11d48 100%);
+}
+.light .border-holographic {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(#ffffff, #ffffff) padding-box,
+    linear-gradient(135deg, #c01636, #e11d48, #9b1c2e) border-box;
+}
+
+/* --- Academic mono → red tinted --- */
+.light .academic-mono {
+  color: #c01636 !important;
+  background-color: rgba(192, 22, 54, 0.05) !important;
+  border-color: rgba(192, 22, 54, 0.1) !important;
+}
+
+/* ==========================================================
+   TAILWIND INDIGO → RED  (solid colours)
+   ========================================================== */
+.light .bg-indigo-600  { background-color: #c01636 !important; }
+.light .bg-indigo-500  { background-color: #e11d48 !important; }
+.light .bg-indigo-700  { background-color: #9b1c2e !important; }
+.light .bg-indigo-400  { background-color: #e11d48 !important; }
+
+.light .hover\:bg-indigo-700:hover { background-color: #9b1c2e !important; }
+.light .hover\:bg-indigo-600:hover { background-color: #be123c !important; }
+.light .hover\:bg-indigo-500:hover { background-color: #f43f5e !important; }
+
+/* Soft tints */
+.light .bg-indigo-50  { background-color: #fff1f2 !important; }
+.light .bg-indigo-100 { background-color: #ffe4e6 !important; }
+.light .hover\:bg-indigo-50:hover  { background-color: #fff1f2 !important; }
+.light .hover\:bg-indigo-100:hover { background-color: #ffe4e6 !important; }
+
+/* Opacity variants */
+.light .bg-indigo-600\/20  { background-color: rgba(192, 22, 54, 0.12) !important; }
+.light .bg-indigo-600\/10  { background-color: rgba(192, 22, 54, 0.07) !important; }
+.light .bg-indigo-500\/20  { background-color: rgba(192, 22, 54, 0.12) !important; }
+.light .bg-indigo-500\/10  { background-color: rgba(192, 22, 54, 0.07) !important; }
+.light .bg-indigo-500\/5   { background-color: rgba(192, 22, 54, 0.04) !important; }
+.light .bg-indigo-400\/20  { background-color: rgba(192, 22, 54, 0.1)  !important; }
+.light .bg-indigo-900\/20  { background-color: rgba(255, 241, 242, 0.8) !important; }
+.light .bg-indigo-950\/60  { background-color: rgba(255, 241, 242, 0.9) !important; }
+.light .hover\:bg-indigo-500\/20:hover { background-color: rgba(192, 22, 54, 0.12) !important; }
+.light .hover\:bg-indigo-900\/50:hover { background-color: rgba(255, 241, 242, 0.9) !important; }
+
+/* ==========================================================
+   TAILWIND INDIGO → RED  (text)
+   ========================================================== */
+.light .text-indigo-600 { color: #c01636 !important; }
+.light .text-indigo-500 { color: #e11d48 !important; }
+.light .text-indigo-400 { color: #c01636 !important; }
+.light .text-indigo-300 { color: #e11d48 !important; }
+.light .text-indigo-200 { color: #e11d48 !important; }
+
+.light .hover\:text-indigo-600:hover { color: #c01636 !important; }
+.light .hover\:text-indigo-500:hover { color: #e11d48 !important; }
+.light .hover\:text-indigo-400:hover { color: #c01636 !important; }
+
+/* ==========================================================
+   TAILWIND INDIGO → RED  (borders)
+   ========================================================== */
+.light .border-indigo-600 { border-color: #c01636 !important; }
+.light .border-indigo-500 { border-color: #e11d48 !important; }
+.light .border-indigo-400 { border-color: rgba(192, 22, 54, 0.5) !important; }
+
+.light .border-indigo-500\/50 { border-color: rgba(192, 22, 54, 0.3) !important; }
+.light .border-indigo-500\/40 { border-color: rgba(192, 22, 54, 0.25) !important; }
+.light .border-indigo-500\/30 { border-color: rgba(192, 22, 54, 0.18) !important; }
+.light .border-indigo-500\/20 { border-color: rgba(192, 22, 54, 0.12) !important; }
+.light .border-indigo-500\/10 { border-color: rgba(192, 22, 54, 0.07) !important; }
+.light .border-indigo-600\/30 { border-color: rgba(192, 22, 54, 0.18) !important; }
+
+.light .focus\:border-indigo-500:focus { border-color: #c01636 !important; }
+.light .hover\:border-indigo-500:hover { border-color: #c01636 !important; }
+.light .hover\:border-red-200:hover    { border-color: rgba(192, 22, 54, 0.2) !important; }
+
+/* ==========================================================
+   TAILWIND INDIGO → RED  (rings / focus)
+   ========================================================== */
+.light .ring-indigo-500             { --tw-ring-color: rgba(192, 22, 54, 0.4) !important; }
+.light .focus\:ring-indigo-500:focus { --tw-ring-color: rgba(192, 22, 54, 0.3) !important; }
+.light .focus\:ring-indigo-500\/30:focus { --tw-ring-color: rgba(192, 22, 54, 0.2) !important; }
+.light .focus\:ring-2:focus          { --tw-ring-color: rgba(192, 22, 54, 0.25) !important; }
+
+/* ==========================================================
+   TAILWIND INDIGO → RED  (gradients)
+   ========================================================== */
+.light .from-indigo-600 { --tw-gradient-from: #c01636 !important; }
+.light .from-indigo-500 { --tw-gradient-from: #e11d48 !important; }
+.light .from-indigo-400 { --tw-gradient-from: #e11d48 !important; }
+.light .to-indigo-700   { --tw-gradient-to:   #9b1c2e !important; }
+.light .to-indigo-600   { --tw-gradient-to:   #c01636 !important; }
+.light .to-indigo-500   { --tw-gradient-to:   #e11d48 !important; }
+.light .via-indigo-600  { --tw-gradient-via:  #c01636 !important; }
+.light .via-indigo-500  { --tw-gradient-via:  #e11d48 !important; }
+
+/* ==========================================================
+   TAILWIND INDIGO → RED  (shadows)
+   ========================================================== */
+.light .shadow-indigo-500\/30  { --tw-shadow-color: rgba(192, 22, 54, 0.25) !important; }
+.light .shadow-indigo-500\/20  { --tw-shadow-color: rgba(192, 22, 54, 0.15) !important; }
+.light .shadow-indigo-900\/50  { --tw-shadow-color: rgba(192, 22, 54, 0.12) !important; }
+.light .shadow-indigo-900\/40  { --tw-shadow-color: rgba(192, 22, 54, 0.10) !important; }
+
+/* ==========================================================
+   PURPLE / VIOLET → RED in light mode  (common button patterns)
+   ========================================================== */
+.light .bg-purple-600  { background-color: #c01636 !important; }
+.light .bg-purple-500  { background-color: #e11d48 !important; }
+.light .bg-violet-600  { background-color: #c01636 !important; }
+.light .bg-violet-500  { background-color: #e11d48 !important; }
+.light .text-purple-500 { color: #c01636 !important; }
+.light .text-violet-500 { color: #c01636 !important; }
+.light .text-purple-400 { color: #e11d48 !important; }
+
+/* Gradient purple → red */
+.light .gradient-purple {
+  background: linear-gradient(135deg, #c01636 0%, #e11d48 50%, #be123c 100%);
+}
+
+/* ==========================================================
+   OUTLINE-GLOW → red in light mode
+   ========================================================== */
+.light .outline-glow {
+  text-shadow: 0 0 20px rgba(192, 22, 54, 0.25);
+}
+
+/* ==========================================================
+   LIGHT THEME — FIX HARDCODED DARK BACKGROUNDS
+   Components that use dark bg without isDark checks
+   ========================================================== */
+
+/* Black/near-black overlay backgrounds */
+.light .bg-black\/10  { background-color: rgba(0, 0, 0, 0.02) !important; }
+.light .bg-black\/20  { background-color: rgba(0, 0, 0, 0.03) !important; }
+.light .bg-black\/30  { background-color: rgba(0, 0, 0, 0.04) !important; }
+.light .bg-black\/40  { background-color: rgba(243, 244, 246, 0.6) !important; }
+.light .bg-black\/50  { background-color: rgba(243, 244, 246, 0.8) !important; }
+
+/* Dark slate backgrounds */
+.light .bg-slate-900 { background-color: #f8fafc !important; }
+.light .bg-slate-800 { background-color: #f1f5f9 !important; }
+.light .bg-gray-900  { background-color: #f9fafb !important; }
+.light .bg-gray-800  { background-color: #f3f4f6 !important; }
+
+/* Opacity variants of dark slate (common in cards/sidebars) */
+.light .bg-slate-900\/50  { background-color: rgba(241, 245, 249, 0.8) !important; }
+.light .bg-slate-900\/40  { background-color: rgba(241, 245, 249, 0.6) !important; }
+.light .bg-slate-900\/30  { background-color: rgba(241, 245, 249, 0.4) !important; }
+.light .bg-slate-900\/60  { background-color: rgba(241, 245, 249, 0.9) !important; }
+.light .bg-slate-800\/60  { background-color: rgba(241, 245, 249, 0.7) !important; }
+.light .bg-slate-800\/50  { background-color: rgba(241, 245, 249, 0.6) !important; }
+
+/* White-on-dark opacity backgrounds (used as overlay highlights in dark mode) */
+.light .bg-white\/5   { background-color: rgba(0, 0, 0, 0.02) !important; }
+.light .bg-white\/\[0\.05\] { background-color: rgba(0, 0, 0, 0.02) !important; }
+.light .bg-white\/10  { background-color: rgba(0, 0, 0, 0.04) !important; }
+.light .bg-white\/\[0\.10\] { background-color: rgba(0, 0, 0, 0.04) !important; }
+
+/* White/transparent borders → real grey */
+.light .border-white\/5   { border-color: rgba(0, 0, 0, 0.06) !important; }
+.light .border-white\/10  { border-color: rgba(0, 0, 0, 0.08) !important; }
+.light .border-white\/20  { border-color: rgba(0, 0, 0, 0.1)  !important; }
+
+/* White text in dark-mode-only patterns → dark text in light */
+.light .text-white\/80  { color: rgba(26, 26, 26, 0.8)  !important; }
+.light .text-white\/70  { color: rgba(26, 26, 26, 0.7)  !important; }
+.light .text-white\/60  { color: rgba(26, 26, 26, 0.6)  !important; }
+.light .text-white\/50  { color: rgba(26, 26, 26, 0.5)  !important; }
+.light .text-white\/30  { color: rgba(26, 26, 26, 0.3)  !important; }
+
+/* Slate text colors → proper grey in light mode */
+.light .text-slate-100 { color: #1a1a1a !important; }
+.light .text-slate-200 { color: #374151 !important; }
+.light .text-slate-300 { color: #4b5563 !important; }
+
+/* Glow ambients → red in light mode */
+.light .bg-indigo-500\/5  { background-color: rgba(192, 22, 54, 0.03) !important; }
+.light .bg-pink-500\/5    { background-color: rgba(192, 22, 54, 0.03) !important; }
+
+/* prose-invert in light → regular prose */
+.light .prose-invert { color: #1a1a1a !important; }
+.light .prose-invert p, .light .prose-invert li, .light .prose-invert span { color: #374151 !important; }
+.light .prose-invert h1, .light .prose-invert h2, .light .prose-invert h3 { color: #111827 !important; }
+.light .prose-invert code { color: #c01636 !important; background-color: rgba(192,22,54,0.05) !important; }

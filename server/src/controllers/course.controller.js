@@ -1,16 +1,63 @@
 
+import { createRequire } from "module";
 import pool from "../config/db.js";
-// Get all courses
+import mammoth from "mammoth";
+import AdmZip from "adm-zip";
+
+const require = createRequire(import.meta.url);
+const _pdfModule = require("pdf-parse");
+const pdfParse = typeof _pdfModule === 'function' ? _pdfModule : (_pdfModule.default ?? _pdfModule);
+
+// Auto-create topic_resources table on startup
+pool.query(`
+  CREATE TABLE IF NOT EXISTS topic_resources (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    topic_id INTEGER REFERENCES topics(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    file_type VARCHAR(20) NOT NULL,
+    file_size INTEGER,
+    extracted_text TEXT,
+    created_at TIMESTAMP DEFAULT NOW()
+  )
+`).catch(err => console.warn('[topic_resources] Table init warning:', err.message));
+
+// Get all courses (with optional search + pagination)
 export const getAllCourses = async (req, res) => {
-  const result = await pool.query(`
+  const { search = '', page = 1, limit = 12 } = req.query;
+  const offset = (parseInt(page) - 1) * parseInt(limit);
+
+  let baseQuery = `
     SELECT c.id, c.name, c.description,
            s.year_number, s.semester_number
     FROM courses c
     JOIN semesters s ON c.semester_id = s.id
-    ORDER BY s.year_number, s.semester_number
-  `);
+  `;
+  const params = [];
 
-  res.json(result.rows);
+  if (search.trim()) {
+    params.push(`%${search.trim()}%`);
+    baseQuery += ` WHERE (c.name ILIKE $${params.length} OR c.description ILIKE $${params.length})`;
+  }
+
+  const countResult = await pool.query(
+    `SELECT COUNT(*) FROM (${baseQuery}) AS t`,
+    params
+  );
+  const total = parseInt(countResult.rows[0].count);
+
+  params.push(parseInt(limit));
+  params.push(offset);
+  baseQuery += ` ORDER BY s.year_number, s.semester_number LIMIT $${params.length - 1} OFFSET $${params.length}`;
+
+  const result = await pool.query(baseQuery, params);
+
+  res.json({
+    courses: result.rows,
+    total,
+    page: parseInt(page),
+    totalPages: Math.ceil(total / parseInt(limit)),
+  });
 };
 
 // Get ALL topics across all courses (for Podcast Studio)
@@ -248,3 +295,131 @@ export const getRecommendedCourses = async (req, res) => {
     res.status(500).json({ message: "Failed to load recommended courses" });
   }
 };
+// --- NOTEBOOK MODE ENDPOINTS ---
+
+/**
+ * @desc Get user note for a specific topic
+ * @route GET /api/courses/topics/:id/note
+ */
+export const getTopicNote = async (req, res) => {
+  const userId = req.user.id;
+  const { id: topicId } = req.params;
+
+  try {
+    const result = await pool.query(
+      "SELECT content FROM user_topic_notes WHERE user_id = $1 AND topic_id = $2",
+      [userId, topicId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({ content: "" });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('[getTopicNote] Error:', err.message);
+    res.status(500).json({ message: 'Failed to fetch topic note' });
+  }
+};
+
+/**
+ * @desc Upsert user note for a specific topic
+ * @route POST /api/courses/topics/:id/note
+ */
+export const updateTopicNote = async (req, res) => {
+  const userId = req.user.id;
+  const { id: topicId } = req.params;
+  const { content } = req.body;
+
+  try {
+    await pool.query(
+      `INSERT INTO user_topic_notes (user_id, topic_id, content, updated_at)
+       VALUES ($1, $2, $3, NOW())
+       ON CONFLICT (user_id, topic_id) 
+       DO UPDATE SET content = EXCLUDED.content, updated_at = NOW()`,
+      [userId, topicId, content]
+    );
+
+    res.json({ message: "Note saved successfully" });
+  } catch (err) {
+    console.error('[updateTopicNote] Error:', err.message);
+    res.status(500).json({ message: 'Failed to save topic note' });
+  }
+};
+
+// ── TOPIC RESOURCES (Vault) ────────────────────────────────────────────────
+
+const extractTextFromBuffer = async (buffer, mimetype, originalname) => {
+  const ext = originalname.split('.').pop().toLowerCase();
+  if (ext === 'pdf' || mimetype === 'application/pdf') {
+    const data = await pdfParse(buffer);
+    return data.text.replace(/\s+/g, ' ').trim().slice(0, 40000);
+  }
+  if (ext === 'docx' || mimetype.includes('wordprocessingml')) {
+    const { value } = await mammoth.extractRawText({ buffer });
+    return value.replace(/\s+/g, ' ').trim().slice(0, 40000);
+  }
+  if (ext === 'pptx' || mimetype.includes('presentationml')) {
+    const zip = new AdmZip(buffer);
+    const entries = zip.getEntries().filter(e => e.entryName.match(/ppt\/slides\/slide\d+\.xml$/));
+    const text = entries.map(e => {
+      const xml = e.getData().toString('utf8');
+      return xml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    }).join(' ');
+    return text.slice(0, 40000);
+  }
+  // Plain text / markdown / any other file
+  return buffer.toString('utf8').slice(0, 40000);
+};
+
+export const uploadTopicResource = async (req, res) => {
+  const userId = req.user.id;
+  const topicId = req.params.id;
+  if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+
+  try {
+    const { originalname, buffer, mimetype, size } = req.file;
+    const ext = originalname.split('.').pop().toLowerCase();
+    const extractedText = await extractTextFromBuffer(buffer, mimetype, originalname);
+
+    const result = await pool.query(
+      `INSERT INTO topic_resources (user_id, topic_id, title, file_type, file_size, extracted_text)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, title, file_type, file_size, created_at`,
+      [userId, topicId, originalname, ext, size, extractedText]
+    );
+    res.json({ success: true, resource: result.rows[0] });
+  } catch (err) {
+    console.error('[uploadTopicResource]', err.message);
+    res.status(500).json({ message: 'Failed to process file: ' + err.message });
+  }
+};
+
+export const getTopicResources = async (req, res) => {
+  const userId = req.user.id;
+  const topicId = req.params.id;
+  try {
+    const result = await pool.query(
+      `SELECT id, title, file_type, file_size, created_at
+       FROM topic_resources WHERE user_id = $1 AND topic_id = $2 ORDER BY created_at DESC`,
+      [userId, topicId]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch resources' });
+  }
+};
+
+export const deleteTopicResource = async (req, res) => {
+  const userId = req.user.id;
+  const { id: topicId, resourceId } = req.params;
+  try {
+    await pool.query(
+      `DELETE FROM topic_resources WHERE id = $1 AND user_id = $2 AND topic_id = $3`,
+      [resourceId, userId, topicId]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to delete resource' });
+  }
+};
+
