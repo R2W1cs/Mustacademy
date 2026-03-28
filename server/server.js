@@ -1,4 +1,8 @@
 import 'dotenv/config';
+import { validateEnv } from './src/config/validateEnv.js';
+import { runMigrations } from './src/config/runMigrations.js';
+validateEnv();
+
 import http from 'http';
 import app from './src/app.js';
 import { initIo } from './src/lib/io.js';
@@ -21,9 +25,12 @@ const server = http.createServer(app);
 // Initialize Socket.io
 initIo(server);
 
-// Test DB Connection
+// Test DB Connection + run schema migrations
 pool.query('SELECT NOW()')
-  .then(() => console.log('[DB] Connection Verified.'))
+  .then(() => {
+    console.log('[DB] Connection Verified.');
+    return runMigrations();
+  })
   .catch(err => console.error('[DB] Connection FAILED:', err.message));
 
 server.on('error', (err) => {
