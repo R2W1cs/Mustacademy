@@ -95,16 +95,20 @@ router.get("/digest", protect, async (_req, res) => {
 
         let digestText = null;
         if (groq) {
-            const completion = await groq.chat.completions.create({
-                model: 'llama3-8b-8192',
-                messages: [{
-                    role: 'user',
-                    content: `You are a senior CS industry analyst. Based on these recent tech headlines, write a "This Week in Computer Science" digest in exactly 4 short paragraphs (2-3 sentences each). Cover: AI/ML trends, job market shifts, new technologies, and what CS students should focus on. Be specific and actionable. No bullet points — flowing prose only.\n\nHeadlines:\n${headlines}`
-                }],
-                max_tokens: 600,
-                temperature: 0.6
-            });
-            digestText = completion.choices[0]?.message?.content || null;
+            try {
+                const completion = await groq.chat.completions.create({
+                    model: 'llama3-8b-8192',
+                    messages: [{
+                        role: 'user',
+                        content: `You are a senior CS industry analyst. Based on these recent tech headlines, write a "This Week in Computer Science" digest in exactly 4 short paragraphs (2-3 sentences each). Cover: AI/ML trends, job market shifts, new technologies, and what CS students should focus on. Be specific and actionable. No bullet points — flowing prose only.\n\nHeadlines:\n${headlines}`
+                    }],
+                    max_tokens: 600,
+                    temperature: 0.6
+                });
+                digestText = completion.choices[0]?.message?.content || null;
+            } catch (aiErr) {
+                console.error("[Market] AI generation failed, falling back:", aiErr);
+            }
         }
 
         if (!digestText) {
@@ -115,7 +119,7 @@ router.get("/digest", protect, async (_req, res) => {
         res.json({ digest: digestText, cached: false, generatedAt: now });
     } catch (err) {
         console.error("[Market] Digest error:", err);
-        res.status(500).json({ digest: null });
+        res.json({ digest: "The CS landscape is evolving rapidly. Stay tuned for our next automated update as we aggregate the latest industry signals.", cached: false });
     }
 });
 

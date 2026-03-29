@@ -105,7 +105,11 @@ export default function ProfileSetup() {
         getMyProfile()
             .then((res) => {
                 if (res.data) {
-                    setProfile(res.data);
+                    setProfile({
+                        ...res.data,
+                        year: res.data.year || 1,
+                        semester: res.data.semester || 1,
+                    });
                     setPreview(res.data.avatar_url || null);
                     setActiveStatus(res.data.status || "online");
                 }

@@ -548,7 +548,65 @@ body {
 }
 
 
-/* Native Browser Scrollbars Restored */
+/* ============================================================
+   CUSTOM SCROLLBAR — global, smooth, beautiful
+   ============================================================ */
+
+/* Smooth scrolling everywhere */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ── Webkit (Chrome / Edge / Safari) ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+  transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #818cf8 0%, #a78bfa 100%);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* ── Firefox ── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #6366f1 transparent;
+}
+
+/* ── Light mode overrides ── */
+.light ::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #c01636 0%, #e11d48 100%);
+  background-clip: padding-box;
+}
+
+.light ::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #e11d48 0%, #f43f5e 100%);
+  background-clip: padding-box;
+}
+
+.light * {
+  scrollbar-color: #c01636 transparent;
+}
+
+/* ── Utility: hide scrollbar but keep scroll ── */
 
 
 .mesh-bg::before {
