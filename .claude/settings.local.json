@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(grep -E \"\\\\.\\(sql|js\\)$\")",
+      "Bash(wc -l /c/Users/rayen/cs-roadmap-platform/server/src/controllers/*.js)",
+      "Bash(grep -r \"CREATE TABLE.*interview_sessions\\\\|CREATE TABLE.*scholarly_assets\\\\|CREATE TABLE.*asset_reviews\" /c/Users/rayen/cs-roadmap-platform/server --include=*.js)"
+    ]
+  }
+}

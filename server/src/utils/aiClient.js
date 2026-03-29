@@ -7,7 +7,7 @@ const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemi
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
 import Groq from "groq-sdk";
-export const groq = GROQ_API_KEY ? new Groq({ apiKey: GROQ_API_KEY }) : null;
+export const groq = GROQ_API_KEY ? new Groq({ apiKey: GROQ_API_KEY, timeout: 20000, maxRetries: 0 }) : null;
 
 console.log(`[AI Setup] Ollama URL: ${OLLAMA_URL}`);
 console.log(`[AI Setup] Gemini Key present: ${!!GEMINI_API_KEY}`);
@@ -118,16 +118,35 @@ export const streamAI = async (prompt, model = "llama-3.3-70b-versatile") => {
             });
             return stream;
         } catch (err) {
-            console.warn("[AI Groq Stream] Failed, falling back to Ollama:", err.message);
+            console.warn("[AI Groq Stream] Failed, falling back to Gemini:", err.message);
         }
     }
 
-    // 2. Fallback to Ollama stream
+    // 2. Fallback to Gemini (Simulated Stream)
+    if (process.env.GEMINI_API_KEY) {
+        try {
+            console.log("[AI Gemini Stream] Groq failed, simulating text-to-stream via Gemini...");
+            const fullResponseText = await callGemini(prompt, false);
+            
+            return (async function* () {
+                const words = fullResponseText.split(' ');
+                for (let i = 0; i < words.length; i += 3) {
+                    const chunk = words.slice(i, i + 3).join(' ') + ' ';
+                    yield { choices: [{ delta: { content: chunk } }] };
+                    await new Promise(r => setTimeout(r, 20)); // Simulated stream tick
+                }
+            })();
+        } catch (err) {
+            console.warn("[AI Gemini Stream] Fallback failed:", err.message);
+        }
+    }
+
+    // 3. Fallback to Ollama stream
     try {
-        console.log("[AI Ollama Stream] Initiating local stream...");
+        console.log("[AI Ollama Stream] Cloud channels failed, initiating local stream...");
         return await streamOllama(prompt);
     } catch (err) {
-        console.warn("[AI Stream] Cloud & Local channels failed. Deploying Mock Stream.");
+        console.warn("[AI Stream] Critical failure on all nodes. Deploying Mock Stream.");
 
         const mockReply = getMockResponse('mentor');
         return (async function* () {
@@ -145,15 +164,26 @@ export const streamAI = async (prompt, model = "llama-3.3-70b-versatile") => {
 };
 
 export const streamOllama = async (prompt) => {
-    const response = await fetch(OLLAMA_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            model: OLLAMA_MODEL,
-            prompt: prompt,
-            stream: true
-        })
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s aggressive TTL
+
+    let response;
+    try {
+        response = await fetch(OLLAMA_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: OLLAMA_MODEL,
+                prompt: prompt,
+                stream: true
+            }),
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+    } catch (e) {
+        clearTimeout(timeoutId);
+        throw new Error(`Ollama Stream Connectivity Error: ${e.message}`);
+    }
 
     if (!response.ok) throw new Error(`Ollama Stream Error: ${response.status}`);
 
@@ -197,23 +227,35 @@ export const callGemini = async (prompt, expectJson = true) => {
     if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY missing from environment");
 
     console.log(`[AI Gemini] Attempting synthesis via Gemini...`);
-    const response = await fetch(GEMINI_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: {
-                temperature: 0.7,
-                topP: 0.95,
-                topK: 40,
-                maxOutputTokens: 32768,
-                responseMimeType: expectJson ? "application/json" : undefined
-            }
-        })
-    });
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 25000); // Strict 25s timeout
+    
+    let response;
+    try {
+        response = await fetch(GEMINI_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                    temperature: 0.7,
+                    topP: 0.95,
+                    topK: 40,
+                    maxOutputTokens: 32768,
+                    responseMimeType: expectJson ? "application/json" : undefined
+                }
+            }),
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+    } catch (e) {
+        clearTimeout(timeoutId);
+        throw new Error(`Gemini Connectivity Error: ${e.message}`);
+    }
 
     if (!response.ok) {
-        const errData = await response.json();
+        const errData = await response.json().catch(() => ({}));
         throw new Error(`Gemini Error: ${errData.error?.message || response.status}`);
     }
 
@@ -321,7 +363,7 @@ export const callAI = async (prompt, expectJson = true) => {
 
 export const callOllama = async (prompt, expectJson = true, retries = 2) => {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 300000);
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // Reduced from 300s to 5s
 
     try {
         console.log(`[AI Ollama] Sending request to local instance...`);

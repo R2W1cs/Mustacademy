@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ReactFlow, Background, useNodesState, useEdgesState, MarkerType } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { Play, Pause, SkipBack, SkipForward, RotateCcw, ChevronRight } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, RotateCcw, ChevronRight, Volume2 } from "lucide-react";
+import { useNovaVoice } from "../hooks/useNovaVoice";
 
 // ─── Schema normalizer — tolerates whatever the AI generates ─────────────────
 function normalizeData(raw) {
@@ -222,9 +223,11 @@ export default function AlgoVizBlock({ children }) {
     const [stepIndex, setStepIndex] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
     const [speed, setSpeed] = useState(1); // 1=normal, 2=fast, 3=faster
-    const intervalRef = useRef(null);
+    const timeoutRef = useRef(null);
 
     const totalSteps = data?.steps?.length || 0;
+    const currentStep = data?.steps?.[stepIndex];
+    const { speak, killAudio } = useNovaVoice();
 
     const next = useCallback(() => {
         setStepIndex(i => {
@@ -233,18 +236,22 @@ export default function AlgoVizBlock({ children }) {
         });
     }, [totalSteps]);
 
-    const prev = () => { setIsPlaying(false); setStepIndex(i => Math.max(0, i - 1)); };
-    const restart = () => { setIsPlaying(false); setStepIndex(0); };
+    const prev = () => { setIsPlaying(false); killAudio(); setStepIndex(i => Math.max(0, i - 1)); };
+    const restart = () => { setIsPlaying(false); killAudio(); setStepIndex(0); };
 
     useEffect(() => {
-        if (isPlaying) {
-            const ms = speed === 3 ? 400 : speed === 2 ? 800 : 1400;
-            intervalRef.current = setInterval(next, ms);
+        if (isPlaying && currentStep) {
+            clearTimeout(timeoutRef.current);
+            speak(currentStep.description, () => {
+                const pauseMs = speed === 3 ? 200 : speed === 2 ? 600 : 1200;
+                timeoutRef.current = setTimeout(next, pauseMs);
+            });
         } else {
-            clearInterval(intervalRef.current);
+            killAudio();
+            clearTimeout(timeoutRef.current);
         }
-        return () => clearInterval(intervalRef.current);
-    }, [isPlaying, speed, next]);
+        return () => clearTimeout(timeoutRef.current);
+    }, [isPlaying, stepIndex, speed, next, speak, killAudio, currentStep]);
 
     if (parseError) {
         return (
@@ -256,7 +263,6 @@ export default function AlgoVizBlock({ children }) {
 
     if (!data) return null;
 
-    const currentStep = data.steps?.[stepIndex];
     const isGraph = ['bfs', 'dfs', 'tree', 'graph', 'directed', 'undirected'].includes(data.type);
     const isSort  = data.type === 'sort';
     const isStackOrQueue = ['stack', 'queue'].includes(data.type);

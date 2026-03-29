@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, Zap, TrendingUp, Layers, RefreshCcw, LayoutTemplate, Workflow, Play, RotateCcw, ArrowRight, Server, Database, Code2, ShieldCheck, CheckCircle2, FlaskConical } from 'lucide-react';
+import { useNovaVoice } from '../hooks/useNovaVoice';
 
 const MethodologyVisualizer = ({ type = 'waterfall' }) => {
     // Normalize type string
@@ -10,52 +11,6 @@ const MethodologyVisualizer = ({ type = 'waterfall' }) => {
                 : type.toLowerCase().includes('kanban') ? 'kanban'
                     : type.toLowerCase().includes('xp') || type.toLowerCase().includes('extreme') ? 'xp'
                         : 'waterfall';
-
-    const [view, setView] = useState('simulation'); // 'simulation', 'principles', 'comparison'
-    const [step, setStep] = useState(0);
-    const [isPlaying, setIsPlaying] = useState(false);
-
-    const getMaxSteps = (methodology) => {
-        switch (methodology) {
-            case 'waterfall': return 5;
-            case 'spiral': return 4;
-            case 'scrum': return 4;
-            case 'kanban': return 5;
-            case 'xp': return 4;
-            default: return 5;
-        }
-    };
-
-    // Auto-play logic
-    useEffect(() => {
-        let interval;
-        if (isPlaying) {
-            interval = setInterval(() => {
-                setStep(s => {
-                    const maxSteps = getMaxSteps(normalizedType);
-                    if (s >= maxSteps - 1) {
-                        setIsPlaying(false);
-                        return s;
-                    }
-                    return s + 1;
-                });
-            }, 2000);
-        }
-        return () => clearInterval(interval);
-    }, [isPlaying, normalizedType]);
-
-    const reset = () => {
-        setStep(0);
-        setIsPlaying(false);
-    };
-
-    const nextStep = () => {
-        if (step < getMaxSteps(normalizedType) - 1) setStep(s => s + 1);
-    };
-
-    const prevStep = () => {
-        if (step > 0) setStep(s => s - 1);
-    };
 
     // Methodology configs
     const configs = {
@@ -70,7 +25,7 @@ const MethodologyVisualizer = ({ type = 'waterfall' }) => {
                 { id: 3, title: "Testing", desc: "Test the entire system at once. Bugs are expensive here.", icon: <ShieldCheck size={20} /> },
                 { id: 4, title: "Deployment", desc: "Release to production. Client sees it for the first time.", icon: <Zap size={20} /> }
             ],
-            render: () => (
+            render: (step, isPlaying) => (
                 <div className="flex flex-col items-center justify-center h-full w-full py-10 relative">
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-[80%] max-w-sm flex flex-col justify-between z-0 pointer-events-none opacity-20">
                         {/* Connecting Lines */}
@@ -140,12 +95,10 @@ const MethodologyVisualizer = ({ type = 'waterfall' }) => {
                 { id: 2, title: "Loop 3: Beta", desc: "Plan → Resolve Final Risks → Build Full System → Evaluate." },
                 { id: 3, title: "Loop 4: Release", desc: "Finalize → Test → Deploy secure system." }
             ],
-            render: () => {
-                // Loop expansion visualization
+            render: (step, isPlaying) => {
                 const loopSizes = [80, 160, 240, 320];
                 return (
                     <div className="flex items-center justify-center h-full relative p-10">
-                        {/* Background Spirals */}
                         <div className="relative w-full h-[400px] flex items-center justify-center">
                             {loopSizes.map((size, i) => (
                                 <motion.div
@@ -158,32 +111,19 @@ const MethodologyVisualizer = ({ type = 'waterfall' }) => {
                                     }}
                                     transition={{ duration: 0.8 }}
                                     className="absolute rounded-full border-[3px] border-dashed pointer-events-none"
-                                    style={{
-                                        width: size,
-                                        height: size,
-                                        boxShadow: i === step ? '0 0 30px rgba(244,63,94,0.3) inset, 0 0 30px rgba(244,63,94,0.3)' : 'none'
-                                    }}
+                                    style={{ width: size, height: size, boxShadow: i === step ? '0 0 30px rgba(244,63,94,0.3) inset, 0 0 30px rgba(244,63,94,0.3)' : 'none' }}
                                 />
                             ))}
-
-                            {/* Center Origin Node */}
                             <div className="w-4 h-4 rounded-full bg-rose-500 z-10 shadow-lg absolute" />
-
-                            {/* Active Loop Pointer */}
                             {step >= 0 && (
                                 <motion.div
                                     animate={{ rotate: isPlaying ? [0, 360] : 0 }}
                                     transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
                                     className="absolute w-full h-full flex items-center justify-center z-20 pointer-events-none"
                                 >
-                                    <div
-                                        className="absolute bg-white rounded-full shadow-lg"
-                                        style={{ width: 10, height: 10, transform: `translateY(-${loopSizes[step] / 2}px)` }}
-                                    />
+                                    <div className="absolute bg-white rounded-full shadow-lg" style={{ width: 10, height: 10, transform: `translateY(-${loopSizes[step] / 2}px)` }} />
                                 </motion.div>
                             )}
-
-                            {/* Risk Quadrant Labels */}
                             <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 pointer-events-none opacity-40">
                                 <div className="border-r border-b border-rose-500/10 flex items-center justify-center p-4">
                                     <span className="text-[9px] font-black uppercase text-rose-300 tracking-[0.2em] bg-black/50 px-2 py-1 rounded">2. Risk Analysis</span>
@@ -199,13 +139,9 @@ const MethodologyVisualizer = ({ type = 'waterfall' }) => {
                                 </div>
                             </div>
                         </div>
-
-                        {/* Text Overlay */}
                         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-full max-w-md text-center bg-black/60 p-5 rounded-2xl border border-rose-500/20 backdrop-blur-xl">
                             <h4 className="text-rose-400 font-black text-sm uppercase tracking-widest mb-2">{configs.spiral.steps[step].title}</h4>
-                            <p className="text-[11px] text-white/60 leading-relaxed font-medium">
-                                {configs.spiral.steps[step].desc}
-                            </p>
+                            <p className="text-[11px] text-white/60 leading-relaxed font-medium">{configs.spiral.steps[step].desc}</p>
                         </div>
                     </div>
                 );
@@ -221,11 +157,9 @@ const MethodologyVisualizer = ({ type = 'waterfall' }) => {
                 { id: 2, title: "The Sprint", desc: "Team builds. Daily 15-min standup syncs progress." },
                 { id: 3, title: "Review & Retro", desc: "Demo to client, then improve process for next sprint." }
             ],
-            render: () => (
+            render: (step, isPlaying) => (
                 <div className="flex flex-col items-center justify-center h-full w-full py-10 px-4">
                     <div className="flex items-center justify-between w-full max-w-4xl gap-4">
-
-                        {/* Product Backlog List */}
                         <div className={`flex flex-col gap-2 w-48 transition-all ${step === 0 ? 'scale-105' : 'opacity-60 grayscale'}`}>
                             <h4 className="text-[10px] font-black uppercase text-emerald-400 tracking-widest text-center mb-2">Product Backlog</h4>
                             {[1, 2, 3, 4, 5].map(i => (
@@ -242,13 +176,9 @@ const MethodologyVisualizer = ({ type = 'waterfall' }) => {
                                 </motion.div>
                             ))}
                         </div>
-
                         <ArrowRight size={20} className={`${step >= 1 ? 'text-emerald-500' : 'text-white/10'}`} />
-
-                        {/* Sprint Box */}
                         <div className={`relative w-64 h-64 border-2 rounded-[2rem] flex flex-col items-center justify-center p-6 transition-all ${step === 2 ? 'border-emerald-400 bg-emerald-500/10 shadow-lg' : 'border-emerald-500/20 bg-white/5'}`}>
                             <h4 className="absolute top-4 text-[10px] font-black uppercase text-white tracking-widest text-center">Sprint (2 Weeks)</h4>
-
                             <AnimatePresence mode="wait">
                                 {step === 1 && (
                                     <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="flex flex-col gap-2">
@@ -259,33 +189,23 @@ const MethodologyVisualizer = ({ type = 'waterfall' }) => {
                                 {step === 2 && (
                                     <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} className="relative">
                                         <motion.div animate={{ rotate: 360 }} transition={{ duration: 3, repeat: Infinity, ease: "linear" }} className="w-24 h-24 border-[3px] border-emerald-500/30 border-t-emerald-400 rounded-full" />
-                                        <div className="absolute inset-0 flex items-center justify-center text-[8px] font-black text-emerald-300 uppercase leading-tight text-center">
-                                            Daily<br />Scrum
-                                        </div>
+                                        <div className="absolute inset-0 flex items-center justify-center text-[8px] font-black text-emerald-300 uppercase leading-tight text-center">Daily<br />Scrum</div>
                                     </motion.div>
                                 )}
                                 {step === 3 && (
                                     <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="flex flex-col gap-3 items-center">
-                                        <div className="w-12 h-12 bg-indigo-500/20 border border-indigo-400 rounded-full flex items-center justify-center text-indigo-300">
-                                            <Play size={16} />
-                                        </div>
+                                        <div className="w-12 h-12 bg-indigo-500/20 border border-indigo-400 rounded-full flex items-center justify-center text-indigo-300"><Play size={16} /></div>
                                         <span className="text-[10px] font-black text-indigo-300 uppercase tracking-widest">Sprint Review</span>
                                     </motion.div>
                                 )}
                             </AnimatePresence>
                         </div>
-
                         <ArrowRight size={20} className={`${step >= 3 ? 'text-emerald-500' : 'text-white/10'}`} />
-
-                        {/* Increment */}
                         <div className={`w-32 h-32 border-2 rounded-2xl flex flex-col items-center justify-center transition-all ${step === 3 ? 'border-emerald-400 bg-emerald-500/20 shadow-lg' : 'border-white/10 bg-white/5 grayscale'}`}>
                             <Database size={32} className="text-emerald-400 mb-2" />
                             <span className="text-[10px] font-black uppercase text-center text-white">Working<br />Increment</span>
                         </div>
-
                     </div>
-
-                    {/* Desc */}
                     <div className="mt-12 bg-black/60 px-8 py-4 rounded-full border border-emerald-500/20 max-w-xl text-center">
                         <span className="text-[11px] text-white/80 font-medium">{configs.scrum.steps[step].desc}</span>
                     </div>
@@ -303,20 +223,15 @@ const MethodologyVisualizer = ({ type = 'waterfall' }) => {
                 { id: 3, title: "Bottlenecks", desc: "If 'Review' piles up, the team sees the bottleneck visually." },
                 { id: 4, title: "Continuous Delivery", desc: "No sprints. As soon as it hits 'Done', it can ship." }
             ],
-            render: () => {
+            render: (step, isPlaying) => {
                 const cols = ['To Do', 'Doing (WIP: 2)', 'Review', 'Done'];
                 return (
                     <div className="flex flex-col items-center justify-center h-full w-full py-10 px-4">
                         <div className="flex gap-4 w-full max-w-4xl h-72">
                             {cols.map((col, cIdx) => (
                                 <div key={cIdx} className="flex-1 rounded-2xl border border-white/10 bg-black/40 p-4 flex flex-col">
-                                    <h4 className={`text-[10px] font-black uppercase tracking-widest text-center mb-4 pb-2 border-b 
-                                        ${cIdx === 1 ? 'border-amber-500/50 text-amber-300' : 'border-white/10 text-white/50'}`}>
-                                        {col}
-                                    </h4>
-
+                                    <h4 className={`text-[10px] font-black uppercase tracking-widest text-center mb-4 pb-2 border-b ${cIdx === 1 ? 'border-amber-500/50 text-amber-300' : 'border-white/10 text-white/50'}`}>{col}</h4>
                                     <div className="flex-1 flex flex-col gap-3 relative">
-                                        {/* To Do Items */}
                                         {cIdx === 0 && (
                                             <>
                                                 <motion.div animate={{ opacity: step >= 1 ? 0 : 1 }} className="h-16 rounded-xl bg-white/5 border border-white/10 p-3 text-[10px] text-white/60">Ticket 1</motion.div>
@@ -324,58 +239,24 @@ const MethodologyVisualizer = ({ type = 'waterfall' }) => {
                                                 <motion.div className="h-16 rounded-xl bg-white/5 border border-white/10 p-3 text-[10px] text-white/60">Ticket 3</motion.div>
                                             </>
                                         )}
-
-                                        {/* Doing Items */}
                                         {cIdx === 1 && (
                                             <>
-                                                <motion.div
-                                                    initial={{ opacity: 0, scale: 0.8 }}
-                                                    animate={{ opacity: step >= 1 ? 1 : 0, scale: step >= 1 ? 1 : 0.8 }}
-                                                    className="h-16 rounded-xl bg-amber-500/20 border border-amber-500/40 p-3 text-[10px] text-white"
-                                                >
-                                                    Ticket 1 <span className="float-right text-amber-400"><Activity size={12} /></span>
-                                                </motion.div>
-                                                {step >= 2 && (
-                                                    <motion.div
-                                                        initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                                                        className="h-16 rounded-xl bg-amber-500/20 border border-amber-500/40 p-3 text-[10px] text-white"
-                                                    >
-                                                        Ticket X
-                                                    </motion.div>
-                                                )}
-                                                {/* WIP Limit Block */}
-                                                {step >= 2 && (
-                                                    <div className="absolute bottom-0 w-full p-2 bg-red-500/20 border border-red-500/30 rounded text-center text-[8px] text-red-400 font-bold uppercase">
-                                                        WIP Limit Reached
-                                                    </div>
-                                                )}
+                                                <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: step >= 1 ? 1 : 0, scale: step >= 1 ? 1 : 0.8 }} className="h-16 rounded-xl bg-amber-500/20 border border-amber-500/40 p-3 text-[10px] text-white">Ticket 1 <span className="float-right text-amber-400"><Activity size={12} /></span></motion.div>
+                                                {step >= 2 && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-16 rounded-xl bg-amber-500/20 border border-amber-500/40 p-3 text-[10px] text-white">Ticket X</motion.div>}
+                                                {step >= 2 && <div className="absolute bottom-0 w-full p-2 bg-red-500/20 border border-red-500/30 rounded text-center text-[8px] text-red-400 font-bold uppercase">WIP Limit Reached</div>}
                                             </>
                                         )}
-
-                                        {/* Review (Bottleneck) */}
                                         {cIdx === 2 && step >= 3 && (
                                             <>
-                                                {[1, 2, 3, 4].map(k => (
-                                                    <motion.div key={k} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: k * 0.1 }} className="h-12 rounded-xl bg-rose-500/10 border border-rose-500/30 p-2 text-[10px] text-rose-200">
-                                                        Stuck {k}
-                                                    </motion.div>
-                                                ))}
+                                                {[1, 2, 3, 4].map(k => <motion.div key={k} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: k * 0.1 }} className="h-12 rounded-xl bg-rose-500/10 border border-rose-500/30 p-2 text-[10px] text-rose-200">Stuck {k}</motion.div>)}
                                                 <div className="absolute inset-0 border-2 border-rose-500/50 rounded-xl pointer-events-none animate-pulse" />
                                             </>
                                         )}
-
-                                        {/* Done */}
-                                        {cIdx === 3 && step >= 4 && (
-                                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-16 rounded-xl bg-green-500/20 border border-green-500/40 p-3 text-[10px] text-green-300">
-                                                Ticket Y <span className="float-right"><CheckCircle2 size={12} /></span>
-                                            </motion.div>
-                                        )}
+                                        {cIdx === 3 && step >= 4 && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-16 rounded-xl bg-green-500/20 border border-green-500/40 p-3 text-[10px] text-green-300">Ticket Y <span className="float-right"><CheckCircle2 size={12} /></span></motion.div>}
                                     </div>
                                 </div>
                             ))}
                         </div>
-
-                        {/* Desc */}
                         <div className="mt-8 bg-amber-500/10 px-8 py-4 rounded-2xl border border-amber-500/30 max-w-xl text-center">
                             <h4 className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-1">{configs.kanban.steps[step].title}</h4>
                             <p className="text-[11px] text-white/80 font-medium">{configs.kanban.steps[step].desc}</p>
@@ -394,46 +275,20 @@ const MethodologyVisualizer = ({ type = 'waterfall' }) => {
                 { id: 2, title: "TDD: Green", desc: "Write minimum code to pass the test." },
                 { id: 3, title: "TDD: Refactor", desc: "Clean up code structure without changing behavior." }
             ],
-            render: () => (
+            render: (step, isPlaying) => (
                 <div className="flex flex-col items-center justify-center h-full w-full py-10 px-4">
                     <div className="w-full max-w-3xl flex gap-8 items-center justify-center h-64">
-
-                        {/* Pair Programming Node */}
                         <div className={`flex flex-col items-center justify-center w-48 h-48 rounded-full border-[3px] transition-all duration-500 ${step === 0 ? 'border-purple-400 bg-purple-500/10 shadow-lg' : 'border-white/10 bg-white/5 grayscale opacity-50'}`}>
-                            <div className="flex gap-2 mb-4 text-purple-400">
-                                <Activity size={32} /> <Activity size={32} />
-                            </div>
+                            <div className="flex gap-2 mb-4 text-purple-400"><Activity size={32} /> <Activity size={32} /></div>
                             <span className="text-[10px] font-black uppercase tracking-widest text-center text-white">Pair<br />Programming</span>
                         </div>
-
-                        {/* TDD Cycle */}
                         <div className={`relative w-64 h-64 rounded-full border-2 transition-all duration-500 ${step > 0 ? 'border-purple-500/30 bg-black/40 shadow-inner' : 'border-white/5 opacity-20'}`}>
                             <h4 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[10px] font-black uppercase text-purple-500 tracking-widest text-center">TDD<br />Cycle</h4>
-
-                            <motion.div
-                                animate={{ scale: step === 1 ? 1.2 : 1, opacity: step >= 1 ? 1 : 0 }}
-                                className="absolute -top-4 left-1/2 -translate-x-1/2 p-3 bg-red-500 rounded-xl text-white shadow-lg border border-white/20"
-                            >
-                                <span className="text-[8px] font-black uppercase tracking-widest">1. Write Test (FAILS)</span>
-                            </motion.div>
-
-                            <motion.div
-                                animate={{ scale: step === 2 ? 1.2 : 1, opacity: step >= 2 ? 1 : 0 }}
-                                className="absolute -bottom-4 right-0 p-3 bg-emerald-500 rounded-xl text-white shadow-lg border border-white/20"
-                            >
-                                <span className="text-[8px] font-black uppercase tracking-widest">2. Code (PASS)</span>
-                            </motion.div>
-
-                            <motion.div
-                                animate={{ scale: step === 3 ? 1.2 : 1, opacity: step >= 3 ? 1 : 0 }}
-                                className="absolute -bottom-4 left-0 p-3 bg-blue-500 rounded-xl text-white shadow-lg border border-white/20"
-                            >
-                                <span className="text-[8px] font-black uppercase tracking-widest">3. Refactor</span>
-                            </motion.div>
+                            <motion.div animate={{ scale: step === 1 ? 1.2 : 1, opacity: step >= 1 ? 1 : 0 }} className="absolute -top-4 left-1/2 -translate-x-1/2 p-3 bg-red-500 rounded-xl text-white shadow-lg border border-white/20"><span className="text-[8px] font-black uppercase tracking-widest">1. Write Test (FAILS)</span></motion.div>
+                            <motion.div animate={{ scale: step === 2 ? 1.2 : 1, opacity: step >= 2 ? 1 : 0 }} className="absolute -bottom-4 right-0 p-3 bg-emerald-500 rounded-xl text-white shadow-lg border border-white/20"><span className="text-[8px] font-black uppercase tracking-widest">2. Code (PASS)</span></motion.div>
+                            <motion.div animate={{ scale: step === 3 ? 1.2 : 1, opacity: step >= 3 ? 1 : 0 }} className="absolute -bottom-4 left-0 p-3 bg-blue-500 rounded-xl text-white shadow-lg border border-white/20"><span className="text-[8px] font-black uppercase tracking-widest">3. Refactor</span></motion.div>
                         </div>
-
                     </div>
-
                     <div className="mt-12 bg-purple-500/10 px-8 py-4 rounded-2xl border border-purple-500/30 max-w-xl text-center">
                         <h4 className="text-[10px] font-black text-purple-400 uppercase tracking-widest mb-1">{configs.xp.steps[step].title}</h4>
                         <p className="text-[11px] text-white/80 font-medium">{configs.xp.steps[step].desc}</p>
@@ -444,6 +299,44 @@ const MethodologyVisualizer = ({ type = 'waterfall' }) => {
     };
 
     const config = configs[normalizedType] || configs.waterfall;
+
+    const nextStep = () => {
+        killAudio();
+        if (step < getMaxSteps(normalizedType) - 1) setStep(s => s + 1);
+    };
+
+    const prevStep = () => {
+        killAudio();
+        if (step > 0) setStep(s => s - 1);
+    };
+
+    const reset = () => {
+        killAudio();
+        setStep(0);
+        setIsPlaying(false);
+    };
+
+    // Auto-play logic with TTS
+    useEffect(() => {
+        if (isPlaying && config.steps[step]) {
+            clearTimeout(timeoutRef.current);
+            speak(config.steps[step].desc, () => {
+                const pauseMs = 1200; // Breath between steps
+                if (step < getMaxSteps(normalizedType) - 1) {
+                    timeoutRef.current = setTimeout(() => {
+                        setStep(s => s + 1);
+                    }, pauseMs);
+                } else {
+                    setIsPlaying(false);
+                }
+            });
+        } else {
+            killAudio();
+            clearTimeout(timeoutRef.current);
+        }
+        return () => clearTimeout(timeoutRef.current);
+    }, [isPlaying, step, normalizedType, config, speak, killAudio]);
+
 
     return (
         <div className="w-full bg-[#0a0a0c] border border-white/10 rounded-[2.5rem] overflow-hidden flex flex-col shadow-lg">
@@ -485,7 +378,7 @@ const MethodologyVisualizer = ({ type = 'waterfall' }) => {
 
                             {/* Visual Render */}
                             <div className="flex-1 overflow-hidden relative">
-                                {config.render()}
+                                {config.render(step, isPlaying)}
                             </div>
 
                             {/* Controls Footer */}

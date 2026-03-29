@@ -252,7 +252,9 @@ export const getRecommendedCourses = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    const { year, semester } = userRes.rows[0];
+    const { year: rawYear, semester: rawSemester } = userRes.rows[0];
+    const year = rawYear || 1;
+    const semester = rawSemester || 1;
     console.log(`[Recommended Courses] User ID: ${userId} | Year: ${year}, Semester: ${semester}`);
 
     // Get matching courses
