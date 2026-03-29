@@ -170,12 +170,25 @@ const AsciiDiagram = ({ children }) => {
     );
 };
 
+// ─── Markdown code block router ───────────────────────────────────────────────
+const isAlgoVizJson = (raw) => {
+    try {
+        const j = JSON.parse(raw.trim());
+        // It's algo-viz if it has steps + nodes (graph) or steps + array (sort)
+        return Array.isArray(j.steps) && (Array.isArray(j.nodes) || Array.isArray(j.array) || j.type);
+    } catch { return false; }
+};
+
 const MarkdownCode = ({ children, className }) => {
     const lang = (className || '').replace('lang-', '').replace('language-', '');
-    if (lang === 'algo-viz') return <AlgoVizBlock>{children}</AlgoVizBlock>;
-    if (lang === 'mermaid') return <AsciiDiagram>{children}</AsciiDiagram>;
+    const raw = Array.isArray(children) ? children.join('') : String(children || '');
+    if (lang === 'algo-viz') return <AlgoVizBlock>{raw}</AlgoVizBlock>;
+    // Auto-detect: AI sometimes wraps algo-viz data in a ```json block
+    if ((lang === 'json' || lang === '') && isAlgoVizJson(raw)) return <AlgoVizBlock>{raw}</AlgoVizBlock>;
+    if (lang === 'mermaid') return <AsciiDiagram>{raw}</AsciiDiagram>;
     return <CodeBlock language={lang}>{children}</CodeBlock>;
 };
+
 
 // ─── FILE ICON ────────────────────────────────────────────────────────────────
 const FileIcon = ({ type }) => {
