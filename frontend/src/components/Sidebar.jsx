@@ -105,7 +105,7 @@ export default function Sidebar({ isCollapsed, toggleSidebar, mobileOpen = false
                 position: undefined,
             }}
             className={`h-screen sticky top-0 z-40 ${sidebarClass} flex flex-col
-                md:static md:translate-x-0
+                md:sticky md:translate-x-0
                 max-md:fixed max-md:top-0 max-md:left-0 max-md:z-50
                 ${mobileOpen ? 'max-md:translate-x-0' : 'max-md:-translate-x-full'}`}
         >
