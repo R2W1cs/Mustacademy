@@ -144,30 +144,41 @@ export const chatWithMentorStream = async (req, res) => {
             console.warn("[Stream AI] User Message Save Error:", dbErr.message);
         }
 
-        let detectedTopic = null;
+        // Fetch recent history for context
+        let historyText = "";
         try {
-            const topicRes = await pool.query(
-                "SELECT title FROM topics WHERE $1 ILIKE '%' || title || '%' AND (content_markdown IS NOT NULL OR content IS NOT NULL) LIMIT 1",
-                [message]
+            const historyRes = await pool.query(
+                "SELECT role, message FROM chat_messages WHERE user_id = $1 AND chat_type = 'mentor' ORDER BY created_at DESC LIMIT 6",
+                [userId]
             );
-            if (topicRes.rows.length > 0) detectedTopic = topicRes.rows[0].title;
+            if (historyRes.rows.length > 0) {
+                historyText = historyRes.rows.reverse()
+                    .map(h => `${h.role === 'user' ? 'User' : 'Assistant'}: ${h.message.slice(0, 300)}`)
+                    .join('\n');
+            }
         } catch (dbErr) {
-            console.warn("[Stream AI] Topic Detection Error:", dbErr.message);
+            console.warn("[Stream AI] History fetch error:", dbErr.message);
         }
 
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
 
-        const systemPrompt = buildMentorPrompt({
-            query: message,
-            topicTitle: detectedTopic,
-            streamMode: true,
-        });
+        const systemPrompt = [
+            `You are a helpful AI tutor for computer science students. Answer questions clearly and directly.`,
+            `Guidelines:`,
+            `- Be concise but complete. Match response length to the question complexity.`,
+            `- Use markdown: code blocks with language tags, bold for key terms, bullet lists when listing things.`,
+            `- For code questions, provide working examples with comments.`,
+            `- For concept questions, give a clear explanation then a real-world analogy if it helps.`,
+            `- Do NOT use a professor persona, lecture format, or add unnecessary preamble.`,
+            `- Just answer the question like a knowledgeable friend would.`,
+            historyText ? `\nConversation history:\n${historyText}` : '',
+        ].filter(Boolean).join('\n');
 
         const stream = await streamAI(
-            { system: systemPrompt, user: `Student: ${message}` },
-            "llama-3.3-70b-versatile", 4096
+            { system: systemPrompt, user: message },
+            "llama-3.3-70b-versatile", 2048
         );
 
         let fullContent = "";
