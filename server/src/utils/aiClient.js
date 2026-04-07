@@ -64,16 +64,29 @@ export const repairJson = (jsonStr) => {
     return repaired;
 };
 
-export const callGroq = async (prompt, expectJson = true, model = "llama-3.3-70b-versatile") => {
+export const callGroq = async (prompt, expectJson = true, model = "llama-3.3-70b-versatile", maxTokens = 2048) => {
     if (!groq) throw new Error("GROQ_API_KEY missing from environment");
 
-    console.log(`[AI Groq] Attempting reasoning via ${model} (expectJson=${expectJson})...`);
+    // Build messages array — supports string, { system, user }, or raw messages[]
+    let messages;
+    if (Array.isArray(prompt)) {
+        messages = prompt;
+    } else if (prompt && typeof prompt === 'object' && prompt.system && prompt.user) {
+        messages = [
+            { role: 'system', content: prompt.system },
+            { role: 'user', content: prompt.user },
+        ];
+    } else {
+        messages = [{ role: 'user', content: prompt }];
+    }
+
+    console.log(`[AI Groq] Attempting reasoning via ${model} (expectJson=${expectJson}, maxTokens=${maxTokens})...`);
     try {
         const payload = {
             model: model,
-            messages: [{ role: "user", content: prompt }],
+            messages,
             temperature: 0.7,
-            max_completion_tokens: 32768,
+            max_completion_tokens: maxTokens,
             top_p: 1
         };
 
@@ -103,16 +116,29 @@ export const callGroq = async (prompt, expectJson = true, model = "llama-3.3-70b
     }
 };
 
-export const streamAI = async (prompt, model = "llama-3.3-70b-versatile") => {
+export const streamAI = async (prompt, model = "llama-3.3-70b-versatile", maxTokens = 4096) => {
+    // Build messages array — same overload support as callGroq
+    let messages;
+    if (Array.isArray(prompt)) {
+        messages = prompt;
+    } else if (prompt && typeof prompt === 'object' && prompt.system && prompt.user) {
+        messages = [
+            { role: 'system', content: prompt.system },
+            { role: 'user', content: prompt.user },
+        ];
+    } else {
+        messages = [{ role: 'user', content: prompt }];
+    }
+
     // 1. Try Groq first
     if (process.env.GROQ_API_KEY && groq) {
         try {
-            console.log(`[AI Groq] Initiating stream via ${model}...`);
+            console.log(`[AI Groq] Initiating stream via ${model} (maxTokens=${maxTokens})...`);
             const stream = await groq.chat.completions.create({
                 model: model,
-                messages: [{ role: "user", content: prompt }],
+                messages,
                 temperature: 1,
-                max_completion_tokens: 8192,
+                max_completion_tokens: maxTokens,
                 top_p: 1,
                 stream: true,
             });
@@ -223,26 +249,36 @@ export const streamOllama = async (prompt) => {
     })();
 };
 
-export const callGemini = async (prompt, expectJson = true) => {
+export const callGemini = async (prompt, expectJson = true, maxTokens = 2048) => {
     if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY missing from environment");
 
-    console.log(`[AI Gemini] Attempting synthesis via Gemini...`);
-    
+    // Flatten structured prompts to a single string for Gemini
+    let promptText;
+    if (typeof prompt === 'string') {
+        promptText = prompt;
+    } else if (prompt && typeof prompt === 'object' && prompt.system && prompt.user) {
+        promptText = `${prompt.system}\n\n${prompt.user}`;
+    } else {
+        promptText = String(prompt);
+    }
+
+    console.log(`[AI Gemini] Attempting synthesis via Gemini (maxTokens=${maxTokens})...`);
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 25000); // Strict 25s timeout
-    
+
     let response;
     try {
         response = await fetch(GEMINI_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }],
+                contents: [{ parts: [{ text: promptText }] }],
                 generationConfig: {
                     temperature: 0.7,
                     topP: 0.95,
                     topK: 40,
-                    maxOutputTokens: 32768,
+                    maxOutputTokens: maxTokens,
                     responseMimeType: expectJson ? "application/json" : undefined
                 }
             }),
@@ -310,13 +346,29 @@ export const callGemini = async (prompt, expectJson = true) => {
     }
 };
 
+// --- FAST AI WRAPPER (llama-3.1-8b-instant — ~5× faster, for quick-response features) ---
+// Use for: project eval, grading, career analysis, quiz, readiness check, goal submission
+export const callFastAI = async (prompt, expectJson = true, maxTokens = 512) => {
+    if (process.env.GROQ_API_KEY) {
+        try {
+            console.log("[callFastAI] Attempting fast Groq protocol (8b-instant)...");
+            const groqRes = await callGroq(prompt, expectJson, "llama-3.1-8b-instant", maxTokens);
+            if (groqRes) return groqRes;
+        } catch (err) {
+            console.warn("[callFastAI] Fast model failed, falling back to 70b:", err.message);
+        }
+    }
+    // Fall through to full callAI if fast model fails
+    return callAI(prompt, expectJson, maxTokens);
+};
+
 // --- PRIMARY AI WRAPPER (Prioritizes Groq) ---
-export const callAI = async (prompt, expectJson = true) => {
+export const callAI = async (prompt, expectJson = true, maxTokens = 2048) => {
     // 1. Prioritize Groq if available
     if (process.env.GROQ_API_KEY) {
         try {
             console.log("[callAI] Attempting Groq protocol...");
-            const groqRes = await callGroq(prompt, expectJson);
+            const groqRes = await callGroq(prompt, expectJson, "llama-3.3-70b-versatile", maxTokens);
             if (groqRes) return groqRes;
         } catch (err) {
             console.warn("[callAI] Groq failed, falling back to Gemini:", err.message);
@@ -327,7 +379,7 @@ export const callAI = async (prompt, expectJson = true) => {
     if (process.env.GEMINI_API_KEY) {
         try {
             console.log("[callAI] Attempting Gemini protocol...");
-            return await callGemini(prompt, expectJson);
+            return await callGemini(prompt, expectJson, maxTokens);
         } catch (err) {
             console.error("[callAI] Gemini fallback also failed:", err.message);
         }

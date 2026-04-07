@@ -5,48 +5,20 @@ import { incrementStreak } from "../services/streak.service.js";
 import {
     PROFESSOR_THEORY_SYNTHESIS_PROMPT, PROFESSOR_PROGRAMMING_SYNTHESIS_PROMPT,
     PROFESSOR_THEORY_DEEP_PROMPT, PROFESSOR_PROGRAMMING_DEEP_PROMPT,
-    FILLER_PROMPT, PROFESSOR_LECTURE_PROMPT, ELITE_PLAN_PROMPT,
+    FILLER_PROMPT, PROFESSOR_LECTURE_PROMPT, PROFESSOR_INTERLUDE_PROMPT, ELITE_PLAN_PROMPT,
     BOARDROOM_SYSTEM_PROMPT, SCORECARD_PROMPT, INTERVIEW_MODE_CONTEXTS, RIGOROUS_QUIZ_PROMPT,
-    PROFESSOR_IQ_160_PROMPT, MASTERCLASS_EPISODE_PROMPT, ULTIMATE_PODCAST_PROMPT
+    MASTERCLASS_EPISODE_PROMPT, ULTIMATE_PODCAST_PROMPT
 } from "../utils/aiRules.js";
 import { getNextPhase, updateInterviewSession, startInterviewSession } from "../services/interview.service.js";
 import { callOllama, callGroq, callAI, repairJson, streamAI, groq } from "../utils/aiClient.js";
+import { buildMentorPrompt, retrieveKBContext } from "../utils/ragEngine.js";
 import { MsEdgeTTS, OUTPUT_FORMAT } from "msedge-tts";
 import { Communicate } from 'edge-tts-universal';
-import path from 'path';
-import fs from 'fs';
 
 // In-memory cache for frequently requested TTS segments
 const ttsCache = new Map();
 
-// --- KNOWLEDGE BASE HELPER ---
-const KNOWLEDGE_BASE_DIR = path.join(process.cwd(), 'src', 'knowledge_base');
 
-const getKnowledgeBaseContent = (topicTitle) => {
-    if (!topicTitle) return null;
-    try {
-        // Precise filename matching
-        const fileName = `${topicTitle}.md`;
-        const filePath = path.join(KNOWLEDGE_BASE_DIR, fileName);
-        
-        if (fs.existsSync(filePath)) {
-            console.log(`[Knowledge Base] Hit: ${topicTitle}`);
-            return fs.readFileSync(filePath, 'utf8');
-        }
-        
-        // Fuzzy matching (if title contains special chars or is subset)
-        const files = fs.readdirSync(KNOWLEDGE_BASE_DIR);
-        const match = files.find(f => f.toLowerCase().includes(topicTitle.toLowerCase()) || topicTitle.toLowerCase().includes(f.toLowerCase().replace('.md', '')));
-        
-        if (match) {
-            console.log(`[Knowledge Base] Fuzzy Hit: ${match} for ${topicTitle}`);
-            return fs.readFileSync(path.join(KNOWLEDGE_BASE_DIR, match), 'utf8');
-        }
-    } catch (err) {
-        console.warn("[Knowledge Base] Error reading directory:", err.message);
-    }
-    return null;
-};
 
 // --- MOCK FALLBACK SYSTEM ---
 // Integrated via aiClient.js
@@ -82,7 +54,6 @@ export const chatWithMentor = async (req, res) => {
 
         // 1. Attempt to get History & Context (Allowed to fail silently)
         let history = [];
-        let context = "";
         let detectedTopic = null;
         let questionCount = 0;
         let shouldForceExercise = false;
@@ -101,7 +72,6 @@ export const chatWithMentor = async (req, res) => {
                     [topicId]
                 );
                 if (topicRes.rows.length > 0) {
-                    context = `Context for ${topicRes.rows[0].title}: ${topicRes.rows[0].content}`;
                     detectedTopic = topicRes.rows[0].title;
 
                     // User-uploaded vault resources for this topic
@@ -126,7 +96,6 @@ export const chatWithMentor = async (req, res) => {
                     [message]
                 );
                 if (topicRes.rows.length > 0) {
-                    context = `Context for ${topicRes.rows[0].title}: ${topicRes.rows[0].content}`;
                     detectedTopic = topicRes.rows[0].title;
                 }
             }
@@ -145,36 +114,32 @@ export const chatWithMentor = async (req, res) => {
             console.warn("AI DB Context Error (Recoverable):", dbErr.message);
         }
 
-        // 1.5. Check High-Fidelity Knowledge Base
-        const kbContent = getKnowledgeBaseContent(detectedTopic);
-        if (kbContent) {
-            context = `--- HIGH-FIDELITY ARCHITECTURAL KNOWLEDGE BASE ---\n${kbContent}\n--- END KNOWLEDGE BASE ---`;
-            console.log(`[Dr. Nova] Using premium KB context for ${detectedTopic}`);
+        // 1.5. RAG: retrieve relevant KB chunks (replaces full-file load)
+        // retrieveKBContext does semantic chunking + TF-IDF scoring — only top-3 chunks returned
+        const ragKBContext = retrieveKBContext(message, detectedTopic);
+        if (ragKBContext) {
+            console.log(`[RAG] Injecting KB chunks for: ${detectedTopic || message.slice(0, 40)}`);
         }
 
-        // 2. Determine Complexity & Prepare Prompt
-        const isComplex = message.length > 30 || /explain|how|why|deep dive|protocol|architecture|design|breakdown|curriculum|technical|system|masterclass/i.test(message);
-        let dynamicInstruction = isComplex
-            ? "\n\n--- MANDATORY INSTRUCTION: The 'reply' field MUST contain the FULL lesson text (800+ words minimum). It MUST include ALL THREE: ① An algo-viz block — the opening fence MUST be written as three backticks followed by algo-viz (NOT json, NOT javascript, NOT mermaid — the tag must be algo-viz). JSON inside: {\"type\":\"bfs\",\"nodes\":[...],\"edges\":[...],\"steps\":[{\"highlight_nodes\":[],\"visited\":[],\"queue\":[],\"description\":\"\"}]}. ② Complete runnable JavaScript code (30+ lines) with console.log() output AND __step__(label, state) calls. ③ A markdown complexity table. Write directly in reply field. ---"
-            : "\n\n--- INSTRUCTION: Provide a concise but technically precise response in the reply field. ---";
-
-        if (kbContent) {
-            dynamicInstruction += "\n\nCRITICAL: A verified High-Fidelity Knowledge Base entry has been provided in the context. You MUST base your explanation ON THIS CONTENT. Use the terms, diagrams, and axioms defined in the KB. Specifically, you MUST perform a line-by-line technical autopsy of any code provided and walk through the iteration simulation step-by-step. Do not deviate from the technical truth provided.";
-        }
-
-        const historyText = history.map(h => `${h.role === 'user' ? 'Student' : 'Dr. Nova'}: ${h.message}`).join("\n");
-        const forceExerciseInstruction = shouldForceExercise 
-            ? "\n\nCRITICAL: The student has asked many questions on this. You MUST assign a mission now using the 'mission' field in your JSON response."
+        const forceExerciseInstruction = shouldForceExercise
+            ? "\n\nCRITICAL: The student has asked many questions on this topic. You MUST assign a mission now using the 'mission' field in your JSON response."
             : "";
 
-        const systemPrompt = PROFESSOR_IQ_160_PROMPT
-            .replace('{context}', (context + scholarlyContext) || "No specific topic context found.")
-            .replace('{history}', historyText || "No previous history.")
-            + dynamicInstruction
-            + (forceExerciseInstruction || '');
+        // 2. Build RAG-composed system prompt (replaces static PROFESSOR_IQ_160_PROMPT)
+        const systemPrompt = buildMentorPrompt({
+            query: message,
+            topicTitle: detectedTopic,
+            preloadedKBContent: ragKBContext,
+            history,
+            scholarlyContext: scholarlyContext || null,
+            streamMode: false,
+        }) + (forceExerciseInstruction || '');
 
-        // 3. Call AI (Will return Mock if fails)
-        const aiData = await callAI(systemPrompt + `\n\nStudent: ${message}`);
+        // 3. Call AI with system/user split and bounded token budget
+        const aiData = await callAI(
+            { system: systemPrompt, user: `Student: ${message}` },
+            true, 2048
+        );
 
         // 4. Attempt to Save History (Allowed to fail silently)
         try {
@@ -238,8 +203,7 @@ export const chatWithMentorStream = async (req, res) => {
             console.warn("[Stream AI] User Message Save Error:", dbErr.message);
         }
 
-        // 1.5. Check High-Fidelity Knowledge Base & Context
-        let context = "";
+        // 1.5. Detect topic for RAG context
         let detectedTopic = null;
         try {
             const topicRes = await pool.query(
@@ -253,42 +217,23 @@ export const chatWithMentorStream = async (req, res) => {
             console.warn("[Stream AI] Topic Detection Error:", dbErr.message);
         }
 
-        const kbContent = getKnowledgeBaseContent(detectedTopic);
-        if (kbContent) {
-            context = `--- HIGH-FIDELITY ARCHITECTURAL KNOWLEDGE BASE ---\n${kbContent}\n--- END KNOWLEDGE BASE ---`;
-            console.log(`[Stream AI] Using premium KB context for ${detectedTopic}`);
-        }
-
         // Header for SSE
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
 
-        // 2. Prepare Prompt (Simple version for streaming)
-        const isComplex = message.length > 50 || /explain|how|why|deep dive|protocol|architecture|design/i.test(message);
-        let dynamicInstruction = isComplex
-            ? "\n--- INSTRUCTION: Use the FULL Professor's Method for this deep query. ---"
-            : "\n--- INSTRUCTION: Provide a CONCISE, brilliant response. Skip the 9-point lecture structure. ---";
+        // 2. RAG-composed prompt for streaming (no JSON output, raw markdown)
+        let systemPrompt = buildMentorPrompt({
+            query: message,
+            topicTitle: detectedTopic,
+            streamMode: true,
+        });
 
-        if (kbContent) {
-            dynamicInstruction += "\n\nCRITICAL: A verified High-Fidelity Knowledge Base entry has been provided in the context. You MUST base your explanation ON THIS CONTENT. Use the terms, diagrams, and axioms defined in the KB. Specifically, you MUST perform a line-by-line technical autopsy of any code provided and walk through the iteration simulation step-by-step. Do not deviate from the technical truth provided.";
-        }
-
-        let systemPrompt = PROFESSOR_IQ_160_PROMPT
-            .replace('{context}', (context || "Streaming session active."))
-            .replace('{history}', "Real-time protocol engaged.")
-            + dynamicInstruction;
-
-        // For streaming, we MUST strip out the JSON requirement otherwise the UI gets raw JSON brackets
-        const jsonCutoff = systemPrompt.indexOf("Return ONLY VALID JSON");
-        if (jsonCutoff !== -1) {
-            systemPrompt = systemPrompt.substring(0, jsonCutoff);
-        }
-
-        systemPrompt += "\n\nCRITICAL OVERRIDE FOR THIS SESSION: You are streaming directly to a chat UI. Do NOT output any JSON brackets, fields like 'reply', or surrounding formatting. Output ONLY your direct spoken reply in raw markdown (bolding, lists, code blocks allowed).";
-
-        // 3. Start Stream
-        const stream = await streamAI(systemPrompt + `\n\nStudent: ${message}`);
+        // 3. Start Stream with system/user split and bounded token budget
+        const stream = await streamAI(
+            { system: systemPrompt, user: `Student: ${message}` },
+            "llama-3.3-70b-versatile", 4096
+        );
 
         let fullContent = "";
 
@@ -400,7 +345,7 @@ Example:
     "grade": 85,
     "feedback": "Excellent use of recursion, but consider edge cases."
 }`;
-        const aiData = await callAI(prompt);
+        const aiData = await callAI(prompt, true, 1024);
 
 
 
@@ -500,9 +445,9 @@ export const generateQuiz = async (req, res) => {
         if (topicData) {
             contextText = `
 AXIOMS: ${topicData.first_principles}
-OBJECTIVES: ${JSON.stringify(topicData.learning_objectives)}
-STRUCTURE: ${topicData.structural_breakdown}
-FAILURE VECTORS: ${topicData.failure_analysis}
+OBJECTIVES: ${JSON.stringify(topicData.learning_objectives).slice(0, 500)}
+STRUCTURE: ${(topicData.structural_breakdown || '').slice(0, 300)}
+FAILURE VECTORS: ${(topicData.failure_analysis || '').slice(0, 300)}
 `;
         }
 
@@ -511,7 +456,7 @@ FAILURE VECTORS: ${topicData.failure_analysis}
             .replace(/{topic}/g, topic || "Computer Science Mastery")
             .replace(/{context}/g, contextText);
 
-        const aiData = await callAI(prompt);
+        const aiData = await callAI(prompt, true, 2048);
 
         // 3. Validate AI Response and Harden
         if (!aiData || !Array.isArray(aiData.questions)) {
@@ -703,7 +648,7 @@ export const generateDailyPlan = async (req, res) => {
         // 4. Call AI (with fallback)
         let schedule = null;
         try {
-            const aiData = await callAI(systemPrompt);
+            const aiData = await callAI(systemPrompt, true, 2048);
             schedule = aiData.schedule;
         } catch (aiError) {
             console.warn("[DailyPlan] AI Service Error. Using Fallback Schedule.", aiError.message);
@@ -820,7 +765,10 @@ export const startInterview = async (req, res) => {
             .replace('{context}', `${modeContext}\n\nFirst contact. High-Stakes Simulation.`)
             .replace('{history}', "Simulation Initialized.");
 
-        const aiData = await callAI(systemPrompt + `\n\nOrchestrator: The candidate has selected ${targetJob}. Mode: ${mode}. \n\nDirect Panel Command: Use your high-IQ capability to build a professional boardroom atmosphere. Set the stage, explain the protocol, and build initial rapport with the candidate before opening the floor for the INTRO phase. Do not jump straight to "Tell me about yourself".`);
+        const aiData = await callAI(
+            { system: systemPrompt, user: `Orchestrator: The candidate has selected ${targetJob}. Mode: ${mode}. Direct Panel Command: Build a professional boardroom atmosphere, set the stage, explain the protocol, and build initial rapport before opening the floor for the INTRO phase. Do not jump straight to "Tell me about yourself".` },
+            true, 1024
+        );
 
         // Save Initial AI Message
         await pool.query(
@@ -852,17 +800,26 @@ export const chatWithInterviewer = async (req, res) => {
 
     try {
         const historyRes = await pool.query(
-            "SELECT role, message FROM chat_messages WHERE user_id = $1 AND chat_type = 'interview' ORDER BY created_at ASC LIMIT 30",
+            "SELECT role, message FROM chat_messages WHERE user_id = $1 AND chat_type = 'interview' ORDER BY created_at ASC LIMIT 12",
             [userId]
         );
-        const historyText = historyRes.rows.map(h => `${h.role === 'user' ? 'Candidate' : 'Panel'}: ${h.message}`).join("\n");
+        const historyText = historyRes.rows
+            .map(h => {
+                const speaker = h.role === 'user' ? 'Candidate' : 'Panel';
+                const text = h.message.length > 400 ? h.message.slice(0, 400) + '...' : h.message;
+                return `${speaker}: ${text}`;
+            })
+            .join("\n");
 
         const systemPrompt = BOARDROOM_SYSTEM_PROMPT
             .replace('{target_job}', targetJob || 'Software Engineer')
             .replace('{context}', currentPhase)
             .replace('{history}', historyText);
 
-        const aiData = await callAI(systemPrompt + `\n\nCandidate Output: ${message}`);
+        const aiData = await callAI(
+            { system: systemPrompt, user: `Candidate Output: ${message}` },
+            true, 1024
+        );
 
         const nextPhase = aiData?.phase || getNextPhase(currentPhase);
 
@@ -891,10 +848,18 @@ export const chatWithInterviewer = async (req, res) => {
                 "SELECT role, message FROM chat_messages WHERE user_id = $1 AND chat_type = 'interview' ORDER BY created_at ASC",
                 [userId]
             );
-            const historyText = historyRes.rows.map(h => `${h.role}: ${h.message}`).join("\n");
+            const historyText = historyRes.rows
+                .map(h => {
+                    const text = h.message.length > 400 ? h.message.slice(0, 400) + '...' : h.message;
+                    return `${h.role}: ${text}`;
+                })
+                .join("\n");
 
             const evaluationPrompt = SCORECARD_PROMPT.replace('{target_job}', targetJob || 'Software Engineer');
-            scorecard = await callAI(evaluationPrompt + `\n\nInterview Transcript:\n${historyText}`);
+            scorecard = await callAI(
+                { system: evaluationPrompt, user: `Interview Transcript:\n${historyText}` },
+                true, 1024
+            );
 
             await pool.query(
                 "UPDATE interview_sessions SET is_completed = true, scorecard = $1 WHERE id = $2",
@@ -938,7 +903,7 @@ export const getInterviewHistory = async (req, res) => {
 
 export const generateFiller = async (req, res) => {
     try {
-        const aiData = await callAI(FILLER_PROMPT);
+        const aiData = await callAI(FILLER_PROMPT, true, 64);
         res.json({ reply: aiData.reply || "Thinking..." });
     } catch (err) {
         res.json({ reply: "Interesting..." });
@@ -965,9 +930,13 @@ export const generateLibraryLecture = async (req, res) => {
         if (topicData) {
             context = `TECHNICAL LOGIC: ${topicData.first_principles}\nARCHITECTURAL BLUEPRINT: ${topicData.architectural_logic}\nCODE SAMPLE: ${topicData.forge_snippet}\nFORGE PROTOCOL: ${topicData.forge_protocol}`;
         }
+        // Cap context to prevent prompt bloat (~500 tokens)
+        const LECTURE_CONTEXT_CAP = 2000;
+        if (context.length > LECTURE_CONTEXT_CAP) context = context.slice(0, LECTURE_CONTEXT_CAP);
 
-        const prompt = `${PROFESSOR_LECTURE_PROMPT}\n\nUSER PROFILE:\nNAME: ${userName}\n\nSTRICT GROUNDING DATA:\n${context}\n\nTOPIC TO LECTURE ON: "${topicTitle}"`;
-        const aiData = await callAI(prompt);
+        const lectureSystem = PROFESSOR_LECTURE_PROMPT;
+        const lectureUser = `USER PROFILE:\nNAME: ${userName}\n\nSTRICT GROUNDING DATA:\n${context}\n\nTOPIC TO LECTURE ON: "${topicTitle}"`;
+        const aiData = await callAI({ system: lectureSystem, user: lectureUser }, true, 4096);
 
         // --- STREAK SYSTEM ---
         await incrementStreak(req.user.id).catch(e => console.warn("Streak increment failed:", e.message));
@@ -1034,7 +1003,7 @@ export const interactWithProfessor = async (req, res) => {
         const context = topicData ? `TECHNICAL LOGIC: ${topicData.first_principles}\nARCHITECTURAL: ${topicData.architectural_logic}` : "Generic knowledge context.";
 
         const prompt = `${PROFESSOR_INTERLUDE_PROMPT}\n\nUSER: ${userName}\nQUESTION: ${question}\n\nGROUNDING:\n${context}`;
-        const aiData = await callAI(prompt);
+        const aiData = await callAI(prompt, true, 1024);
 
         const personalizedConversation = aiData.CONVERSATION?.map(turn => ({
             ...turn,
@@ -1073,7 +1042,7 @@ Return a VALID JSON object:
 
 FINAL COMMAND: Return NOTHING but the JSON.`;
 
-        const aiData = await callAI(prompt);
+        const aiData = await callAI(prompt, true, 512);
         res.json({
             success: aiData.success ?? (aiData.reply?.toLowerCase().includes("correct") || false),
             feedback: aiData.feedback || aiData.reply || "Interesting synthesis. Let us continue."
@@ -1129,31 +1098,27 @@ export const synthesizeTopic = async (req, res) => {
                 .replace("{custom_instructions}", instructions);
         }
 
-        // --- CALL 1: Easy Content + Metadata ---
+        // --- PARALLEL CALLS: Easy + Deep run concurrently to halve wall-clock time ---
+        console.log(`[AI] Synthesizing EASY + DEEP content in parallel for: ${topicTitle}...`);
+        const [easyResult, deepResult] = await Promise.allSettled([
+            callAI({ system: easyPrompt, user: `Generate content for topic: ${topicTitle}, course: ${courseName}` }, true, 6144),
+            callAI({ system: deepPrompt, user: `Generate deep content for topic: ${topicTitle}, course: ${courseName}` }, true, 6144),
+        ]);
+
         let aiData;
-        try {
-            console.log(`[AI] Synthesizing EASY content for: ${topicTitle} via Groq...`);
-            aiData = await callAI(easyPrompt);
-            if (!aiData || aiData.error) throw new Error("AI Engine Response Invalid (Easy)");
-        } catch (aiErr) {
-            console.error(`[AI] Easy synthesis failed for ${topicTitle}:`, aiErr.message);
-            return res.status(503).json({
-                message: "Synthesis service is temporarily recalibrating.",
-                error: aiErr.message
-            });
+        if (easyResult.status === 'fulfilled' && easyResult.value && !easyResult.value.error) {
+            aiData = easyResult.value;
+        } else {
+            const errMsg = easyResult.reason?.message || easyResult.value?.error || 'Unknown error';
+            console.error(`[AI] Easy synthesis failed for ${topicTitle}:`, errMsg);
+            return res.status(503).json({ message: "Synthesis service is temporarily recalibrating.", error: errMsg });
         }
 
-        // --- CALL 2: Deep Content Only ---
         let deepData;
-        try {
-            console.log(`[AI] Synthesizing DEEP content for: ${topicTitle} via Groq...`);
-            deepData = await callAI(deepPrompt);
-            if (!deepData || deepData.error) {
-                console.warn(`[AI] Deep synthesis returned invalid for ${topicTitle}, skipping deep content.`);
-                deepData = { content_deep_markdown: null };
-            }
-        } catch (deepErr) {
-            console.warn(`[AI] Deep synthesis failed for ${topicTitle}:`, deepErr.message, '- Easy content will still be saved.');
+        if (deepResult.status === 'fulfilled' && deepResult.value && !deepResult.value.error) {
+            deepData = deepResult.value;
+        } else {
+            console.warn(`[AI] Deep synthesis failed for ${topicTitle} — easy content will still be saved.`);
             deepData = { content_deep_markdown: null };
         }
 
@@ -1262,7 +1227,7 @@ STRICT REQUIREMENTS:
 4. No conversational text. Return ONLY the JSON.`;
 
     try {
-        const aiData = await callAI(prompt);
+        const aiData = await callAI(prompt, true, 2048);
 
         if (!aiData || (!aiData.mcq && !aiData.reply)) {
             throw new Error("AI Engine synchronization failed. The model returned malformed protocol data.");
@@ -1334,7 +1299,7 @@ export const generateTopicPodcast = async (req, res) => {
             });
         }
 
-        const aiData = await callAI(prompt);
+        const aiData = await callAI(prompt, true, 4096);
 
         if (!aiData || !Array.isArray(aiData.segments) || aiData.segments.length === 0) {
             console.warn("[generateTopicPodcast] AI returned no segments. Serving fallback episode.");
@@ -1396,7 +1361,7 @@ Respond with valid JSON in exactly this format:
 {"answer": "Your complete answer here as a single string"}`;
 
     try {
-        const aiData = await callAI(prompt, true);
+        const aiData = await callAI(prompt, true, 1024);
         const answer = aiData.answer || aiData.reply || "I couldn't process that question.";
         const result = { success: true, answer };
         if (pqCk) cacheSet(pqCk, result, 30 * 60 * 1000);
@@ -1659,7 +1624,7 @@ export const generateMasterclassEpisode = async (req, res) => {
                     .replace(/{previous_context}/g, previousContext)
                     .replace(/{USER_NAME}/g, userName);
 
-                const aiData = await callAI(prompt);
+                const aiData = await callAI(prompt, true, 3072);
 
                 if (aiData && Array.isArray(aiData.segments) && aiData.segments.length > 0) {
                     // Sanitize segments
@@ -1719,7 +1684,7 @@ Respond with EXACTLY this JSON object (no markdown, no extra text):
 }`;
 
     try {
-        const result = await callAI(prompt, true);
+        const result = await callAI(prompt, true, 1024);
         res.json({
             verdict: result.verdict || 'Analysis complete.',
             score: typeof result.score === 'number' ? result.score : 70,

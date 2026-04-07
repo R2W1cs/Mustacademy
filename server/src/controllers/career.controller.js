@@ -1,6 +1,6 @@
 import pool from "../config/db.js";
 import { CAREER_ARCHITECT_PROMPT, FULL_ROADMAP_PROMPT } from "../utils/aiRules.js";
-import { callAI } from "../utils/aiClient.js";
+import { callFastAI } from "../utils/aiClient.js";
 
 const safeStringify = (val) => {
     if (val === null || val === undefined) return "";
@@ -43,13 +43,18 @@ export const generateCareerArchitecture = async (req, res) => {
             WHERE s.year_number = $1 AND s.semester_number = $2
             ORDER BY c.name
         `, [user.year, user.semester]);
-        const curriculum = curriculumRes.rows.map(c =>
+        const rawCurriculum = curriculumRes.rows.map(c =>
             `Year ${c.year_number} Sem ${c.semester_number}: ${c.name} (${c.description})`
         ).join("\n");
 
-        if (!curriculum) {
+        if (!rawCurriculum) {
             throw new Error("No courses found for your current Year and Semester. Please ensure your profile is correct.");
         }
+
+        const RAW_CURRICULUM_CAP = 3000; // ~750 tokens — prevents prompt bloat
+        const curriculum = rawCurriculum.length > RAW_CURRICULUM_CAP
+            ? rawCurriculum.slice(0, RAW_CURRICULUM_CAP) + '\n[... truncated for token budget]'
+            : rawCurriculum;
 
         // 3. Prepare Prompt
         const prompt = CAREER_ARCHITECT_PROMPT
@@ -62,7 +67,7 @@ export const generateCareerArchitecture = async (req, res) => {
 
         // 4. Generate Architecture
         console.log(`[Career] Forging trajectory for User ${userId} -> ${user.dream_job}...`);
-        const aiData = await callAI(prompt);
+        const aiData = await callFastAI(prompt, true, 2048);
 
         // Normalize AI Data with Robust Sanitation (Prevents React [object Object] errors)
         const normalizedRoadmap = (aiData.roadmap || []).map(step => ({
@@ -136,8 +141,9 @@ export const generateFullRoadmap = async (req, res) => {
         return res.status(400).json({ message: 'career field is required' });
     }
     try {
-        const prompt = FULL_ROADMAP_PROMPT.replace(/{career}/g, career.trim());
-        const data = await callAI(prompt, true);
+        const careerText = career.trim().slice(0, 200); // cap free-text field to ~50 tokens
+        const prompt = FULL_ROADMAP_PROMPT.replace(/{career}/g, careerText);
+        const data = await callFastAI(prompt, true, 2048);
         res.json(data);
     } catch (err) {
         console.error('[Career] Full roadmap generation error:', err.message);

@@ -212,6 +212,8 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
     const scrollRef = useRef(null);
     const timerRef = useRef(null);
     const inputRef = useRef("");
+    const micRetryCountRef = useRef(0);
+    const micErrorTimerRef = useRef(null);
     const speechSynthesisRef = useRef(window.speechSynthesis);
 
     const [phase_offset, setPhaseOffset] = useState(0);
@@ -388,6 +390,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
             };
 
             recognitionRef.current.onstart = () => {
+                micRetryCountRef.current = 0; // successful start — reset retry counter
                 console.log("[Mic] Session Started");
                 setIsListening(true);
             };
@@ -405,21 +408,45 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
             };
 
             recognitionRef.current.onerror = (e) => {
+                if (e.error === 'no-speech') return; // silence timeout — ignore, onend will handle restart
+
                 console.error("[Mic] Engine Error:", e.error);
-                setMicError(e.error);
                 setIsListening(false);
                 isListeningRef.current = false;
+
                 if (e.error === 'network') {
-                    console.error("[Mic] Network Layer Failure. Disabling auto-restart.");
+                    const MAX_RETRIES = 3;
+                    if (micRetryCountRef.current < MAX_RETRIES) {
+                        micRetryCountRef.current += 1;
+                        console.warn(`[Mic] Network error — retrying (${micRetryCountRef.current}/${MAX_RETRIES}) in 2s...`);
+                        setTimeout(() => {
+                            if (!isSpeakingRef.current && !loadingRef.current && recognitionRef.current) {
+                                try {
+                                    recognitionRef.current.start();
+                                    isListeningRef.current = true;
+                                    setIsListening(true);
+                                    setMicError(null);
+                                } catch (_) {}
+                            }
+                        }, 2000);
+                        return; // don't show error banner while retrying
+                    }
+                    // All retries exhausted
+                    micRetryCountRef.current = 0;
+                    setMicError('Mic offline — type your answer');
+                } else {
+                    setMicError(e.error);
                 }
-                if (e.error === 'no-speech') {
-                    console.warn("[Mic] No speech detected. Stopping listening core.");
-                }
+
+                // Auto-dismiss error banner after 4s
+                if (micErrorTimerRef.current) clearTimeout(micErrorTimerRef.current);
+                micErrorTimerRef.current = setTimeout(() => setMicError(null), 4000);
             };
         }
         return () => {
             if (recognitionRef.current) recognitionRef.current.stop();
             if (timerRef.current) clearTimeout(timerRef.current);
+            if (micErrorTimerRef.current) clearTimeout(micErrorTimerRef.current);
         };
     }, []);
 
@@ -970,7 +997,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                                             exit={{ opacity: 0, y: -10 }}
                                             className="absolute top-4 left-1/2 -translate-x-1/2 px-5 py-2 rounded-2xl bg-red-950/90 border border-red-500/30 text-[10px] font-black text-red-400 uppercase tracking-widest backdrop-blur-md whitespace-nowrap z-10"
                                         >
-                                            Engine Critical: {micError}
+                                            {micError}
                                         </motion.div>
                                     )}
                                     {!micError && liveReaction && (

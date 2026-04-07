@@ -18,6 +18,9 @@ process.on('uncaughtException', (err) => {
 });
 
 import pool from './src/config/db.js';
+import { redisAvailable } from './src/config/redis.js';
+import { startSynthesisWorker } from './src/workers/synthesis.worker.js';
+import { startMasterclassWorker } from './src/workers/masterclass.worker.js';
 
 const PORT = parseInt(process.env.PORT) || 5000;
 const server = http.createServer(app);
@@ -32,6 +35,12 @@ pool.query('SELECT NOW()')
     return runMigrations();
   })
   .catch(err => console.error('[DB] Connection FAILED:', err.message));
+
+// Start BullMQ workers (no-ops when REDIS_URL is not set)
+if (redisAvailable) {
+  startSynthesisWorker();
+  startMasterclassWorker();
+}
 
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {

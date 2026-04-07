@@ -156,8 +156,10 @@ export default function CreatorCorner() {
                 memberCount: (activeMembers?.length || 0) + 1
             });
             setAdvisorResult(res.data);
-        } catch {
-            setAdvisorResult({ verdict: 'Analysis failed. Check your connection.', score: 0, stack: [], roles: [], sprints: [], risks: [] });
+        } catch (err) {
+            const msg = err?.response?.data?.message || err?.message || 'Unknown error';
+            console.error('[Advisor] analyzeProject failed:', err?.response?.status, msg);
+            setAdvisorResult({ verdict: `Analysis failed: ${msg}`, score: 0, stack: [], roles: [], sprints: [], risks: [] });
         } finally {
             setAdvisorLoading(false);
         }

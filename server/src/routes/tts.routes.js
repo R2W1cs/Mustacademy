@@ -9,5 +9,7 @@ const router = express.Router();
  * @access Public
  */
 router.post('/', generateTTS);
+// GET variant: browser <audio src> can stream chunks immediately (no blob buffering)
+router.get('/', generateTTS);
 
 export default router;

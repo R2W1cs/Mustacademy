@@ -533,7 +533,7 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
         }
     };
 
-    const speak = async (rawText) => {
+    const speak = (rawText) => {
         if (!rawText || typeof rawText !== 'string') return;
 
         setIsFlashing(true);
@@ -545,71 +545,72 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
         if (!cleanText || !cleanText.trim()) return;
 
         const textSnapshot = cleanText;
-        const totalChars = (textSnapshot || "").length;
+        const totalChars = textSnapshot.length;
 
         setIsSpeaking(true);
         setRevealedLength(0);
         if (recognitionRef.current) try { recognitionRef.current.stop(); } catch (e) {}
 
-        // Start text reveal IMMEDIATELY — don't block on TTS round-trip
-        const CHARS_PER_SEC = 160;
-        const revealStart = Date.now();
-        textIntervalRef.current = setInterval(() => {
-            const elapsed = (Date.now() - revealStart) / 1000;
-            const charTarget = Math.min(Math.floor(elapsed * CHARS_PER_SEC), totalChars);
-            setRevealedLength(charTarget);
-            setVoiceIntensity(0.6 + Math.random() * 0.4);
-        }, 50);
+        // Word boundaries for audio-synced reveal
+        const words = textSnapshot.split(' ').filter(Boolean);
+        const wordBoundaries = [];
+        let wPos = 0;
+        for (const w of words) {
+            wPos += w.length + 1;
+            wordBoundaries.push(Math.min(wPos, totalChars));
+        }
 
+        const syncToAudio = () => {
+            if (textIntervalRef.current) clearInterval(textIntervalRef.current);
+            textIntervalRef.current = setInterval(() => {
+                const a = audioRef.current;
+                if (!a || !a.duration || isNaN(a.duration) || a.duration <= 0) return;
+                const progress = Math.min(a.currentTime / a.duration, 1);
+                const charTarget = Math.floor(progress * totalChars);
+                let reveal = 0;
+                for (const boundary of wordBoundaries) {
+                    if (boundary <= charTarget + 2) reveal = boundary;
+                    else break;
+                }
+                // Never go backwards — blend time-based head start with audio-synced
+                setRevealedLength(prev => Math.max(prev, Math.min(reveal, totalChars)));
+                setVoiceIntensity(0.6 + Math.random() * 0.4);
+            }, 50);
+        };
+
+        const fallbackReveal = (charsPerSec = 160) => {
+            if (textIntervalRef.current) clearInterval(textIntervalRef.current);
+            const start = Date.now();
+            textIntervalRef.current = setInterval(() => {
+                const charTarget = Math.min(Math.floor(((Date.now() - start) / 1000) * charsPerSec), totalChars);
+                setRevealedLength(charTarget);
+                if (charTarget >= totalChars) {
+                    clearInterval(textIntervalRef.current);
+                    textIntervalRef.current = null;
+                    setIsSpeaking(false);
+                }
+            }, 50);
+        };
+
+        // ── Phase 1: reveal text at speech rate immediately (no wait) ──
+        fallbackReveal(15); // ~15 chars/sec ≈ natural speech pace
+
+        // ── Phase 2: stream audio in parallel via GET so browser plays as chunks arrive ──
         try {
-            const response = await api.post(
-                '/tts',
-                { text: textSnapshot, voice: 'en-US-BrianNeural' },
-                { responseType: 'blob' }
-            );
+            const apiBase = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
+            const ttsUrl = `${apiBase}/tts?text=${encodeURIComponent(textSnapshot)}&voice=en-US-BrianNeural`;
 
-            if (!response.data || response.data.size < 500) {
-                throw new Error('Empty audio response');
-            }
-
-            // Audio ready — switch to audio-synced reveal
-            clearInterval(textIntervalRef.current);
-            textIntervalRef.current = null;
-
-            const url = URL.createObjectURL(response.data);
-            const audio = new Audio(url);
+            const audio = new Audio(ttsUrl);
+            audio.preload = 'auto';
             audioRef.current = audio;
 
-            const words = textSnapshot.split(' ').filter(Boolean);
-            const wordBoundaries = [];
-            let pos = 0;
-            for (const w of words) {
-                pos += w.length + 1;
-                wordBoundaries.push(Math.min(pos, totalChars || 0));
-            }
-
-            audio.onplay = () => {
-                textIntervalRef.current = setInterval(() => {
-                    const a = audioRef.current;
-                    if (!a || !a.duration || isNaN(a.duration) || a.duration <= 0) return;
-                    const progress = Math.min(a.currentTime / (a.duration || 1), 1);
-                    const charTarget = Math.floor(progress * totalChars);
-                    let reveal = 0;
-                    for (const boundary of wordBoundaries) {
-                        if (boundary <= charTarget + 2) reveal = boundary;
-                        else break;
-                    }
-                    setRevealedLength(Math.min(reveal, totalChars));
-                    setVoiceIntensity(0.6 + Math.random() * 0.4);
-                }, 50);
-            };
+            audio.onplay = syncToAudio; // switch to audio-synced reveal the moment audio plays
 
             audio.onended = () => {
                 clearInterval(textIntervalRef.current);
                 textIntervalRef.current = null;
                 setIsSpeaking(false);
                 setRevealedLength(totalChars);
-                URL.revokeObjectURL(url);
                 if (!scorecard && !loadingRef.current) {
                     setTimeout(() => {
                         if (recognitionRef.current && !isListeningRef.current && !isSpeakingRef.current && !loadingRef.current) {
@@ -620,26 +621,14 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
             };
 
             audio.onerror = () => {
-                clearInterval(textIntervalRef.current);
-                textIntervalRef.current = null;
-                console.error('[Neural-Audio] Playback failure.');
-                setIsSpeaking(false);
-                URL.revokeObjectURL(url);
+                console.error('[Neural-Audio] Stream error — continuing with text reveal.');
+                fallbackReveal(160); // TTS failed: fast-reveal so user can read
             };
 
-            await audio.play();
-
+            audio.play().catch(() => fallbackReveal(160));
         } catch (err) {
-            // TTS failed — text is already revealing via the pre-reveal timer.
-            // Let it finish naturally then stop.
-            const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message;
-            console.error(`%c[Neural-Audio] Synthesis Failure: ${errorMsg}`, 'color: #ef4444; font-weight: bold;');
-            const msRemaining = Math.max(0, (totalChars / CHARS_PER_SEC) * 1000 - (Date.now() - revealStart));
-            setTimeout(() => {
-                if (textIntervalRef.current) { clearInterval(textIntervalRef.current); textIntervalRef.current = null; }
-                setRevealedLength(totalChars);
-                setIsSpeaking(false);
-            }, msRemaining + 200);
+            console.error(`[Neural-Audio] ${err.message}`);
+            fallbackReveal(160);
         }
     };
 

@@ -1,6 +1,6 @@
 
 import pool from "../config/db.js";
-import { callAI } from "../utils/aiClient.js";
+import { callAI, callFastAI } from "../utils/aiClient.js";
 import { EXAM_READINESS_PROMPT, EXAM_GENERATION_PROMPT, EXAM_INTEGRITY_PROMPT, EXAM_GRADING_PROMPT } from "../utils/aiRules.js";
 
 export const checkReadiness = async (req, res) => {
@@ -32,7 +32,7 @@ export const checkReadiness = async (req, res) => {
             .replace("{course_name}", courseName)
             .replace("{progress_summary}", progressSummary);
 
-        const aiData = await callAI(prompt);
+        const aiData = await callFastAI(prompt, true, 512);
 
         res.json(aiData);
     } catch (err) {
@@ -78,7 +78,7 @@ export const generateExam = async (req, res) => {
             .replace("{topics}", topicsToCover);
 
         console.log(`[Exam Generator] Triggering AI for ${courseName} (${mode})...`);
-        const examData = await callAI(prompt);
+        const examData = await callAI(prompt, true, 2048);
 
         if (!examData.mcqs) {
             console.warn("[Exam Generator] AI failed to return valid exam structure. Data:", JSON.stringify(examData).substring(0, 200));
@@ -102,7 +102,7 @@ export const submitExam = async (req, res) => {
 
         // 1. AI Integrity Check
         const integrityPrompt = EXAM_INTEGRITY_PROMPT.replace("{student_responses}", JSON.stringify(responses));
-        const integrityAudit = await callAI(integrityPrompt);
+        const integrityAudit = await callFastAI(integrityPrompt, true, 512);
 
         if (integrityAudit.verdict === 'FAIL') {
             return res.json({
@@ -127,7 +127,7 @@ export const submitExam = async (req, res) => {
             }));
 
         console.log(`[Exam Grader] grading ${examTitle}...`);
-        const gradingResult = await callAI(gradingPrompt);
+        const gradingResult = await callFastAI(gradingPrompt, true, 1024);
 
         res.json({
             success: true,
