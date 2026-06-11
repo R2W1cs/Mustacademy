@@ -3,26 +3,29 @@ import jwt from "jsonwebtoken";
 import MultiplayerGameManager from "./MultiplayerGameManager.js";
 import pool from "../config/db.js";
 import logger from "../utils/logger.js";
+function getAllowedOrigins() {
+    if (process.env.NODE_ENV === 'production') {
+        return process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : [];
+    }
+    const devOrigins = [
+        'http://localhost:5173',
+        'http://localhost:5174',
+        'http://localhost:3000',
+        'http://127.0.0.1:5173',
+    ];
+    if (process.env.FRONTEND_URL && !devOrigins.includes(process.env.FRONTEND_URL)) {
+        devOrigins.push(process.env.FRONTEND_URL);
+    }
+    return devOrigins;
+}
 
 let io;
 let gameManager;
 
 export const initIo = (server) => {
-    const allowedOrigins = [
-        "https://mustacademy.vercel.app",
-        "https://mustacademy-frontend.vercel.app",
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://localhost:3000"
-    ];
-
-    if (process.env.FRONTEND_URL && !allowedOrigins.includes(process.env.FRONTEND_URL)) {
-        allowedOrigins.push(process.env.FRONTEND_URL);
-    }
-
     io = new Server(server, {
         cors: {
-            origin: allowedOrigins,
+            origin: getAllowedOrigins(),
             methods: ["GET", "POST", "OPTIONS"],
             credentials: true,
             allowedHeaders: ['Content-Type', 'Authorization', 'X-Sync-ID', 'x-sync-id']
@@ -61,26 +64,35 @@ export const initIo = (server) => {
             }
         });
 
-        // --- MULTIPLAYER QUIZ EVENTS ---
+        const requireAuth = () => {
+            const userId = socket.data.userId;
+            if (!userId) {
+                socket.emit("auth_error", { message: "Not authenticated" });
+                return null;
+            }
+            return userId;
+        };
 
-        socket.on("create_quiz_room", async ({ userId, userName, topic, forceNew }) => {
+        socket.on("create_quiz_room", async ({ topic, forceNew }) => {
+            const userId = requireAuth();
+            if (!userId) return;
+            const userName = socket.data.userName || 'Scholar';
             try {
                 const room = await gameManager.findOrCreateRoom(userId, userName, topic, forceNew);
                 socket.join(`room_${room.id}`);
-
-                // Notify if others were already in there (matchmaking scenario)
                 io.to(`room_${room.id}`).emit("player_joined", room.players);
-
                 socket.emit("room_created", room);
             } catch (err) {
                 socket.emit("error", { message: err.message });
             }
         });
 
-        socket.on("join_quiz_room", ({ roomId, userId, userName }) => {
+        socket.on("join_quiz_room", ({ roomId }) => {
+            const userId = requireAuth();
+            if (!userId) return;
+            const userName = socket.data.userName || 'Scholar';
             try {
                 const room = gameManager.joinRoom(roomId?.trim(), userId, userName);
-                // USE room.id (normalized) instead of raw roomId
                 socket.join(`room_${room.id}`);
                 io.to(`room_${room.id}`).emit("player_joined", room.players);
                 socket.emit("joined_successfully", room);
@@ -89,11 +101,15 @@ export const initIo = (server) => {
             }
         });
 
-        socket.on("toggle_ready", ({ roomId, userId }) => {
+        socket.on("toggle_ready", ({ roomId }) => {
+            const userId = requireAuth();
+            if (!userId) return;
             gameManager.toggleReady(roomId, userId);
         });
 
-        socket.on("start_quiz", ({ roomId, userId, config }) => {
+        socket.on("start_quiz", ({ roomId, config }) => {
+            const userId = requireAuth();
+            if (!userId) return;
             try {
                 gameManager.startGame(roomId, userId, config || {});
             } catch (err) {
@@ -102,8 +118,11 @@ export const initIo = (server) => {
         });
 
         socket.on("match_chat", ({ roomId, text }) => {
+            const userId = requireAuth();
+            if (!userId) return;
             const userName = socket.data.userName || 'Scholar';
             if (!roomId || !text?.trim()) return;
+            if (!socket.rooms.has(`room_${roomId}`)) return;
             io.to(`room_${roomId}`).emit("match_chat", {
                 userName,
                 text: text.trim(),
@@ -111,11 +130,15 @@ export const initIo = (server) => {
             });
         });
 
-        socket.on("submit_quiz_answer", ({ roomId, userId, answerIndex }) => {
+        socket.on("submit_quiz_answer", ({ roomId, answerIndex }) => {
+            const userId = requireAuth();
+            if (!userId) return;
             gameManager.submitAnswer(roomId, userId, answerIndex);
         });
 
-        socket.on("update_room_topic", async ({ roomId, topic, userId }) => {
+        socket.on("update_room_topic", async ({ roomId, topic }) => {
+            const userId = requireAuth();
+            if (!userId) return;
             try {
                 const updatedRoom = await gameManager.updateRoomTopic(roomId, topic, userId);
                 io.to(`room_${roomId}`).emit("room_updated", updatedRoom);
@@ -128,7 +151,10 @@ export const initIo = (server) => {
             gameManager.broadcastOnlineUsers();
         });
 
-        socket.on("send_invitation", ({ targetUserId, senderName, roomId, topic }) => {
+        socket.on("send_invitation", ({ targetUserId, roomId, topic }) => {
+            const userId = requireAuth();
+            if (!userId) return;
+            const senderName = socket.data.userName || 'Scholar';
             logger.info(`[SOCKET] Invitation from ${senderName} to ${targetUserId} for room ${roomId}`);
             emitToUser(targetUserId, "receive_invitation", {
                 senderName,
@@ -136,8 +162,6 @@ export const initIo = (server) => {
                 topic
             });
         });
-
-        // --- SQUAD CHAT EVENTS ---
 
         socket.on("join_squad_room", ({ projectId }) => {
             if (!projectId || !socket.data.userId) return;

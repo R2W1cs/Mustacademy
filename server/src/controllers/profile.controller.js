@@ -105,14 +105,9 @@ export const updateProfile = async (req, res) => {
   }
 };
 
-/* ---------------- UPGRADE PLAN (demo) ---------------- */
-export const upgradePlan = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    await pool.query(`UPDATE users SET plan = 'premium' WHERE id = $1`, [userId]);
-    res.json({ message: "Plan upgraded to premium", plan: "premium" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to upgrade plan" });
-  }
+/* Self-serve premium upgrades disabled until verified payment webhooks exist. */
+export const upgradePlan = async (_req, res) => {
+  return res.status(403).json({
+    message: 'Self-serve plan upgrades are disabled. Premium is granted via verified payment only.',
+  });
 };

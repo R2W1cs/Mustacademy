@@ -8,8 +8,10 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      # Set in Render dashboard — never commit credentials.
+      # Rotate Neon password if it was ever committed to git history.
       - key: DATABASE_URL
-        value: postgresql://neondb_owner:npg_uY4h7djiasIp@ep-misty-queen-ag8488es.c-2.eu-central-1.aws.neon.tech/cs_roadmap?sslmode=require
+        sync: false
       - key: JWT_SECRET
         generateValue: true
       - key: GROQ_API_KEY

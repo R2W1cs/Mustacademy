@@ -5,7 +5,29 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import logger from './utils/logger.js';
 
-// Import routes
+function getAllowedOrigins() {
+  if (process.env.NODE_ENV === 'production') {
+    return process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : [];
+  }
+  const devOrigins = [
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:3000',
+    'http://127.0.0.1:5173',
+  ];
+  if (process.env.FRONTEND_URL && !devOrigins.includes(process.env.FRONTEND_URL)) {
+    devOrigins.push(process.env.FRONTEND_URL);
+  }
+  return devOrigins;
+}
+
+function corsOriginDelegate(origin, callback) {
+  const allowed = getAllowedOrigins();
+  if (!origin) return callback(null, true);
+  if (allowed.includes(origin)) return callback(null, true);
+  callback(new Error(`CORS blocked origin: ${origin}`));
+}
+
 import authRoutes from './routes/auth.routes.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
 import courseRoutes from './routes/course.routes.js';
@@ -15,7 +37,6 @@ import profileRoutes from './routes/profile.routes.js';
 import userRoutes from './routes/user.routes.js';
 import aiRoutes from './routes/ai.routes.js';
 import badgeRoutes from './routes/badge.routes.js';
-
 import contributionRoutes from './routes/contribution.routes.js';
 import videoRoutes from './routes/video.routes.js';
 import careerRoutes from './routes/career.routes.js';
@@ -29,50 +50,41 @@ import ttsRoutes from './routes/tts.routes.js';
 import arenaRoutes from './routes/arena.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 
-
 const app = express();
 
-// Security headers (CSP disabled — API-only server, no HTML)
 app.use(helmet({ contentSecurityPolicy: false }));
-
-// HTTP request logging (dev: colorized, production: combined Apache format)
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
-// CORS configuration
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:5174',
-  'http://localhost:3000',
-  'http://127.0.0.1:5173',
-  'https://mustacademy.vercel.app',
-  'https://mustacademy-frontend.vercel.app',
-  'https://mustAacademy.vercel.app'
-];
-
-if (process.env.FRONTEND_URL && !allowedOrigins.includes(process.env.FRONTEND_URL)) {
-  allowedOrigins.push(process.env.FRONTEND_URL);
-}
-
 app.use(cors({
-  origin: allowedOrigins,
+  origin: corsOriginDelegate,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 app.use(compression());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Serve uploaded files (videos, images, etc.) with absolute path
+// AI routes accept larger JSON payloads — register before the default body parser.
+app.use(
+  '/api/ai',
+  express.json({ limit: '10mb' }),
+  express.urlencoded({ limit: '10mb', extended: true }),
+  aiRoutes
+);
+
+app.use(express.json({ limit: '100kb' }));
+app.use(express.urlencoded({ limit: '100kb', extended: true }));
+
 import path from 'path';
 import pool from './config/db.js';
 const __dirname = path.resolve();
 
-// Helmet sets Cross-Origin-Resource-Policy: same-origin globally.
-// Static media routes (video/audio) need cross-origin to load in <video>/<audio> tags.
 const crossOriginStatic = (dir) => [
-    (_req, res, next) => { res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin'); next(); },
+    (_req, res, next) => {
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        next();
+    },
     express.static(dir)
 ];
 
@@ -84,7 +96,6 @@ app.use('/tts-docum', ...crossOriginStatic(ttsDocumPath));
 const ttsPodcastsPath = path.join(__dirname, '..', 'tts-service', 'podcasts');
 app.use('/tts-podcasts', ...crossOriginStatic(ttsPodcastsPath));
 
-// Register routes
 app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/courses', courseRoutes);
@@ -92,9 +103,7 @@ app.use('/api/progress', progressRoutes);
 app.use('/api/enroll', enrollRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/ai', aiRoutes);
 app.use('/api/badges', badgeRoutes);
-
 app.use('/api/contributions', contributionRoutes);
 app.use('/api/videos', videoRoutes);
 app.use('/api/career', careerRoutes);
@@ -107,7 +116,6 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/tts', ttsRoutes);
 app.use('/api/arena', arenaRoutes);
 app.use('/api/admin', adminRoutes);
-
 
 app.get('/api/health', async (req, res) => {
   try {
@@ -127,7 +135,6 @@ app.get('/', (req, res) => {
   res.json({ message: 'Backend running successfully 🚀' });
 });
 
-// Global Error Handler
 app.use((err, req, res, next) => {
   logger.error('[Global Error]', { msg: err.message, stack: err.stack });
   res.status(err.status || 500).json({
