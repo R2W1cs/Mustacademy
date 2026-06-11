@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import api from "../api/axios";
 import { Mail, Lock, Check, AlertCircle, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { useTheme } from "../auth/ThemeContext";
+import { useAuth } from "../auth/AuthContext";
 
 // Floating Particles Component
 const FloatingParticles = ({ isDark }) => {
@@ -126,6 +127,7 @@ const Login = () => {
   const [forgotSuccess, setForgotSuccess] = useState(false);
   const navigate = useNavigate();
   const { theme } = useTheme();
+  const { login } = useAuth();
   const isDark = theme === "dark";
 
   const submit = async (e) => {
@@ -135,12 +137,14 @@ const Login = () => {
 
     try {
       const res = await api.post("/auth/login", { email, password });
-      localStorage.setItem("token", res.data.token);
-      if (res.data.user?.id) {
-        localStorage.setItem("userId", res.data.user.id);
-        localStorage.setItem("userName", res.data.user.name || "Scholar");
-      }
-      navigate("/dashboard");
+      const user = res.data.user ?? {};
+      login(res.data.token, {
+        id: user.id,
+        name: user.name || "Scholar",
+        role: user.role || "student",
+      });
+      const role = user.role;
+      navigate(role === "admin" ? "/admin" : role === "professor" ? "/admin" : "/dashboard");
     } catch (err) {
       if (err.response?.status === 401) {
         setError("Incorrect email or password. Please check your credentials and try again.");

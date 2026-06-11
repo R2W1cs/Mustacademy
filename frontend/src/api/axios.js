@@ -29,6 +29,9 @@ api.interceptors.response.use(
     if (error.response && (error.response.status === 401 || error.response.status === 403)) {
       console.warn("Authentication failed, clearing credentials.");
       localStorage.removeItem("token");
+      localStorage.removeItem("userId");
+      localStorage.removeItem("userName");
+      localStorage.removeItem("role");
       if (window.location.pathname !== '/login') {
         window.location.href = "/login";
       }

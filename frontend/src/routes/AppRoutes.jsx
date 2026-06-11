@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { Suspense, lazy } from "react";
 
 import MainLayout from "../layouts/MainLayout";
+import { RequireAuth } from "./ProtectedRoute";
 
 const Login = lazy(() => import("../pages/Login"));
 const Register = lazy(() => import("../pages/Register"));
@@ -29,6 +30,7 @@ const PodcastStudio = lazy(() => import("../pages/PodcastStudio"));
 const NotFound = lazy(() => import("../pages/NotFound"));
 const UpgradePage = lazy(() => import("../pages/UpgradePage"));
 const AdminKBPage = lazy(() => import("../pages/AdminKBPage"));
+const AdminDashboard = lazy(() => import("../pages/AdminDashboard"));
 
 const PageLoader = () => (
   <div className="flex h-full min-h-[50vh] w-full items-center justify-center">
@@ -39,210 +41,72 @@ const PageLoader = () => (
   </div>
 );
 
-// Wrapper to prevent repeating Suspense
 const withSuspense = (Component) => (
   <Suspense fallback={<PageLoader />}>
     <Component />
   </Suspense>
 );
 
+const publicPage = (Component) => withSuspense(Component);
+
+const protectedPage = (Component, { roles } = {}) => (
+  <RequireAuth roles={roles}>
+    {withSuspense(Component)}
+  </RequireAuth>
+);
+
+const protectedLayout = (Component, { roles } = {}) => (
+  <RequireAuth roles={roles}>
+    <MainLayout>{withSuspense(Component)}</MainLayout>
+  </RequireAuth>
+);
+
 export default function AppRoutes() {
   return (
     <Routes>
       {/* Public */}
-      <Route path="/login" element={withSuspense(Login)} />
-      <Route path="/register" element={withSuspense(Register)} />
-      <Route path="/reset-password/:token" element={withSuspense(ResetPassword)} />
+      <Route path="/login" element={publicPage(Login)} />
+      <Route path="/register" element={publicPage(Register)} />
+      <Route path="/reset-password/:token" element={publicPage(ResetPassword)} />
+      <Route path="/" element={publicPage(LandingPage)} />
 
-      {/* App */}
-      <Route path="/" element={withSuspense(LandingPage)} />
-
-      <Route
-        path="/dashboard"
-        element={
-          <MainLayout>
-            {withSuspense(Dashboard)}
-          </MainLayout>
-        }
-      />
-
+      {/* Authenticated */}
+      <Route path="/dashboard" element={protectedLayout(Dashboard)} />
       <Route path="/courses" element={<Navigate to="/library" replace />} />
+      <Route path="/my-courses" element={protectedLayout(MyCourses)} />
+      <Route path="/courses/:id" element={protectedLayout(CourseDetails)} />
+      <Route path="/courses/:id/roadmap" element={protectedLayout(RoadmapView)} />
+      <Route path="/topics/:id" element={protectedLayout(TopicDetails)} />
+      <Route path="/knowledge-map" element={protectedPage(KnowledgeMapPage)} />
+      <Route path="/library" element={protectedLayout(LibraryPage)} />
+      <Route path="/neural-clash" element={protectedLayout(NeuralClashPage)} />
+      <Route path="/arena" element={protectedLayout(NeuralClashPage)} />
+      <Route path="/exams/session" element={protectedLayout(ExamSession)} />
+      <Route path="/profile/setup" element={protectedLayout(ProfileSetup)} />
+      <Route path="/profile" element={protectedLayout(Profile)} />
+      <Route path="/career/roadmap" element={protectedLayout(CareerRoadmap)} />
+      <Route path="/career" element={protectedLayout(CareerRoadmap)} />
+      <Route path="/market" element={protectedLayout(ForumHub)} />
+      <Route path="/forum/thread/:id" element={protectedLayout(ThreadDetailsPage)} />
+      <Route path="/interview-boardroom" element={protectedLayout(InterviewPage)} />
+      <Route path="/creator-corner" element={protectedLayout(CreatorCorner)} />
+      <Route path="/podcast-studio" element={protectedLayout(PodcastStudio)} />
+      <Route path="/upgrade" element={protectedLayout(UpgradePage)} />
 
+      {/* Admin / professor */}
       <Route
-        path="/my-courses"
-        element={
-          <MainLayout>
-            {withSuspense(MyCourses)}
-          </MainLayout>
-        }
-      />
-
-      <Route
-        path="/courses/:id"
-        element={
-          <MainLayout>
-            {withSuspense(CourseDetails)}
-          </MainLayout>
-        }
-      />
-
-      <Route
-        path="/courses/:id/roadmap"
-        element={
-          <MainLayout>
-            {withSuspense(RoadmapView)}
-          </MainLayout>
-        }
-      />
-
-      <Route
-        path="/topics/:id"
-        element={
-          <MainLayout>
-            {withSuspense(TopicDetails)}
-          </MainLayout>
-        }
-      />
-
-      <Route
-        path="/knowledge-map"
-        element={withSuspense(KnowledgeMapPage)}
-      />
-
-      <Route
-        path="/library"
-        element={
-          <MainLayout>
-            {withSuspense(LibraryPage)}
-          </MainLayout>
-        }
-      />
-
-      <Route
-        path="/neural-clash"
-        element={
-          <MainLayout>
-            {withSuspense(NeuralClashPage)}
-          </MainLayout>
-        }
-      />
-
-      <Route
-        path="/arena"
-        element={
-          <MainLayout>
-            {withSuspense(NeuralClashPage)}
-          </MainLayout>
-        }
-      />
-
-      <Route
-        path="/exams/session"
-        element={
-          <MainLayout>
-            {withSuspense(ExamSession)}
-          </MainLayout>
-        }
-      />
-
-      <Route
-        path="/profile/setup"
-        element={
-          <MainLayout>
-            {withSuspense(ProfileSetup)}
-          </MainLayout>
-        }
-      />
-
-      <Route
-        path="/profile"
-        element={
-          <MainLayout>
-            {withSuspense(Profile)}
-          </MainLayout>
-        }
-      />
-      <Route
-        path="/career/roadmap"
-        element={
-          <MainLayout>
-            {withSuspense(CareerRoadmap)}
-          </MainLayout>
-        }
-      />
-
-      <Route
-        path="/career"
-        element={
-          <MainLayout>
-            {withSuspense(CareerRoadmap)}
-          </MainLayout>
-        }
-      />
-
-      <Route
-        path="/market"
-        element={
-          <MainLayout>
-            {withSuspense(ForumHub)}
-          </MainLayout>
-        }
-      />
-      <Route
-        path="/forum/thread/:id"
-        element={
-          <MainLayout>
-            {withSuspense(ThreadDetailsPage)}
-          </MainLayout>
-        }
-      />
-      <Route
-        path="/interview-boardroom"
-        element={
-          <MainLayout>
-            {withSuspense(InterviewPage)}
-          </MainLayout>
-        }
-      />
-      <Route
-        path="/creator-corner"
-        element={
-          <MainLayout>
-            {withSuspense(CreatorCorner)}
-          </MainLayout>
-        }
-      />
-      <Route
-        path="/podcast-studio"
-        element={
-          <MainLayout>
-            {withSuspense(PodcastStudio)}
-          </MainLayout>
-        }
-      />
-
-      <Route
-        path="/upgrade"
-        element={
-          <MainLayout>
-            {withSuspense(UpgradePage)}
-          </MainLayout>
-        }
+        path="/admin"
+        element={protectedLayout(AdminDashboard, { roles: ["admin", "professor"] })}
       />
       <Route
         path="/admin/kb"
-        element={
-          <MainLayout>
-            {withSuspense(AdminKBPage)}
-          </MainLayout>
-        }
+        element={protectedLayout(AdminKBPage, { roles: ["admin"] })}
       />
 
       <Route path="/accomplishments" element={<Navigate to="/profile" replace />} />
       <Route path="/forum" element={<Navigate to="/market" replace />} />
       <Route path="/protocols" element={<Navigate to="/market" replace />} />
-      {/* 404 */}
-      <Route path="*" element={withSuspense(NotFound)} />
+      <Route path="*" element={publicPage(NotFound)} />
     </Routes>
   );
 }
