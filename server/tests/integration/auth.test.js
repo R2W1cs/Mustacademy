@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import request from 'supertest';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'ci-test-secret-not-real-32chars-long';
+const signToken = (payload) => jwt.sign(payload, JWT_SECRET);
 
 vi.mock("../../src/config/db.js", () => ({
     default: { query: vi.fn().mockResolvedValue({ rows: [] }) }
@@ -51,7 +55,7 @@ describe('POST /api/auth/register', () => {
     it('returns 201 with token and user on success', async () => {
         pool.query
             .mockResolvedValueOnce({ rows: [] }) // no existing user
-            .mockResolvedValueOnce({ rows: [{ id: 42, name: 'Bob', email: 'bob@test.com', role: 'user' }] }) // insert
+            .mockResolvedValueOnce({ rows: [{ id: 42, name: 'Bob', email: 'bob@test.com', role: 'user', token_version: 0 }] }) // insert
             .mockResolvedValueOnce({ rows: [] }) // user_stats
             .mockResolvedValueOnce({ rows: [] }); // user_contributions
         const res = await request(app)
@@ -99,11 +103,59 @@ describe('POST /api/auth/login', () => {
                 password_hash: '$2b$10$invalidhashvalue000000000000000000000000000',
                 role: 'user',
                 name: 'Bob',
+                token_version: 0,
+                failed_login_attempts: 0,
+                locked_until: null,
             }],
-        });
+        })
+            .mockResolvedValueOnce({ rows: [{ failed_login_attempts: 1, locked_until: null }] });
         const res = await request(app)
             .post('/api/auth/login')
             .send({ email: 'bob@test.com', password: 'wrongpassword' });
         expect(res.status).toBe(401);
+    });
+});
+
+describe('Security hardening', () => {
+    beforeEach(() => vi.clearAllMocks());
+
+    it('PATCH /api/profile/plan returns 403', async () => {
+        const token = signToken({ id: 1, role: 'student', tv: 0 });
+        pool.query.mockResolvedValueOnce({ rows: [{ role: 'student', token_version: 0 }] });
+        const res = await request(app)
+            .patch('/api/profile/plan')
+            .set('Authorization', `Bearer ${token}`);
+        expect(res.status).toBe(403);
+    });
+
+    it('GET /api/admin/stats returns 401 without token', async () => {
+        const res = await request(app).get('/api/admin/stats');
+        expect(res.status).toBe(401);
+    });
+
+    it('GET /api/admin/stats returns 403 for student', async () => {
+        const token = signToken({ id: 2, role: 'student', tv: 0 });
+        pool.query.mockResolvedValueOnce({ rows: [{ role: 'student', token_version: 0 }] });
+        const res = await request(app)
+            .get('/api/admin/stats')
+            .set('Authorization', `Bearer ${token}`);
+        expect(res.status).toBe(403);
+    });
+
+    it('protect rejects revoked token_version', async () => {
+        const token = signToken({ id: 4, role: 'student', tv: 0 });
+        pool.query.mockResolvedValueOnce({ rows: [{ role: 'student', token_version: 1 }] });
+        const res = await request(app)
+            .get('/api/auth/session')
+            .set('Authorization', `Bearer ${token}`);
+        expect(res.status).toBe(401);
+        expect(res.body.message).toBe('Token revoked');
+    });
+
+    it('POST /api/auth/register rejects weak password', async () => {
+        const res = await request(app)
+            .post('/api/auth/register')
+            .send({ name: 'Bob', email: 'bob@test.com', password: 'short' });
+        expect(res.status).toBe(400);
     });
 });

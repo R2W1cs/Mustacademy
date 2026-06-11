@@ -1,24 +1,37 @@
 import jwt from 'jsonwebtoken';
 import pool from '../config/db.js';
 
-export const protect = (req, res, next) => {
+export const protect = async (req, res, next) => {
   const authHeader = req.headers.authorization;
 
-  if (!authHeader) {
+  if (!authHeader?.startsWith('Bearer ')) {
     return res.status(401).json({ message: 'No auth header' });
-  }
-
-  if (!authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ message: 'Bad auth format' });
   }
 
   const token = authHeader.split(' ')[1];
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // { id, role }
+
+    const { rows } = await pool.query(
+      'SELECT role, token_version FROM users WHERE id = $1',
+      [decoded.id]
+    );
+
+    if (!rows.length) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    const { role, token_version } = rows[0];
+    const tokenVersion = decoded.tv ?? 0;
+
+    if (tokenVersion !== (token_version ?? 0)) {
+      return res.status(401).json({ message: 'Token revoked' });
+    }
+
+    req.user = { id: decoded.id, role };
     next();
-  } catch (err) {
+  } catch {
     return res.status(401).json({ message: 'Invalid token' });
   }
 };
@@ -30,7 +43,7 @@ export const requirePremium = async (req, res, next) => {
       return res.status(403).json({ error: 'premium_required' });
     }
     next();
-  } catch (err) {
+  } catch {
     return res.status(500).json({ message: 'Failed to verify plan' });
   }
 };

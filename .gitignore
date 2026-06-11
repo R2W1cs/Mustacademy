@@ -34,6 +34,17 @@ tts-service/docum/
 tts-service/podcasts/
 server/uploads/
 
+# Local debug artifacts — may contain PII
+server/db_output.json
+server/audit_log.txt
+server/schema_dump.txt
+masterclass_dump.json
+server/db_debug_output.txt
+server/debug_*.txt
+server/debug_*.js
+check_*.js
+server/check_*.js
+
 # Logs
 *.log
 npm-debug.log*

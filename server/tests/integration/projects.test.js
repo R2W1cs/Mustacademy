@@ -16,7 +16,10 @@ import app from '../../src/app.js';
 import pool from '../../src/config/db.js';
 
 const makeToken = (id = 1) =>
-    jwt.sign({ id, role: 'user' }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    jwt.sign({ id, role: 'user', tv: 0 }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+const mockProtect = () =>
+    pool.query.mockResolvedValueOnce({ rows: [{ role: 'user', token_version: 0 }] });
 
 describe('GET /api/projects', () => {
     beforeEach(() => vi.clearAllMocks());
@@ -27,6 +30,7 @@ describe('GET /api/projects', () => {
     });
 
     it('returns paginated project list', async () => {
+        mockProtect();
         pool.query
             .mockResolvedValueOnce({ rows: [{ id: 1, title: 'AI Tool', owner_name: 'Alice' }] })
             .mockResolvedValueOnce({ rows: [{ count: '1' }] });
@@ -41,6 +45,7 @@ describe('GET /api/projects', () => {
     });
 
     it('supports ?page and ?limit params', async () => {
+        mockProtect();
         pool.query
             .mockResolvedValueOnce({ rows: [] })
             .mockResolvedValueOnce({ rows: [{ count: '50' }] });
@@ -64,6 +69,7 @@ describe('POST /api/projects', () => {
     });
 
     it('returns 400 when title is missing', async () => {
+        mockProtect();
         const res = await request(app)
             .post('/api/projects')
             .set('Authorization', `Bearer ${makeToken()}`)
@@ -73,6 +79,7 @@ describe('POST /api/projects', () => {
     });
 
     it('returns 400 when description is missing', async () => {
+        mockProtect();
         const res = await request(app)
             .post('/api/projects')
             .set('Authorization', `Bearer ${makeToken()}`)
@@ -82,6 +89,7 @@ describe('POST /api/projects', () => {
     });
 
     it('returns 400 when title exceeds 100 characters', async () => {
+        mockProtect();
         const res = await request(app)
             .post('/api/projects')
             .set('Authorization', `Bearer ${makeToken()}`)
@@ -90,6 +98,7 @@ describe('POST /api/projects', () => {
     });
 
     it('returns 400 when github_repo is not a GitHub URL', async () => {
+        mockProtect();
         const res = await request(app)
             .post('/api/projects')
             .set('Authorization', `Bearer ${makeToken()}`)
@@ -99,6 +108,7 @@ describe('POST /api/projects', () => {
     });
 
     it('returns 201 on successful creation', async () => {
+        mockProtect();
         pool.query.mockResolvedValueOnce({
             rows: [{ id: 10, title: 'My Project', description: 'Desc', owner_id: 1, skills_required: [] }],
         });
@@ -112,6 +122,7 @@ describe('POST /api/projects', () => {
     });
 
     it('accepts a valid GitHub URL', async () => {
+        mockProtect();
         pool.query.mockResolvedValueOnce({
             rows: [{ id: 11, title: 'OSS', description: 'Open source', github_repo: 'https://github.com/user/repo', owner_id: 1, skills_required: [] }],
         });
