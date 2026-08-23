@@ -6,7 +6,7 @@
 import pool from "../config/db.js";
 import { cacheGet, cacheSet, cacheKey } from "../utils/aiCache.js";
 import { incrementStreak } from "../services/streak.service.js";
-import { callAI, streamAI } from "../utils/aiClient.js";
+import { callAI, streamAI, GROQ_MODEL } from "../utils/aiClient.js";
 import { buildMentorPrompt, retrieveKBContext } from "../utils/ragEngine.js";
 import { FILLER_PROMPT } from "../utils/aiRules.js";
 
@@ -178,7 +178,7 @@ export const chatWithMentorStream = async (req, res) => {
 
         const stream = await streamAI(
             { system: systemPrompt, user: message },
-            "llama-3.3-70b-versatile", 2048
+            GROQ_MODEL, 2048
         );
 
         let fullContent = "";

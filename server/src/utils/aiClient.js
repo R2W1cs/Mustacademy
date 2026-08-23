@@ -4,12 +4,16 @@ const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434/api/generat
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'llama3.2';
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const ALLOW_OLLAMA = process.env.ALLOW_OLLAMA === 'true' || process.env.NODE_ENV !== 'production';
+// Groq retired the old llama-3.x public IDs for many accounts — use currently available models.
+export const GROQ_MODEL = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
+export const GROQ_FAST_MODEL = process.env.GROQ_FAST_MODEL || 'groq/compound-mini';
 
 import Groq from "groq-sdk";
 export const groq = GROQ_API_KEY ? new Groq({ apiKey: GROQ_API_KEY, timeout: 20000, maxRetries: 0 }) : null;
 
 console.log(`[AI Setup] Ollama URL: ${OLLAMA_URL} (enabled=${ALLOW_OLLAMA})`);
 console.log(`[AI Setup] Groq Key present: ${!!GROQ_API_KEY}`);
+console.log(`[AI Setup] Groq models: primary=${GROQ_MODEL} fast=${GROQ_FAST_MODEL}`);
 
 const MOCK_FALLBACKS = {
     mentor: [
@@ -62,7 +66,7 @@ export const repairJson = (jsonStr) => {
     return repaired;
 };
 
-export const callGroq = async (prompt, expectJson = true, model = "llama-3.3-70b-versatile", maxTokens = 2048) => {
+export const callGroq = async (prompt, expectJson = true, model = GROQ_MODEL, maxTokens = 2048) => {
     if (!groq) throw new Error("GROQ_API_KEY missing from environment");
 
     // Build messages array — supports string, { system, user }, or raw messages[]
@@ -81,15 +85,24 @@ export const callGroq = async (prompt, expectJson = true, model = "llama-3.3-70b
     console.log(`[AI Groq] Attempting reasoning via ${model} (expectJson=${expectJson}, maxTokens=${maxTokens})...`);
     try {
         const payload = {
-            model: model,
+            model,
             messages,
             temperature: 0.7,
-            max_completion_tokens: maxTokens,
+            max_tokens: maxTokens,
             top_p: 1
         };
 
         if (expectJson) {
             payload.response_format = { type: "json_object" };
+            // Many Groq models need an explicit JSON instruction when response_format is set.
+            const hasSystem = messages.some((m) => m.role === 'system');
+            if (!hasSystem) {
+                messages = [
+                    { role: 'system', content: 'You are a JSON API. Always respond with valid JSON only.' },
+                    ...messages,
+                ];
+                payload.messages = messages;
+            }
         }
 
         const completion = await groq.chat.completions.create(payload);
@@ -110,11 +123,14 @@ export const callGroq = async (prompt, expectJson = true, model = "llama-3.3-70b
         if (err.message.includes("401") || err.message.includes("API key")) {
             console.error("[AI Groq] Authentication failure. Verification of GROQ_API_KEY recommended.");
         }
+        if (err.message.includes("model_not_found") || err.message.includes("does not exist")) {
+            console.error(`[AI Groq] Model unavailable: ${model}. Set GROQ_MODEL to a model listed by your Groq account.`);
+        }
         throw err;
     }
 };
 
-export const streamAI = async (prompt, model = "llama-3.3-70b-versatile", maxTokens = 4096) => {
+export const streamAI = async (prompt, model = GROQ_MODEL, maxTokens = 4096) => {
     // Build messages array — same overload support as callGroq
     let messages;
     if (Array.isArray(prompt)) {
@@ -133,16 +149,19 @@ export const streamAI = async (prompt, model = "llama-3.3-70b-versatile", maxTok
         try {
             console.log(`[AI Groq] Initiating stream via ${model} (maxTokens=${maxTokens})...`);
             const stream = await groq.chat.completions.create({
-                model: model,
+                model,
                 messages,
                 temperature: 1,
-                max_completion_tokens: maxTokens,
+                max_tokens: maxTokens,
                 top_p: 1,
                 stream: true,
             });
             return stream;
         } catch (err) {
             console.warn("[AI Groq Stream] Failed:", err.message);
+            if (err.message.includes("model_not_found") || err.message.includes("does not exist")) {
+                console.error(`[AI Groq Stream] Model unavailable: ${model}. Set GROQ_MODEL on the server.`);
+            }
         }
     }
 
@@ -160,7 +179,7 @@ export const streamAI = async (prompt, model = "llama-3.3-70b-versatile", maxTok
     const mockReply = getMockResponse('mentor');
     const reason = !GROQ_API_KEY
         ? 'GROQ_API_KEY is not set on the server (Render env). Redeploy after adding it.'
-        : `Groq failed: check key validity / quota.`;
+        : `Groq request failed (model=${model}). Check GROQ_MODEL / quota.`;
     return (async function* () {
         const words = `⚠️ [EMERGENCY PROTOCOL ACTIVE] ${reason} ${mockReply}`.split(' ');
         for (const word of words) {
@@ -236,16 +255,16 @@ export const streamOllama = async (prompt) => {
 
 // Gemini removed — Groq is the sole cloud provider.
 
-// --- FAST AI WRAPPER (llama-3.1-8b-instant — ~5× faster, for quick-response features) ---
+// --- FAST AI WRAPPER (GROQ_FAST_MODEL — for quick-response features) ---
 // Use for: project eval, grading, career analysis, quiz, readiness check, goal submission
 export const callFastAI = async (prompt, expectJson = true, maxTokens = 512) => {
     if (process.env.GROQ_API_KEY) {
         try {
-            console.log("[callFastAI] Attempting fast Groq protocol (8b-instant)...");
-            const groqRes = await callGroq(prompt, expectJson, "llama-3.1-8b-instant", maxTokens);
+            console.log(`[callFastAI] Attempting fast Groq protocol (${GROQ_FAST_MODEL})...`);
+            const groqRes = await callGroq(prompt, expectJson, GROQ_FAST_MODEL, maxTokens);
             if (groqRes) return groqRes;
         } catch (err) {
-            console.warn("[callFastAI] Fast model failed, falling back to 70b:", err.message);
+            console.warn("[callFastAI] Fast model failed, falling back to primary:", err.message);
         }
     }
     // Fall through to full callAI if fast model fails
@@ -254,12 +273,14 @@ export const callFastAI = async (prompt, expectJson = true, maxTokens = 512) => 
 
 // --- PRIMARY AI WRAPPER (Groq only; optional local Ollama in non-production) ---
 export const callAI = async (prompt, expectJson = true, maxTokens = 2048) => {
+    let lastError = null;
     if (process.env.GROQ_API_KEY) {
         try {
-            console.log("[callAI] Attempting Groq protocol...");
-            const groqRes = await callGroq(prompt, expectJson, "llama-3.3-70b-versatile", maxTokens);
+            console.log(`[callAI] Attempting Groq protocol (${GROQ_MODEL})...`);
+            const groqRes = await callGroq(prompt, expectJson, GROQ_MODEL, maxTokens);
             if (groqRes) return groqRes;
         } catch (err) {
+            lastError = err.message;
             console.warn("[callAI] Groq failed:", err.message);
         }
     }
@@ -270,6 +291,7 @@ export const callAI = async (prompt, expectJson = true, maxTokens = 2048) => {
             const ollamaRes = await callOllama(prompt, expectJson);
             if (ollamaRes && !ollamaRes.error) return ollamaRes;
         } catch (err) {
+            lastError = err.message;
             console.error("[callAI] Ollama uplink failed:", err.message);
         }
     }
@@ -278,12 +300,12 @@ export const callAI = async (prompt, expectJson = true, maxTokens = 2048) => {
     const mockReply = getMockResponse('mentor');
     const prefix = !GROQ_API_KEY
         ? "⚠️ [OFFLINE MODE — set GROQ_API_KEY on Render] "
-        : "⚠️ [OFFLINE MODE — Groq request failed] ";
+        : `⚠️ [OFFLINE MODE — Groq request failed${lastError ? `: ${lastError.slice(0, 120)}` : ''}] `;
     if (expectJson) {
         return {
             reply: prefix + mockReply,
             segments: [
-                { speaker: "host", text: "Neural link unavailable. Configure GROQ_API_KEY on the backend and redeploy." },
+                { speaker: "host", text: "Neural link unavailable. Set GROQ_MODEL to a model your Groq account can access, then redeploy." },
                 { speaker: "expert", text: mockReply }
             ],
             title: "Neural Link Interrupted",

@@ -161,6 +161,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
     const [customRole, setCustomRole] = useState("");
     const [phase, setPhase] = useState('INTRO');
     const [messages, setMessages] = useState([]);
+    const isOfflineMode = messages.some(m => typeof m.text === 'string' && m.text.includes('[OFFLINE MODE'));
     const [input, setInput] = useState("");
     const [isListening, setIsListening] = useState(false);
     const [isSpeaking, setIsSpeaking] = useState(false);
@@ -1126,12 +1127,16 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                                             </div>
                                             <div>
                                                 <h3 className="font-black text-sm uppercase tracking-[0.3em] text-white">SWAIN PANEL</h3>
-                                                <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Real-Time Behavioral Analysis Active</p>
+                                                <p className={`text-[8px] font-black uppercase tracking-widest ${isOfflineMode ? 'text-amber-500' : 'text-slate-500'}`}>
+                                                    {isOfflineMode ? 'Offline Mode — AI Uplink Degraded' : 'Real-Time Behavioral Analysis Active'}
+                                                </p>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-3">
-                                            <div className="bg-indigo-500/10 px-4 py-2 rounded-lg border border-indigo-500/20">
-                                                <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Ultra-Low Latency Mode</span>
+                                            <div className={`px-4 py-2 rounded-lg border ${isOfflineMode ? 'bg-amber-500/10 border-amber-500/30' : 'bg-indigo-500/10 border-indigo-500/20'}`}>
+                                                <span className={`text-[9px] font-black uppercase tracking-widest ${isOfflineMode ? 'text-amber-400' : 'text-indigo-400'}`}>
+                                                    {isOfflineMode ? 'Mock Protocol Active' : 'Ultra-Low Latency Mode'}
+                                                </span>
                                             </div>
                                         </div>
                                     </div>

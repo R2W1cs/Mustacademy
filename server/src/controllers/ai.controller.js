@@ -10,7 +10,7 @@ import {
     MASTERCLASS_EPISODE_PROMPT, ULTIMATE_PODCAST_PROMPT
 } from "../utils/aiRules.js";
 import { getNextPhase, updateInterviewSession, startInterviewSession } from "../services/interview.service.js";
-import { callOllama, callGroq, callAI, repairJson, streamAI, groq } from "../utils/aiClient.js";
+import { callOllama, callGroq, callAI, repairJson, streamAI, groq, GROQ_MODEL, GROQ_FAST_MODEL } from "../utils/aiClient.js";
 import { buildMentorPrompt, retrieveKBContext } from "../utils/ragEngine.js";
 import { MsEdgeTTS, OUTPUT_FORMAT } from "msedge-tts";
 import { Communicate } from 'edge-tts-universal';
@@ -209,7 +209,7 @@ export const chatWithMentorStream = async (req, res) => {
         // 3. Start Stream with system/user split and bounded token budget
         const stream = await streamAI(
             { system: systemPrompt, user: `Student: ${message}` },
-            "llama-3.3-70b-versatile", 4096
+            GROQ_MODEL, 4096
         );
 
         let fullContent = "";
@@ -1717,10 +1717,13 @@ Speak entirely naturally, warmly, and eloquently. Do not use structural markdown
 
         const completion = await groq.chat.completions.create({
             messages,
-            model: "llama3-70b-8192", // Fast large model for excellent conversational flow
+            model: GROQ_MODEL, // Conversational boardroom / podcast flow
             temperature: 0.7,
             max_tokens: 300
         });
+'@
+# This won't work as StrReplace with partial - need exact context
+Write-Host skip
 
         const reply = completion.choices[0].message.content;
 
@@ -1753,7 +1756,7 @@ Keep each paragraph to 2 to 4 sentences. Write for the ear, not the eye. Speak d
 
         const completion = await groq.chat.completions.create({
             messages: [{ role: "user", content: prompt }],
-            model: "llama3-70b-8192",
+            model: GROQ_MODEL,
             temperature: 0.72,
             max_tokens: 550
         });

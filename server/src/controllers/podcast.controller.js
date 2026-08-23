@@ -5,7 +5,7 @@
  */
 import pool from "../config/db.js";
 import { cacheGet, cacheSet, cacheKey } from "../utils/aiCache.js";
-import { callAI, groq } from "../utils/aiClient.js";
+import { callAI, groq, GROQ_MODEL } from "../utils/aiClient.js";
 import { enqueueMasterclassJob } from "../utils/jobQueue.js";
 import { incrementStreak } from "../services/streak.service.js";
 import {
@@ -331,7 +331,7 @@ export const generateInteractivePodcast = async (req, res) => {
             ...history.map(msg => ({ role: msg.role || 'user', content: msg.content }))
         ];
 
-        const completion = await groq.chat.completions.create({ messages, model: "llama3-70b-8192", temperature: 0.7, max_tokens: 300 });
+        const completion = await groq.chat.completions.create({ messages, model: GROQ_MODEL, temperature: 0.7, max_tokens: 300 });
         res.json({ success: true, reply: completion.choices[0].message.content });
     } catch (err) {
         console.error("Interactive Podcast Error:", err);
@@ -346,7 +346,7 @@ export const generateNovaLesson = async (req, res) => {
 
         const completion = await groq.chat.completions.create({
             messages: [{ role: "user", content: `You are Dr. Nova, a world-class CS professor. Write a private spoken lecture on "${topicTitle}". No markdown, no formatting — only natural spoken prose. Exactly 4 paragraphs: Hook, Core Concept (with analogy), How It Works, Real World + Invitation. 2-4 sentences per paragraph. Speak directly to the student using "you".` }],
-            model: "llama3-70b-8192",
+            model: GROQ_MODEL,
             temperature: 0.72,
             max_tokens: 550
         });

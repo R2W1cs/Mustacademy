@@ -4,6 +4,8 @@ import pkg from 'pg';
 const { Pool } = pkg;
 import Groq from 'groq-sdk';
 
+const GROQ_MODEL = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
+
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }
@@ -49,7 +51,7 @@ async function diagnose() {
             const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
             console.log("Attempting test Groq completion...");
             const completion = await groq.chat.completions.create({
-                model: "llama-3.3-70b-versatile",
+                model: GROQ_MODEL,
                 messages: [{ role: "user", content: "hi" }],
                 max_completion_tokens: 5
             });
