@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
     GraduationCap, LayoutGrid, Network, BookOpen, Users, User,
     Sun, Moon, ChevronLeft, PanelLeftClose, PanelLeftOpen, Activity, Rocket,
-    Briefcase, FileText, Swords, Film, X
+    Briefcase, FileText, Swords, Film, X, Shield
 } from "lucide-react";
 import api from "../api/axios";
 import { useTheme } from "../auth/ThemeContext";
@@ -77,6 +77,8 @@ export default function Sidebar({ isCollapsed, toggleSidebar, mobileOpen = false
     const userName = stats?.user?.name || "Scholar";
     const userInitial = userName.charAt(0);
 
+    const role = localStorage.getItem("role");
+
     const navItems = [
         { name: "Dashboard", icon: LayoutGrid, path: "/dashboard", id: "dashboard" },
         { name: "Knowledge Map", icon: Network, path: "/knowledge-map", id: "knowledge-map", badge: "Active" },
@@ -87,6 +89,7 @@ export default function Sidebar({ isCollapsed, toggleSidebar, mobileOpen = false
         { name: "Market Pulse", icon: Activity, path: "/market", id: "market", badge: "LIVE" },
         { name: "Neural Clash", icon: Swords, path: "/neural-clash", id: "neural-clash", badge: "ARENA" },
         { name: "Career Profile", icon: User, path: "/profile", id: "profile" },
+        ...( ["admin", "professor"].includes(role) ? [{ name: "Admin Panel", icon: Shield, path: "/admin", id: "admin", badge: "STAFF" }] : [] ),
     ];
 
     const sidebarClass = isDark ? "glass-morphism border-r border-white/5 shadow-lg" : "bg-white border-r border-gray-200/50 shadow-lg";
