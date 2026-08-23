@@ -16,9 +16,8 @@
     "@aws-sdk/client-s3": "^3.1066.0",
     "@aws-sdk/s3-request-presigner": "^3.1066.0",
     "@gradio/client": "^2.1.0",
-    "@huggingface/transformers": "^3.8.1",
     "@sentry/node": "^10.57.0",
-    "adm-zip": "^0.5.16",
+    "adm-zip": "^0.6.0",
     "axios": "^1.13.5",
     "bcrypt": "^5.1.1",
     "bullmq": "^5.73.0",
@@ -29,7 +28,6 @@
     "edge-tts-universal": "^1.4.0",
     "express": "^4.22.1",
     "express-rate-limit": "^8.3.1",
-    "google-tts-api": "^2.0.2",
     "groq-sdk": "^0.37.0",
     "helmet": "^8.1.0",
     "ioredis": "^5.10.1",
@@ -40,12 +38,16 @@
     "multer": "^1.4.5-lts.1",
     "node-cron": "^4.2.1",
     "node-pg-migrate": "^8.0.4",
-    "nodemailer": "^6.9.9",
+    "nodemailer": "^9.0.5",
     "pdf-parse": "^2.4.5",
     "pg": "^8.11.3",
     "rss-parser": "^3.13.0",
     "socket.io": "^4.8.3",
     "wavefile": "^11.0.0"
+  },
+  "overrides": {
+    "tar": "^7.5.22",
+    "axios": "^1.13.5"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.1.8",
