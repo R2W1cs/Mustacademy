@@ -8,9 +8,33 @@ const INCEPTION_BASE_URL = (process.env.INCEPTION_BASE_URL || 'https://api.incep
 export const INCEPTION_MODEL = process.env.INCEPTION_MODEL || 'mercury-2';
 const INCEPTION_REASONING = process.env.INCEPTION_REASONING_EFFORT || 'low';
 const ALLOW_OLLAMA = process.env.ALLOW_OLLAMA === 'true' || process.env.NODE_ENV !== 'production';
-// Groq retired the old llama-3.x public IDs for many accounts — use currently available models.
-export const GROQ_MODEL = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
-export const GROQ_FAST_MODEL = process.env.GROQ_FAST_MODEL || 'groq/compound-mini';
+// Groq retired legacy public Llama IDs — remap even if Render still has GROQ_MODEL=llama-3.3-70b-versatile.
+const DEFAULT_GROQ_MODEL = 'openai/gpt-oss-120b';
+const DEFAULT_GROQ_FAST_MODEL = 'groq/compound-mini';
+const RETIRED_GROQ_MODELS = new Set([
+    'llama-3.3-70b-versatile',
+    'llama-3.1-70b-versatile',
+    'llama-3.1-8b-instant',
+    'llama3-70b-8192',
+    'llama3-8b-8192',
+    'mixtral-8x7b-32768',
+    'gemma2-9b-it',
+    'gemma-7b-it',
+]);
+
+export const resolveGroqModel = (requested, fallback = DEFAULT_GROQ_MODEL) => {
+    const id = String(requested || '').trim();
+    if (!id) return fallback;
+    const retired = RETIRED_GROQ_MODELS.has(id) || /^llama-3\./i.test(id) || /^llama3-/i.test(id);
+    if (retired) {
+        console.warn(`[AI Setup] Remapping retired Groq model "${id}" → ${fallback}`);
+        return fallback;
+    }
+    return id;
+};
+
+export const GROQ_MODEL = resolveGroqModel(process.env.GROQ_MODEL, DEFAULT_GROQ_MODEL);
+export const GROQ_FAST_MODEL = resolveGroqModel(process.env.GROQ_FAST_MODEL, DEFAULT_GROQ_FAST_MODEL);
 /** Prefer inception | groq | auto (default: try Groq then Inception) */
 const AI_PRIMARY = (process.env.AI_PRIMARY || 'auto').toLowerCase();
 
@@ -88,11 +112,12 @@ export const callGroq = async (prompt, expectJson = true, model = GROQ_MODEL, ma
     if (!groq) throw new Error("GROQ_API_KEY missing from environment");
 
     let messages = buildMessages(prompt);
+    const resolvedModel = resolveGroqModel(model, GROQ_MODEL);
 
-    console.log(`[AI Groq] Attempting reasoning via ${model} (expectJson=${expectJson}, maxTokens=${maxTokens})...`);
+    console.log(`[AI Groq] Attempting reasoning via ${resolvedModel} (expectJson=${expectJson}, maxTokens=${maxTokens})...`);
     try {
         const payload = {
-            model,
+            model: resolvedModel,
             messages,
             temperature: 0.7,
             max_tokens: maxTokens,
@@ -130,7 +155,7 @@ export const callGroq = async (prompt, expectJson = true, model = GROQ_MODEL, ma
             console.error("[AI Groq] Authentication failure. Verification of GROQ_API_KEY recommended.");
         }
         if (err.message.includes("model_not_found") || err.message.includes("does not exist")) {
-            console.error(`[AI Groq] Model unavailable: ${model}. Set GROQ_MODEL to a model listed by your Groq account.`);
+            console.error(`[AI Groq] Model unavailable: ${resolvedModel}. Set GROQ_MODEL to a model listed by your Groq account.`);
         }
         throw err;
     }
@@ -268,12 +293,13 @@ const streamInception = async (prompt, model = INCEPTION_MODEL, maxTokens = 4096
 export const streamAI = async (prompt, model = GROQ_MODEL, maxTokens = 4096) => {
     const messages = buildMessages(prompt);
     const preferInception = AI_PRIMARY === 'inception';
+    const resolvedGroqModel = resolveGroqModel(model, GROQ_MODEL);
 
     const tryGroq = async () => {
         if (!(process.env.GROQ_API_KEY && groq)) return null;
-        console.log(`[AI Groq] Initiating stream via ${model} (maxTokens=${maxTokens})...`);
+        console.log(`[AI Groq] Initiating stream via ${resolvedGroqModel} (maxTokens=${maxTokens})...`);
         return groq.chat.completions.create({
-            model,
+            model: resolvedGroqModel,
             messages,
             temperature: 1,
             max_tokens: maxTokens,
