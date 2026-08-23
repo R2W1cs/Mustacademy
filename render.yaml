@@ -16,10 +16,23 @@ services:
         generateValue: true
       - key: GROQ_API_KEY
         sync: false
-      - key: GEMINI_API_KEY
+      - key: SERPAPI_KEY
         sync: false
+      # Must match your exact Vercel origin (scheme + host, no trailing slash)
       - key: FRONTEND_URL
-        value: https://mustacademy-frontend.vercel.app
+        sync: false
+      - key: S3_ENDPOINT
+        sync: false
+      - key: S3_REGION
+        sync: false
+      - key: S3_BUCKET
+        sync: false
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: S3_PUBLIC_URL
+        sync: false
 
 databases:
   - name: mustacademy-db

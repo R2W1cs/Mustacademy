@@ -8,6 +8,9 @@ import { useTheme } from "../auth/ThemeContext";
 import ScholarlyFeedbackModal from "../components/ScholarlyFeedbackModal";
 import toast from "react-hot-toast";
 
+const apiMediaBase = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace('/api', '').replace(/\/$/, '');
+const resolveVideoSrc = (url) => (url?.startsWith('http') ? url : `${apiMediaBase}${url}`);
+
 const VideoCard = ({ video, onLike, onFeedback }) => {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
@@ -25,7 +28,7 @@ const VideoCard = ({ video, onLike, onFeedback }) => {
                     controls
                     className="w-full h-full object-cover"
                     poster={`https://ui-avatars.com/api/?name=${encodeURIComponent(video.title)}&background=random&size=320`}
-                    src={`${(import.meta.env.VITE_API_URL || 'http://localhost:3001').replace('/api', '').replace(/\/$/, '')}${video.video_url}`}
+                    src={resolveVideoSrc(video.video_url)}
                     onError={(e) => {
                         console.error("Video playback error:", e);
                         // Fallback poster if video fails

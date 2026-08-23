@@ -3,9 +3,16 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';
+import { setAuthCookies, clearAuthCookies, REFRESH_COOKIE } from '../utils/authCookies.js';
+import {
+  createRefreshToken,
+  consumeRefreshToken,
+  revokeRefreshToken,
+  revokeAllUserRefreshTokens,
+} from '../services/refreshToken.service.js';
 
 const BCRYPT_ROUNDS = 12;
-const ACCESS_TOKEN_TTL = '1h';
+const ACCESS_TOKEN_TTL = '15m';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 const RESET_GENERIC_MSG = 'If an account exists for that email, a reset link has been sent.';
 const MAX_FAILED_ATTEMPTS = 5;
@@ -20,11 +27,23 @@ const signAccessToken = (user) =>
     { expiresIn: ACCESS_TOKEN_TTL }
   );
 
+const sanitizeUser = (user) => {
+  const { password_hash, failed_login_attempts, locked_until, ...safe } = user;
+  return safe;
+};
+
+const issueAuthSession = async (user, res) => {
+  const accessToken = signAccessToken(user);
+  const refreshToken = await createRefreshToken(user.id);
+  setAuthCookies(res, accessToken, refreshToken);
+  return sanitizeUser(user);
+};
+
 const isLocked = (user) =>
   user.locked_until && new Date(user.locked_until) > new Date();
 
 const recordFailedLogin = async (userId) => {
-  const { rows } = await pool.query(
+  await pool.query(
     `UPDATE users
      SET failed_login_attempts = COALESCE(failed_login_attempts, 0) + 1,
          locked_until = CASE
@@ -32,11 +51,9 @@ const recordFailedLogin = async (userId) => {
            THEN NOW() + ($3 || ' minutes')::interval
            ELSE locked_until
          END
-     WHERE id = $1
-     RETURNING failed_login_attempts, locked_until`,
+     WHERE id = $1`,
     [userId, MAX_FAILED_ATTEMPTS, String(LOCKOUT_MINUTES)]
   );
-  return rows[0];
 };
 
 const clearFailedLogins = async (userId) => {
@@ -71,8 +88,8 @@ export const register = async (req, res) => {
     [user.id]
   );
 
-  const token = signAccessToken(user);
-  res.status(201).json({ user, token });
+  const safeUser = await issueAuthSession(user, res);
+  res.status(201).json({ user: safeUser });
 };
 
 export const login = async (req, res) => {
@@ -105,17 +122,52 @@ export const login = async (req, res) => {
     }
 
     await clearFailedLogins(user.id);
+    await revokeAllUserRefreshTokens(user.id);
 
-    const token = signAccessToken(user);
-    delete user.password_hash;
-    delete user.failed_login_attempts;
-    delete user.locked_until;
-
-    res.json({ user, token });
+    const safeUser = await issueAuthSession(user, res);
+    res.json({ user: safeUser });
   } catch (error) {
     console.error('[Auth] Login error:', error);
     res.status(500).json({ message: 'Server error. Please try again shortly.' });
   }
+};
+
+export const refresh = async (req, res) => {
+  const raw = req.cookies?.[REFRESH_COOKIE];
+  if (!raw) {
+    return res.status(401).json({ message: 'Refresh token missing' });
+  }
+
+  try {
+    const claimed = await consumeRefreshToken(raw);
+    if (!claimed) {
+      clearAuthCookies(res);
+      return res.status(401).json({ message: 'Invalid refresh token' });
+    }
+
+    const { rows } = await pool.query(
+      'SELECT id, name, email, role, token_version FROM users WHERE id = $1',
+      [claimed.user_id]
+    );
+
+    if (!rows.length) {
+      clearAuthCookies(res);
+      return res.status(401).json({ message: 'Invalid refresh token' });
+    }
+
+    const safeUser = await issueAuthSession(rows[0], res);
+    res.json({ user: safeUser });
+  } catch (error) {
+    console.error('[Auth] Refresh error:', error);
+    res.status(500).json({ message: 'Failed to refresh session' });
+  }
+};
+
+export const logout = async (req, res) => {
+  const raw = req.cookies?.[REFRESH_COOKIE];
+  await revokeRefreshToken(raw);
+  clearAuthCookies(res);
+  res.json({ message: 'Logged out' });
 };
 
 export const getSession = async (req, res) => {
@@ -215,6 +267,9 @@ export const resetPassword = async (req, res) => {
        WHERE id=$2`,
       [hash, userId]
     );
+
+    await revokeAllUserRefreshTokens(userId);
+    clearAuthCookies(res);
 
     res.json({ message: 'Password reset successfully' });
   } catch (error) {

@@ -1,42 +1,64 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
+import api from "../api/axios";
 
 const AuthContext = createContext(null);
 
-const readStoredUser = () => ({
-  id: localStorage.getItem("userId"),
-  name: localStorage.getItem("userName"),
-  role: localStorage.getItem("role") || "student",
-});
+const persistUser = (user) => {
+  if (!user) return;
+  if (user.id != null) localStorage.setItem("userId", String(user.id));
+  if (user.name) localStorage.setItem("userName", user.name);
+  if (user.role) localStorage.setItem("role", user.role);
+};
+
+const clearUserStorage = () => {
+  localStorage.removeItem("userId");
+  localStorage.removeItem("userName");
+  localStorage.removeItem("role");
+};
 
 export const AuthProvider = ({ children }) => {
-  const [token, setToken] = useState(localStorage.getItem("token"));
-  const [user, setUser] = useState(token ? readStoredUser() : null);
+  const [user, setUser] = useState(null);
+  const [bootstrapped, setBootstrapped] = useState(false);
 
-  const login = (jwt, userData = {}) => {
-    localStorage.setItem("token", jwt);
-    if (userData.id) localStorage.setItem("userId", userData.id);
-    if (userData.name) localStorage.setItem("userName", userData.name);
-    if (userData.role) localStorage.setItem("role", userData.role);
+  useEffect(() => {
+    api.get("/auth/session")
+      .then((res) => {
+        setUser(res.data.user);
+        persistUser(res.data.user);
+      })
+      .catch(() => {
+        setUser(null);
+        clearUserStorage();
+      })
+      .finally(() => setBootstrapped(true));
+  }, []);
 
-    setToken(jwt);
-    setUser({
-      id: userData.id ?? localStorage.getItem("userId"),
-      name: userData.name ?? localStorage.getItem("userName"),
-      role: userData.role ?? localStorage.getItem("role") ?? "student",
-    });
+  const login = (userData) => {
+    persistUser(userData);
+    setUser(userData);
   };
 
-  const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("userId");
-    localStorage.removeItem("userName");
-    localStorage.removeItem("role");
-    setToken(null);
+  const logout = async () => {
+    try {
+      await api.post("/auth/logout");
+    } catch {
+      // still clear local session
+    }
+    clearUserStorage();
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ token, user, role: user?.role, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        role: user?.role,
+        isAuthenticated: !!user,
+        bootstrapped,
+        login,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

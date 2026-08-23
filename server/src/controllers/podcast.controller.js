@@ -15,6 +15,7 @@ import {
 import { MsEdgeTTS, OUTPUT_FORMAT } from "msedge-tts";
 import path from "path";
 import fs from "fs";
+import { resolveMediaFields } from "../utils/mediaUrl.js";
 
 const ttsCache = new Map();
 
@@ -296,7 +297,7 @@ export const getMasterclassEpisodes = async (req, res) => {
         const result = await pool.query(
             "SELECT id, title, summary, part_number, chapter_number, video_url, published_at FROM masterclass_episodes ORDER BY part_number ASC"
         );
-        res.json(result.rows);
+        res.json(result.rows.map((row) => resolveMediaFields(row)));
     } catch (err) {
         res.status(500).json({ message: "Error fetching episodes" });
     }
@@ -310,7 +311,7 @@ export const getMasterclassEpisode = async (req, res) => {
             [id]
         );
         if (result.rows.length === 0) return res.status(404).json({ message: "Episode not found" });
-        res.json(result.rows[0]);
+        res.json(resolveMediaFields(result.rows[0]));
     } catch (err) {
         res.status(500).json({ message: "Error fetching episode" });
     }

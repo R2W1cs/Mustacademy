@@ -3,7 +3,11 @@ import cors from 'cors';
 import compression from 'compression';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import cookieParser from 'cookie-parser';
+import { csrfGuard } from './middleware/csrf.middleware.js';
 import logger from './utils/logger.js';
+import { isObjectStorageEnabled } from './services/objectStorage.service.js';
+import { sentryErrorHandler } from './monitoring/sentry.js';
 
 function getAllowedOrigins() {
   if (process.env.NODE_ENV === 'production') {
@@ -62,6 +66,8 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
+app.use(cookieParser());
+app.use(csrfGuard);
 app.use(compression());
 
 // AI routes accept larger JSON payloads — register before the default body parser.
@@ -88,9 +94,13 @@ const crossOriginStatic = (dir) => [
     express.static(dir)
 ];
 
-const uploadsPath = path.join(__dirname, 'uploads');
-logger.info(`[Static] Serving uploads from: ${uploadsPath}`);
-app.use('/uploads', ...crossOriginStatic(uploadsPath));
+if (isObjectStorageEnabled()) {
+  logger.info('[Static] Object storage enabled — peer videos served from CDN');
+} else {
+  const uploadsPath = path.join(__dirname, 'uploads');
+  logger.info(`[Static] Serving uploads from: ${uploadsPath}`);
+  app.use('/uploads', ...crossOriginStatic(uploadsPath));
+}
 const ttsDocumPath = path.join(__dirname, '..', 'tts-service', 'docum');
 app.use('/tts-docum', ...crossOriginStatic(ttsDocumPath));
 const ttsPodcastsPath = path.join(__dirname, '..', 'tts-service', 'podcasts');
@@ -134,6 +144,8 @@ app.get('/api', (req, res) => {
 app.get('/', (req, res) => {
   res.json({ message: 'Backend running successfully 🚀' });
 });
+
+app.use(sentryErrorHandler());
 
 app.use((err, req, res, next) => {
   logger.error('[Global Error]', { msg: err.message, stack: err.stack });

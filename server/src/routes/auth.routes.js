@@ -2,6 +2,8 @@ import express from 'express';
 import {
   register,
   login,
+  refresh,
+  logout,
   forgotPassword,
   resetPassword,
   getSession,
@@ -22,6 +24,8 @@ router.post('/register', authLimiter, validateRegister, asyncHandler(register));
 router.post('/login', authLimiter, validateLogin, asyncHandler(login));
 router.post('/forgot-password', authLimiter, validateForgotPassword, asyncHandler(forgotPassword));
 router.post('/reset-password', authLimiter, validateResetPassword, asyncHandler(resetPassword));
+router.post('/refresh', authLimiter, asyncHandler(refresh));
+router.post('/logout', asyncHandler(logout));
 router.get('/session', protect, asyncHandler(getSession));
 
 export default router;

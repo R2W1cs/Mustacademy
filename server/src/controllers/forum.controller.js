@@ -9,7 +9,7 @@ export const getThreads = async (req, res) => {
         let query = `
             SELECT 
                 ft.*, 
-                u.username, 
+                u.name as username, 
                 u.avatar_url,
                 t.title as topic_title,
                 c.name as course_name,
@@ -52,8 +52,11 @@ export const getThreads = async (req, res) => {
             nextCursor: result.rows.length === parseInt(limit) ? result.rows[result.rows.length - 1].created_at : null
         });
     } catch (err) {
-        console.error("Failed to fetch threads:", err);
-        res.status(500).json({ message: "Network failure in the synaptic grid." });
+        console.error("Failed to fetch threads:", err.message);
+        res.status(500).json({
+            message: "Failed to load threads",
+            detail: process.env.NODE_ENV === 'development' ? err.message : undefined,
+        });
     }
 };
 
@@ -82,7 +85,7 @@ export const getThreadDetails = async (req, res) => {
         const threadRes = await pool.query(`
             SELECT 
                 ft.*, 
-                u.username, 
+                u.name as username, 
                 u.avatar_url,
                 t.title as topic_title,
                 (SELECT COUNT(*) FROM forum_upvotes fu WHERE fu.thread_id = ft.id) as upvote_count,
@@ -100,7 +103,7 @@ export const getThreadDetails = async (req, res) => {
         const commentsRes = await pool.query(`
             SELECT 
                 fc.*, 
-                u.username, 
+                u.name as username, 
                 u.avatar_url,
                 (SELECT COUNT(*) FROM forum_upvotes fu WHERE fu.comment_id = fc.id) as upvote_count,
                 EXISTS(SELECT 1 FROM forum_upvotes WHERE user_id = $1 AND comment_id = fc.id) as user_has_upvoted

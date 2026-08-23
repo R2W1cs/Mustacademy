@@ -31,12 +31,16 @@ export const startInterview = async (req, res) => {
             true, 512
         );
 
+        const reply = aiData?.reply
+            || (typeof aiData === 'string' ? aiData : null)
+            || "Connection established. The panel is ready — introduce yourself to begin.";
+
         await pool.query(
             "INSERT INTO chat_messages (user_id, role, message, chat_type) VALUES ($1, 'assistant', $2, 'interview')",
-            [userId, aiData.reply]
+            [userId, reply]
         );
 
-        res.json({ reply: aiData.reply, phase: 'INTRO', suggested_questions: aiData.suggested_questions || [] });
+        res.json({ reply, phase: 'INTRO', suggested_questions: aiData?.suggested_questions || [] });
     } catch (err) {
         console.error("Failed to start interview", err);
         res.status(500).json({ message: `Initialization failed: ${err.message}`, error: err.message });
@@ -74,6 +78,10 @@ export const chatWithInterviewer = async (req, res) => {
             true, 700
         );
 
+        const reply = aiData?.reply
+            || (typeof aiData === 'string' ? aiData : null)
+            || "I encountered a processing error. Could you repeat that?";
+
         const nextPhase = aiData?.phase || getNextPhase(currentPhase);
 
         await pool.query(
@@ -82,12 +90,12 @@ export const chatWithInterviewer = async (req, res) => {
         );
         await pool.query(
             "INSERT INTO chat_messages (user_id, role, message, chat_type) VALUES ($1, 'assistant', $2, 'interview')",
-            [userId, aiData.reply]
+            [userId, reply]
         );
 
-        await updateInterviewSession(userId, conversationId, aiData.phase || nextPhase, {
-            analytics: aiData.internal_analytics,
-            last_reply: aiData.reply
+        await updateInterviewSession(userId, conversationId, aiData?.phase || nextPhase, {
+            analytics: aiData?.internal_analytics,
+            last_reply: reply
         });
 
         let scorecard = null;
@@ -116,14 +124,14 @@ export const chatWithInterviewer = async (req, res) => {
         }
 
         res.json({
-            reply: aiData.reply,
-            phase: aiData.phase || nextPhase,
-            suggested_questions: aiData.suggested_questions || [],
+            reply,
+            phase: aiData?.phase || nextPhase,
+            suggested_questions: aiData?.suggested_questions || [],
             scorecard,
-            internal_analytics: aiData.internal_analytics,
-            live_reaction: aiData.live_reaction,
-            attitude: aiData.attitude,
-            is_timed: aiData.is_timed
+            internal_analytics: aiData?.internal_analytics,
+            live_reaction: aiData?.live_reaction,
+            attitude: aiData?.attitude,
+            is_timed: aiData?.is_timed
         });
     } catch (err) {
         console.error("Interview Chat Error:", err);

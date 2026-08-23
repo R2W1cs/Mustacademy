@@ -47,7 +47,8 @@ const FloatingParticles = ({ isDark }) => {
 };
 
 // Animated Input Component
-const AnimatedInput = ({ type = "text", placeholder, value, onChange, isDark }) => {
+const AnimatedInput = ({ type = "text", placeholder, value, onChange, isDark, name, id }) => {
+  const inputId = id || name || placeholder?.toLowerCase().replace(/\s+/g, "-");
   const [isFocused, setIsFocused] = useState(false);
   const [hasValue, setHasValue] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -62,16 +63,21 @@ const AnimatedInput = ({ type = "text", placeholder, value, onChange, isDark }) 
   return (
     <div className="relative group">
       <input
+        id={inputId}
+        name={name}
         type={inputType}
         value={value}
         onChange={onChange}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
+        aria-label={placeholder}
+        autoComplete={type === "password" ? "current-password" : type === "email" ? "email" : "off"}
         className={`w-full px-6 py-4 border-2 rounded-2xl transition-all duration-300 outline-none backdrop-blur-xl pr-14 ${isDark ? 'bg-white/10 border-white/20 text-white placeholder-transparent focus:border-gold focus:bg-white/15' : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-transparent focus:border-blue-500 focus:bg-white shadow-sm'}`}
         placeholder={placeholder}
       />
 
       <motion.label
+        htmlFor={inputId}
         className={`absolute left-6 pointer-events-none font-medium ${isDark ? 'text-white/60' : 'text-gray-500'}`}
         animate={{
           top: isFocused || hasValue ? "0.5rem" : "50%",
@@ -88,6 +94,7 @@ const AnimatedInput = ({ type = "text", placeholder, value, onChange, isDark }) 
         <button
           type="button"
           onClick={() => setShowPassword(!showPassword)}
+          aria-label={showPassword ? "Hide password" : "Show password"}
           className={`absolute right-4 top-1/2 -translate-y-1/2 p-2 transition-colors block ${isDark ? 'text-white/40 hover:text-[#FFD700]' : 'text-gray-400 hover:text-blue-500'}`}
         >
           <AnimatePresence mode="wait" initial={false}>
@@ -138,7 +145,7 @@ const Login = () => {
     try {
       const res = await api.post("/auth/login", { email, password });
       const user = res.data.user ?? {};
-      login(res.data.token, {
+      login({
         id: user.id,
         name: user.name || "Scholar",
         role: user.role || "student",
@@ -277,6 +284,8 @@ const Login = () => {
 
               <form onSubmit={submit} className="space-y-6">
                 <AnimatedInput
+                  id="email"
+                  name="email"
                   type="email"
                   placeholder="Email Address"
                   value={email}
@@ -285,6 +294,8 @@ const Login = () => {
                 />
 
                 <AnimatedInput
+                  id="password"
+                  name="password"
                   type="password"
                   placeholder="Password"
                   value={password}

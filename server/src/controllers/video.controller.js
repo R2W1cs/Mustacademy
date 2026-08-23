@@ -1,98 +1,14 @@
 import pool from "../config/db.js";
-import { getIo, emitToUser } from "../lib/io.js";
-
-// Ensure schema supports peer videos with reactions and feedback
-const ensureSchema = async () => {
-    try {
-        // Main videos table
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS peer_videos (
-                id SERIAL PRIMARY KEY,
-                user_id INTEGER REFERENCES users(id),
-                course_id INTEGER REFERENCES courses(id),
-                title TEXT NOT NULL,
-                video_url TEXT NOT NULL,
-                description TEXT,
-                uploader_note TEXT,
-                likes INTEGER DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        `);
-
-        // Migration: Add uploader_note if missing
-        await pool.query(`
-            DO $$ 
-            BEGIN 
-                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='peer_videos' AND column_name='uploader_note') THEN
-                    ALTER TABLE peer_videos ADD COLUMN uploader_note TEXT;
-                END IF;
-            END $$;
-        `);
-
-        // Migration: Add rating to video_feedback if missing
-        await pool.query(`
-            DO $$ 
-            BEGIN 
-                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='video_feedback' AND column_name='rating') THEN
-                    ALTER TABLE video_feedback ADD COLUMN rating INTEGER CHECK (rating >= 1 AND rating <= 5);
-                END IF;
-            END $$;
-        `);
-
-        // Migration: Add is_public boolean if missing
-        await pool.query(`
-            DO $$ 
-            BEGIN 
-                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='peer_videos' AND column_name='is_public') THEN
-                    ALTER TABLE peer_videos ADD COLUMN is_public BOOLEAN DEFAULT true;
-                END IF;
-            END $$;
-        `);
-
-        // Video reactions table (one reaction per user per video)
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS video_reactions (
-                id SERIAL PRIMARY KEY,
-                video_id INTEGER REFERENCES peer_videos(id) ON DELETE CASCADE,
-                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(video_id, user_id)
-            );
-        `);
-
-        // Video feedback table
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS video_feedback (
-                id SERIAL PRIMARY KEY,
-                video_id INTEGER REFERENCES peer_videos(id) ON DELETE CASCADE,
-                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-                feedback_text TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        `);
-
-        // Notifications table
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS notifications (
-                id SERIAL PRIMARY KEY,
-                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-                type VARCHAR(50) NOT NULL,
-                message TEXT NOT NULL,
-                related_id INTEGER,
-                read BOOLEAN DEFAULT false,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        `);
-    } catch (err) {
-        console.error("Schema migration warning:", err.message);
-    }
-};
+import { storeVideo, removeStoredVideo } from "../services/objectStorage.service.js";
+import { resolveMediaFields } from "../utils/mediaUrl.js";
+import {
+    notifyColleaguesOfNewVideo,
+    notifyVideoOwner,
+} from "../services/videoNotification.service.js";
 
 export const getCourseVideos = async (req, res) => {
-    await ensureSchema();
     const { courseId } = req.params;
     const userId = req.user.id;
-    console.log(`[DEBUG] getCourseVideos called by User ID: ${userId} for Course ID: ${courseId}`);
 
     try {
         const result = await pool.query(`
@@ -109,11 +25,7 @@ export const getCourseVideos = async (req, res) => {
             ORDER BY (SELECT COUNT(*) FROM video_reactions WHERE video_id = v.id) DESC, v.created_at DESC
         `, [courseId, userId]);
 
-        if (result.rows.length > 0) {
-            console.log(`[DEBUG] Video 0: ID=${result.rows[0].id}, Title=${result.rows[0].title}, OwnerID=${result.rows[0].user_id}, is_uploader=${result.rows[0].is_uploader}`);
-        }
-
-        res.json(result.rows);
+        res.json(result.rows.map((row) => resolveMediaFields(row)));
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: "Video retrieval malfunction." });
@@ -144,7 +56,6 @@ export const toggleVisibility = async (req, res) => {
 };
 
 export const uploadVideo = async (req, res) => {
-    await ensureSchema();
     const userId = req.user.id;
     const { courseId, title, description } = req.body;
     const file = req.file;
@@ -153,15 +64,20 @@ export const uploadVideo = async (req, res) => {
         return res.status(400).json({ message: "No neural transmission (file) detected." });
     }
 
-    // Normalize path for URL (windows backslashes to forward slashes)
-    const videoUrl = `/uploads/videos/${file.filename}`;
+    let stored;
+    try {
+        stored = await storeVideo(file);
+    } catch (storageErr) {
+        console.error("Video storage error:", storageErr);
+        return res.status(500).json({ message: "Failed to store video file." });
+    }
 
     try {
         const result = await pool.query(`
             INSERT INTO peer_videos (user_id, course_id, title, video_url, description)
             VALUES ($1, $2, $3, $4, $5)
             RETURNING *
-        `, [userId, courseId, title, videoUrl, description]);
+        `, [userId, courseId, title, stored.url, description]);
 
         // Award +10 ASC
         await pool.query(
@@ -173,29 +89,18 @@ export const uploadVideo = async (req, res) => {
             [userId]
         );
 
-        // Notify all colleagues (everyone except uploader)
-        const colleagues = await pool.query("SELECT id FROM users WHERE id != $1", [userId]);
         const uploader = await pool.query("SELECT name FROM users WHERE id = $1", [userId]);
-        const uploaderName = uploader.rows[0].name;
-
-        const broadcastPromises = colleagues.rows.map(async (colleague) => {
-            const msg = `${uploaderName} established a new knowledge uplink: "${title}"`;
-            await pool.query(
-                "INSERT INTO notifications (user_id, type, message, related_id) VALUES ($1, 'NEW_VIDEO', $2, $3)",
-                [colleague.id, msg, result.rows[0].id]
-            );
-            // Real-time emit
-            emitToUser(colleague.id, "notification_received", {
-                type: 'NEW_VIDEO',
-                message: msg,
-                related_id: result.rows[0].id,
-                created_at: new Date()
-            });
+        await notifyColleaguesOfNewVideo({
+            uploaderId: userId,
+            uploaderName: uploader.rows[0].name,
+            title,
+            videoId: result.rows[0].id,
         });
 
-        await Promise.all(broadcastPromises);
-
-        res.status(201).json({ message: "Transmission received. +10 ASC awarded.", video: result.rows[0] });
+        res.status(201).json({
+            message: "Transmission received. +10 ASC awarded.",
+            video: resolveMediaFields(result.rows[0]),
+        });
     } catch (err) {
         console.error("Video upload database error:", err);
         res.status(500).json({ message: `Transmission upload failed: ${err.message}` });
@@ -203,7 +108,6 @@ export const uploadVideo = async (req, res) => {
 };
 
 export const likeVideo = async (req, res) => {
-    await ensureSchema();
     const { videoId } = req.params;
     const userId = req.user.id;
 
@@ -231,19 +135,13 @@ export const likeVideo = async (req, res) => {
         );
 
         if (videoOwner.rows.length > 0 && videoOwner.rows[0].user_id !== userId) {
-            // Create notification for video owner
             const liker = await pool.query("SELECT name FROM users WHERE id = $1", [userId]);
             const msg = `${liker.rows[0].name} endorsed your transmission "${videoOwner.rows[0].title}"`;
-            await pool.query(
-                "INSERT INTO notifications (user_id, type, message, related_id) VALUES ($1, 'VIDEO_LIKE', $2, $3)",
-                [videoOwner.rows[0].user_id, msg, videoId]
-            );
-            // Real-time emit
-            emitToUser(videoOwner.rows[0].user_id, "notification_received", {
+            await notifyVideoOwner({
+                ownerId: videoOwner.rows[0].user_id,
                 type: 'VIDEO_LIKE',
                 message: msg,
-                related_id: videoId,
-                created_at: new Date()
+                relatedId: videoId,
             });
         }
 
@@ -265,7 +163,6 @@ export const likeVideo = async (req, res) => {
 };
 
 export const submitFeedback = async (req, res) => {
-    await ensureSchema();
     const { videoId } = req.params;
     const userId = req.user.id;
     const { feedback, rating } = req.body;
@@ -300,19 +197,13 @@ export const submitFeedback = async (req, res) => {
         );
 
         if (videoOwnerCheck.rows.length > 0) {
-            // Create notification for video owner
             const feedbacker = await pool.query("SELECT name FROM users WHERE id = $1", [userId]);
             const msg = `${feedbacker.rows[0].name} provided scholarly feedback on "${videoOwnerCheck.rows[0].title}"`;
-            await pool.query(
-                "INSERT INTO notifications (user_id, type, message, related_id) VALUES ($1, 'VIDEO_FEEDBACK', $2, $3)",
-                [videoOwnerCheck.rows[0].user_id, msg, videoId]
-            );
-            // Real-time emit
-            emitToUser(videoOwnerCheck.rows[0].user_id, "notification_received", {
+            await notifyVideoOwner({
+                ownerId: videoOwnerCheck.rows[0].user_id,
                 type: 'VIDEO_FEEDBACK',
                 message: msg,
-                related_id: videoId,
-                created_at: new Date()
+                relatedId: videoId,
             });
         }
 
@@ -339,9 +230,6 @@ export const getVideoFeedback = async (req, res) => {
     }
 };
 
-import fs from 'fs';
-import path from 'path';
-
 export const deleteVideo = async (req, res) => {
     const { videoId } = req.params;
     const userId = req.user.id;
@@ -359,16 +247,11 @@ export const deleteVideo = async (req, res) => {
         // Delete from database
         await pool.query("DELETE FROM peer_videos WHERE id = $1", [videoId]);
 
-        // Attempt to delete physical file
         if (video.video_url) {
             try {
-                // video_url is something like '/uploads/videos/filename.mp4'
-                const filePath = path.join(path.resolve(), video.video_url);
-                if (fs.existsSync(filePath)) {
-                    fs.unlinkSync(filePath);
-                }
+                await removeStoredVideo(video.video_url);
             } catch (fsErr) {
-                console.error("Failed to delete physical video file:", fsErr);
+                console.error("Failed to delete stored video file:", fsErr);
             }
         }
 

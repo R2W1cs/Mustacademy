@@ -3,10 +3,12 @@ import AppRoutes from "./routes/AppRoutes";
 import { Analytics } from "@vercel/analytics/react";
 import { Toaster } from "react-hot-toast";
 import ErrorBoundary from "./components/ErrorBoundary";
+import SkipToContent from "./components/a11y/SkipToContent";
 
 export default function App() {
   return (
     <BrowserRouter>
+      <SkipToContent />
       <ErrorBoundary>
         <AppRoutes />
         <Analytics />

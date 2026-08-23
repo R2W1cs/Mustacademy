@@ -168,7 +168,7 @@ export default function LandingPage() {
     const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 
     return (
-        <div className={`min-h-screen flex flex-col font-sans transition-colors duration-500 selection:bg-[#6366f1]/30 overflow-x-hidden ${themeClass}`}>
+        <div id="main-content" tabIndex={-1} className={`min-h-screen flex flex-col font-sans transition-colors duration-500 selection:bg-[#6366f1]/30 overflow-x-hidden ${themeClass}`}>
             {/* Inline keyframes */}
             <style>{`
                 html { scroll-behavior: smooth; }

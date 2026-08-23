@@ -153,17 +153,20 @@ function MarketSignalsTab({ isDark }) {
     };
 
     const triggerSync = async () => {
+        if (syncing) return;
         setSyncing(true);
         try {
-            await api.post("/market/sync", {
+            const res = await api.post("/market/sync", {
                 category: category !== "all" ? category : undefined,
                 location: location !== "all" ? location : undefined
-            });
+            }, { timeout: 90000 });
             setPage(1);
             await fetchSignals(category, location, 1, false);
-            toast.success("Market signals synced");
-        } catch {
-            toast.error("Sync failed");
+            const added = res.data?.added_count ?? res.data?.synthesized_count;
+            toast.success(added != null ? `Market synced (${added} signals)` : "Market signals synced");
+        } catch (err) {
+            const msg = err.response?.data?.message || err.message || "Sync failed";
+            toast.error(msg.includes("SERPAPI") ? "SERPAPI_KEY missing on server" : msg);
         } finally {
             setSyncing(false);
         }

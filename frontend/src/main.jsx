@@ -4,7 +4,10 @@ import App from "./App";
 import { ThemeProvider } from "./auth/ThemeContext";
 import { AuthProvider } from "./auth/AuthContext";
 import { PlanProvider } from "./auth/PlanContext";
+import { initSentry } from "./monitoring/sentry";
 import "./index.css";
+
+initSentry();
 
 
 

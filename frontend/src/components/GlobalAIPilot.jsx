@@ -315,9 +315,7 @@ function GlobalAIPilot() {
         setMessages(prev => [...prev, { role: 'ai', text: '' }]);
 
         const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
-        const apiBase = import.meta.env.VITE_API_URL || (isProduction ? 'https://mustacademy-backend.onrender.com/api' : 'http://localhost:3001/api');
-        const token = localStorage.getItem('token');
-
+        const apiBase = import.meta.env.VITE_API_URL || (isProduction ? 'https://mustacademy-backend.onrender.com/api' : 'http://localhost:5000/api');
         try {
             // --- RENDER WAKE-UP PING ---
             // Render free tier spins down after inactivity. Ping the health endpoint
@@ -334,9 +332,9 @@ function GlobalAIPilot() {
 
             const response = await fetch(`${apiBase}/ai/chat/stream`, {
                 method: 'POST',
+                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     message: text,

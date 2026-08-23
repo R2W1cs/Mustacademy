@@ -14,33 +14,10 @@ import { callOllama, callGroq, callAI, repairJson, streamAI, groq } from "../uti
 import { buildMentorPrompt, retrieveKBContext } from "../utils/ragEngine.js";
 import { MsEdgeTTS, OUTPUT_FORMAT } from "msedge-tts";
 import { Communicate } from 'edge-tts-universal';
+import { sanitizeMermaid } from '../services/ai/aiHelpers.js';
 
 // In-memory cache for frequently requested TTS segments
 const ttsCache = new Map();
-
-
-
-// --- MOCK FALLBACK SYSTEM ---
-// Integrated via aiClient.js
-
-const sanitizeMermaid = (mermaidCode) => {
-    if (!mermaidCode) return null;
-    let code = mermaidCode.trim();
-
-    // 1. Remove markdown fences if AI included them
-    code = code.replace(/```(?:mermaid)?/g, '').trim();
-
-    // 2. Fix unquoted labels containing parentheses: ID(Label with (parens)) -> ID["Label with (parens)"]
-    // This is a common AI mistake
-    code = code.replace(/(\w+)\(([^)]*\([^)]*\)[^)]*)\)/g, '$1["$2"]');
-
-    // 3. Ensure any ID(Label) with spaces is ID["Label"]
-    code = code.replace(/(\w+)\(([^)]+\s+[^)]+)\)/g, '$1["$2"]');
-
-    return code;
-};
-
-// callOllama now handled by shared aiClient utility
 
 // --- ROBUST CONTROLLER LOGIC ---
 

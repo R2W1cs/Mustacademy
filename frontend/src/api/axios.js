@@ -5,37 +5,41 @@ const baseURL = import.meta.env.VITE_API_URL || (isProduction ? "https://mustaca
 
 const api = axios.create({
   baseURL,
+  withCredentials: true,
   headers: {
-    "Content-Type": "application/json"
+    "Content-Type": "application/json",
   },
 });
 
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-      console.warn("Authentication failed, clearing credentials.");
-      localStorage.removeItem("token");
-      localStorage.removeItem("userId");
-      localStorage.removeItem("userName");
-      localStorage.removeItem("role");
-      if (window.location.pathname !== '/login') {
-        window.location.href = "/login";
+  async (error) => {
+    const original = error.config;
+
+    if (!error.response || original?._skipRefresh) {
+      return Promise.reject(error);
+    }
+
+    const isAuthRoute = original.url?.includes("/auth/login")
+      || original.url?.includes("/auth/register")
+      || original.url?.includes("/auth/refresh");
+
+    if (error.response.status === 401 && !original._retry && !isAuthRoute) {
+      original._retry = true;
+      try {
+        await api.post("/auth/refresh", null, { _skipRefresh: true });
+        return api(original);
+      } catch (refreshError) {
+        localStorage.removeItem("userId");
+        localStorage.removeItem("userName");
+        localStorage.removeItem("role");
+        if (window.location.pathname !== "/login") {
+          window.location.href = "/login";
+        }
+        return Promise.reject(refreshError);
       }
     }
+
     return Promise.reject(error);
   }
 );

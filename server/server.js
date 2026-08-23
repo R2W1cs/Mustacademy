@@ -1,7 +1,9 @@
 import 'dotenv/config';
 import { validateEnv } from './src/config/validateEnv.js';
-import { runMigrations } from './src/config/runMigrations.js';
+import { initSentry } from './src/monitoring/sentry.js';
+import { runDbMigrations } from './src/config/migrateRunner.js';
 validateEnv();
+initSentry();
 
 import http from 'http';
 import app from './src/app.js';
@@ -32,7 +34,7 @@ initIo(server);
 pool.query('SELECT NOW()')
   .then(() => {
     console.log('[DB] Connection Verified.');
-    return runMigrations();
+    return runDbMigrations();
   })
   .catch(err => console.error('[DB] Connection FAILED:', err.message));
 

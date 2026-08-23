@@ -5,6 +5,7 @@ import { io } from "socket.io-client";
 import { getMyProfile } from "../api/profile";
 import { getMyContributions } from "../api/contributions";
 import { useTheme } from "../auth/ThemeContext";
+import { useAuth } from "../auth/AuthContext";
 import { Sun, Moon, Bell, MessageSquare, ThumbsUp, Search, Menu } from "lucide-react";
 import api from "../api/axios";
 
@@ -16,6 +17,7 @@ const Navbar = () => {
     const [notifications, setNotifications] = useState([]);
     const [isSocketConnected, setIsSocketConnected] = useState(false);
     const { theme, toggleTheme } = useTheme();
+    const { logout } = useAuth();
     const isDark = theme === 'dark';
 
     const menuRef = useRef(null);
@@ -43,7 +45,9 @@ const Navbar = () => {
         fetchUserData();
 
         // Socket.io initialization
-        const socket = io(import.meta.env.VITE_API_URL?.replace('/api', '') || "http://localhost:3001");
+        const socket = io(import.meta.env.VITE_API_URL?.replace('/api', '') || "http://localhost:5000", {
+            withCredentials: true,
+        });
 
         socket.on("connect", () => {
             console.log("[SOCKET] Real-time link established.");
@@ -370,8 +374,8 @@ const Navbar = () => {
                                     <div className={`p-3 mt-1 border-t ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
                                         <motion.button
                                             whileHover={{ x: 5, backgroundColor: "rgba(239, 68, 68, 0.1)" }}
-                                            onClick={() => {
-                                                localStorage.removeItem("token");
+                                            onClick={async () => {
+                                                await logout();
                                                 navigate("/login");
                                             }}
                                             className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-rose-400 font-bold hover:text-rose-300 transition-all group"

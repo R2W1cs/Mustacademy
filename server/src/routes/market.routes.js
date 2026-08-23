@@ -97,7 +97,7 @@ router.get("/digest", protect, async (_req, res) => {
         if (groq) {
             try {
                 const completion = await groq.chat.completions.create({
-                    model: 'llama3-8b-8192',
+                    model: 'llama-3.1-8b-instant',
                     messages: [{
                         role: 'user',
                         content: `You are a senior CS industry analyst. Based on these recent tech headlines, write a "This Week in Computer Science" digest in exactly 4 short paragraphs (2-3 sentences each). Cover: AI/ML trends, job market shifts, new technologies, and what CS students should focus on. Be specific and actionable. No bullet points — flowing prose only.\n\nHeadlines:\n${headlines}`

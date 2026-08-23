@@ -743,6 +743,9 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                 {!isStarted ? (
                     <motion.div
                         key="start"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="Interview preparation"
                         initial={openingVariant.initial}
                         animate={openingVariant.animate}
                         exit={openingVariant.exit}
@@ -751,7 +754,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                         className={`fixed top-0 right-0 bottom-0 z-[40] p-12 overflow-y-auto no-scrollbar flex flex-col items-center justify-center ${isDark ? 'bg-[#05070a]' : 'bg-white'}`}
                     >
                         <div className="absolute top-0 right-0 p-6">
-                            <button onClick={handleClose} className="text-slate-500 hover:text-slate-300 transition-colors">
+                            <button type="button" onClick={handleClose} aria-label="Close interview preparation" className="text-slate-500 hover:text-slate-300 transition-colors">
                                 <X size={24} />
                             </button>
                         </div>

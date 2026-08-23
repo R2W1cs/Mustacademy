@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import api from "../api/axios";
 import { Mail, Lock, Check, AlertCircle, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { useTheme } from "../auth/ThemeContext";
+import { useAuth } from "../auth/AuthContext";
 
 // Floating Particles Component
 const FloatingParticles = ({ isDark }) => {
@@ -124,6 +125,7 @@ const Register = () => {
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
   const { theme } = useTheme();
+  const { login } = useAuth();
   const isDark = theme === "dark";
 
   const submit = async (e) => {
@@ -139,9 +141,15 @@ const Register = () => {
     }
 
     try {
-      await api.post("/auth/register", { name, email, password });
+      const res = await api.post("/auth/register", { name, email, password });
+      const user = res.data.user ?? {};
+      login({
+        id: user.id,
+        name: user.name || name,
+        role: user.role || "student",
+      });
       setSuccess(true);
-      setTimeout(() => navigate("/login"), 2000);
+      setTimeout(() => navigate("/dashboard"), 1500);
     } catch (err) {
       setError(err.response?.data?.message || "Registration failed. Please try again.");
       setIsLoading(false);

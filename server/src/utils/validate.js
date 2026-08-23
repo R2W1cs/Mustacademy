@@ -19,6 +19,21 @@ export const validate = (schema) => (req, res, next) => {
             errors.push(`${field} must be a string`);
             continue;
         }
+        if (rules.type === 'integer') {
+            const n = Number(value);
+            if (!Number.isInteger(n)) {
+                errors.push(`${field} must be an integer`);
+                continue;
+            }
+            req.body[field] = n;
+        }
+        if (rules.type === 'number') {
+            const n = Number(value);
+            if (Number.isNaN(n)) {
+                errors.push(`${field} must be a number`);
+                continue;
+            }
+        }
         if (rules.minLength && String(value).length < rules.minLength) {
             errors.push(`${field} must be at least ${rules.minLength} characters`);
         }
@@ -63,4 +78,52 @@ export const validateForgotPassword = validate({
 export const validateResetPassword = validate({
     token: { required: true, type: 'string', maxLength: 128 },
     newPassword: PASSWORD_RULES,
+});
+
+const FORUM_TYPES = /^(discussion|question|resource|announcement)$/;
+
+export const validateCreateThread = validate({
+    title: { required: true, type: 'string', minLength: 3, maxLength: 200 },
+    content: { required: true, type: 'string', minLength: 1, maxLength: 10000 },
+    topicId: { required: false, type: 'integer' },
+    type: { required: false, type: 'string', pattern: FORUM_TYPES, patternMsg: 'Invalid thread type' },
+});
+
+export const validateCreateComment = validate({
+    threadId: { required: true, type: 'integer' },
+    content: { required: true, type: 'string', minLength: 1, maxLength: 5000 },
+    parentCommentId: { required: false, type: 'integer' },
+});
+
+export const validateToggleUpvote = (req, res, next) => {
+    if (!req.body.threadId && !req.body.comment_id) {
+        return res.status(400).json({ message: 'threadId or comment_id is required' });
+    }
+    return validate({
+        threadId: { required: false, type: 'integer' },
+        comment_id: { required: false, type: 'integer' },
+    })(req, res, next);
+};
+
+export const validateUpdateProfile = validate({
+    avatar_url: { required: false, type: 'string', maxLength: 500 },
+    bio: { required: false, type: 'string', maxLength: 1000 },
+    passion: { required: false, type: 'string', maxLength: 200 },
+    year: { required: false, type: 'integer' },
+    semester: { required: false, type: 'integer' },
+    status: { required: false, type: 'string', maxLength: 32 },
+    dream_job: { required: false, type: 'string', maxLength: 120 },
+    target_company: { required: false, type: 'string', maxLength: 120 },
+    technical_pillar: { required: false, type: 'string', maxLength: 120 },
+});
+
+export const validateVideoUpload = validate({
+    courseId: { required: true, type: 'integer' },
+    title: { required: true, type: 'string', minLength: 1, maxLength: 200 },
+    description: { required: false, type: 'string', maxLength: 2000 },
+});
+
+export const validateVideoFeedback = validate({
+    feedback: { required: true, type: 'string', minLength: 1, maxLength: 2000 },
+    rating: { required: false, type: 'integer' },
 });

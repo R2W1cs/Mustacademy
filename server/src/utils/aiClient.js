@@ -2,16 +2,14 @@ import 'dotenv/config';
 
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434/api/generate';
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'llama3.2';
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const ALLOW_OLLAMA = process.env.ALLOW_OLLAMA === 'true' || process.env.NODE_ENV !== 'production';
 
 import Groq from "groq-sdk";
 export const groq = GROQ_API_KEY ? new Groq({ apiKey: GROQ_API_KEY, timeout: 20000, maxRetries: 0 }) : null;
 
-console.log(`[AI Setup] Ollama URL: ${OLLAMA_URL}`);
-console.log(`[AI Setup] Gemini Key present: ${!!GEMINI_API_KEY}`);
-console.log(`[AI Setup] Groq Key present: ${!!GROQ_API_KEY} (${GROQ_API_KEY ? GROQ_API_KEY.substring(0, 10) + "..." : "NONE"})`);
+console.log(`[AI Setup] Ollama URL: ${OLLAMA_URL} (enabled=${ALLOW_OLLAMA})`);
+console.log(`[AI Setup] Groq Key present: ${!!GROQ_API_KEY}`);
 
 const MOCK_FALLBACKS = {
     mentor: [
@@ -144,49 +142,36 @@ export const streamAI = async (prompt, model = "llama-3.3-70b-versatile", maxTok
             });
             return stream;
         } catch (err) {
-            console.warn("[AI Groq Stream] Failed, falling back to Gemini:", err.message);
+            console.warn("[AI Groq Stream] Failed:", err.message);
         }
     }
 
-    // 2. Fallback to Gemini (Simulated Stream)
-    if (process.env.GEMINI_API_KEY) {
+    // 2. Optional Ollama (local/dev only — skipped in production unless ALLOW_OLLAMA=true)
+    if (ALLOW_OLLAMA) {
         try {
-            console.log("[AI Gemini Stream] Groq failed, simulating text-to-stream via Gemini...");
-            const fullResponseText = await callGemini(prompt, false);
-            
-            return (async function* () {
-                const words = fullResponseText.split(' ');
-                for (let i = 0; i < words.length; i += 3) {
-                    const chunk = words.slice(i, i + 3).join(' ') + ' ';
-                    yield { choices: [{ delta: { content: chunk } }] };
-                    await new Promise(r => setTimeout(r, 20)); // Simulated stream tick
-                }
-            })();
+            console.log("[AI Ollama Stream] Groq unavailable, trying local stream...");
+            return await streamOllama(prompt);
         } catch (err) {
-            console.warn("[AI Gemini Stream] Fallback failed:", err.message);
+            console.warn("[AI Ollama Stream] Failed:", err.message);
         }
     }
 
-    // 3. Fallback to Ollama stream
-    try {
-        console.log("[AI Ollama Stream] Cloud channels failed, initiating local stream...");
-        return await streamOllama(prompt);
-    } catch (err) {
-        console.warn("[AI Stream] Critical failure on all nodes. Deploying Mock Stream.");
-
-        const mockReply = getMockResponse('mentor');
-        return (async function* () {
-            const words = `⚠️ [EMERGENCY PROTOCOL ACTIVE] ${mockReply}`.split(' ');
-            for (const word of words) {
-                yield {
-                    choices: [{
-                        delta: { content: word + ' ' }
-                    }]
-                };
-                await new Promise(r => setTimeout(r, 50));
-            }
-        })();
-    }
+    console.warn("[AI Stream] Critical failure. Deploying Mock Stream.");
+    const mockReply = getMockResponse('mentor');
+    const reason = !GROQ_API_KEY
+        ? 'GROQ_API_KEY is not set on the server (Render env). Redeploy after adding it.'
+        : `Groq failed: check key validity / quota.`;
+    return (async function* () {
+        const words = `⚠️ [EMERGENCY PROTOCOL ACTIVE] ${reason} ${mockReply}`.split(' ');
+        for (const word of words) {
+            yield {
+                choices: [{
+                    delta: { content: word + ' ' }
+                }]
+            };
+            await new Promise(r => setTimeout(r, 50));
+        }
+    })();
 };
 
 export const streamOllama = async (prompt) => {
@@ -249,102 +234,7 @@ export const streamOllama = async (prompt) => {
     })();
 };
 
-export const callGemini = async (prompt, expectJson = true, maxTokens = 2048) => {
-    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY missing from environment");
-
-    // Flatten structured prompts to a single string for Gemini
-    let promptText;
-    if (typeof prompt === 'string') {
-        promptText = prompt;
-    } else if (prompt && typeof prompt === 'object' && prompt.system && prompt.user) {
-        promptText = `${prompt.system}\n\n${prompt.user}`;
-    } else {
-        promptText = String(prompt);
-    }
-
-    console.log(`[AI Gemini] Attempting synthesis via Gemini (maxTokens=${maxTokens})...`);
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 25000); // Strict 25s timeout
-
-    let response;
-    try {
-        response = await fetch(GEMINI_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: promptText }] }],
-                generationConfig: {
-                    temperature: 0.7,
-                    topP: 0.95,
-                    topK: 40,
-                    maxOutputTokens: maxTokens,
-                    responseMimeType: expectJson ? "application/json" : undefined
-                }
-            }),
-            signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-    } catch (e) {
-        clearTimeout(timeoutId);
-        throw new Error(`Gemini Connectivity Error: ${e.message}`);
-    }
-
-    if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(`Gemini Error: ${errData.error?.message || response.status}`);
-    }
-
-    const data = await response.json();
-    const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!aiText) throw new Error("Gemini returned empty candidate");
-
-    if (!expectJson) return aiText;
-
-    try {
-        return parseAiJson(aiText);
-    } catch (e) {
-        console.warn("[AI Gemini] JSON Parse Failed, using Rescue:", e.message);
-        console.log("RAW AI TEXT:", aiText);
-
-        const extractString = (key) => {
-            const regex = new RegExp(`"?${key}"?\\s*:\\s*(?:"|'|\`)?([\\s\\S]*?)(?=(?:"|'|\`)?\\s*[,}]|\\s*"?\\w+"?\\s*:)`, 'i');
-            const match = aiText.match(regex);
-            return match ? match[1].trim() : null;
-        };
-
-        const extractArray = (key) => {
-            const regex = new RegExp(`"?${key}"?\\s*:\\s*(\\[[\\s\\S]*?\\])(?=\\s*[,}])`, 'i');
-            const match = aiText.match(regex);
-            if (match) {
-                try {
-                    return JSON.parse(repairJson(match[1]));
-                } catch (e) { return null; }
-            }
-            return null;
-        };
-
-        const cleanup = (t) => t ? t.replace(/\\n/g, '\n').replace(/\\r/g, '').replace(/\\t/g, '\t').replace(/\\"/g, '"').replace(/^["'`]|["'`]$/g, '').trim() : null;
-
-        return {
-            content_markdown: cleanup(extractString("content_markdown")),
-            historical_context: cleanup(extractString("historical_context")),
-            first_principles: cleanup(extractString("first_principles")),
-            structural_breakdown: cleanup(extractString("structural_breakdown")),
-            deep_dive: extractArray("deep_dive") || {},
-            applied_practice: extractArray("applied_practice") || [],
-            failure_analysis: cleanup(extractString("failure_analysis")),
-            production_standard: extractArray("production_standard") || {},
-            scholarly_references: extractArray("scholarly_references") || [],
-            staff_engineer_note: cleanup(extractString("staff_engineer_note")),
-            breadcrumb_path: cleanup(extractString("breadcrumb_path")),
-            difficulty: cleanup(extractString("difficulty")),
-            estimated_time: cleanup(extractString("estimated_time")),
-            learning_objectives: extractArray("learning_objectives") || [],
-            reply: cleanup(extractString("reply")) || "Synthesis complete."
-        };
-    }
-};
+// Gemini removed — Groq is the sole cloud provider.
 
 // --- FAST AI WRAPPER (llama-3.1-8b-instant — ~5× faster, for quick-response features) ---
 // Use for: project eval, grading, career analysis, quiz, readiness check, goal submission
@@ -362,55 +252,46 @@ export const callFastAI = async (prompt, expectJson = true, maxTokens = 512) => 
     return callAI(prompt, expectJson, maxTokens);
 };
 
-// --- PRIMARY AI WRAPPER (Prioritizes Groq) ---
+// --- PRIMARY AI WRAPPER (Groq only; optional local Ollama in non-production) ---
 export const callAI = async (prompt, expectJson = true, maxTokens = 2048) => {
-    // 1. Prioritize Groq if available
     if (process.env.GROQ_API_KEY) {
         try {
             console.log("[callAI] Attempting Groq protocol...");
             const groqRes = await callGroq(prompt, expectJson, "llama-3.3-70b-versatile", maxTokens);
             if (groqRes) return groqRes;
         } catch (err) {
-            console.warn("[callAI] Groq failed, falling back to Gemini:", err.message);
+            console.warn("[callAI] Groq failed:", err.message);
         }
     }
 
-    // 2. Fallback to Gemini
-    if (process.env.GEMINI_API_KEY) {
+    if (ALLOW_OLLAMA) {
         try {
-            console.log("[callAI] Attempting Gemini protocol...");
-            return await callGemini(prompt, expectJson, maxTokens);
+            console.log("[callAI] Attempting local Ollama uplink...");
+            const ollamaRes = await callOllama(prompt, expectJson);
+            if (ollamaRes && !ollamaRes.error) return ollamaRes;
         } catch (err) {
-            console.error("[callAI] Gemini fallback also failed:", err.message);
+            console.error("[callAI] Ollama uplink failed:", err.message);
         }
     }
 
-    // 3. Last resort: Ollama (if running locally)
-    try {
-        console.log("[callAI] Attempting local Ollama uplink...");
-        const ollamaRes = await callOllama(prompt, expectJson);
-        if (ollamaRes && !ollamaRes.error) return ollamaRes;
-    } catch (err) {
-        console.error("[callAI] Ollama uplink failed:", err.message);
-    }
-
-    // 4. Dead-End Fallback: Mock Data
-    console.warn("[callAI] Critical failure on all nodes. Deploying Mock Protocol.");
+    console.warn("[callAI] Critical failure. Deploying Mock Protocol.");
     const mockReply = getMockResponse('mentor');
+    const prefix = !GROQ_API_KEY
+        ? "⚠️ [OFFLINE MODE — set GROQ_API_KEY on Render] "
+        : "⚠️ [OFFLINE MODE — Groq request failed] ";
     if (expectJson) {
         return {
-            reply: "⚠️ [OFFLINE MODE] " + mockReply,
+            reply: prefix + mockReply,
             segments: [
-                { speaker: "host", text: "Dr. Aria here. We're experiencing some technical interference with our primary neural link." },
-                { speaker: "expert", text: "Dr. Nova confirming. I'll provide a simplified overview until full synthesis is restored." },
-                { speaker: "host", text: mockReply }
+                { speaker: "host", text: "Neural link unavailable. Configure GROQ_API_KEY on the backend and redeploy." },
+                { speaker: "expert", text: mockReply }
             ],
             title: "Neural Link Interrupted",
             description: "Operating on emergency local buffers.",
             suggested_questions: ["Why is the AI offline?", "When will it be back?"]
         };
     }
-    return "⚠️ [LATENCY ALERT] " + mockReply;
+    return prefix + mockReply;
 };
 
 export const callOllama = async (prompt, expectJson = true, retries = 2) => {

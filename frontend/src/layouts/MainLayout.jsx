@@ -70,6 +70,8 @@ const MainLayout = ({ children }) => {
         onMobileClose={() => setMobileNavOpen(false)}
       />
       <main
+        id="main-content"
+        tabIndex={-1}
         className={`flex-1 min-w-0 w-full relative z-10 overflow-x-hidden overflow-y-auto ${!isImmersiveRoute && 'px-4 md:px-6 lg:px-10 py-10'} transition-all duration-300 ${isDark ? (isCelestialRoute ? 'mesh-bg' : 'bg-[#050810]') : 'bg-white'}`}
       >
         <AnimatePresence mode="wait">

@@ -18,7 +18,7 @@ export const syncMarketPulse = async (options = {}) => {
         console.log(`[MarketSync] Initiating sync for domain: ${domain}, Category: ${category}, Location: ${location}...`);
 
         if (!SERPAPI_KEY) {
-            throw new Error('SERPAPI_KEY is missing from environment');
+            throw new Error('SERPAPI_KEY is missing from environment. Set it on the backend to sync live market signals.');
         }
 
         // Construct a surgical query based on filters
@@ -30,13 +30,14 @@ export const syncMarketPulse = async (options = {}) => {
             searchQuery += ` in ${location}`;
         }
 
-        // 1. Fetch News via SerpApi
+        // 1. Fetch News via SerpApi (hard timeout — never leave the UI spinning)
         const response = await axios.get('https://serpapi.com/search', {
             params: {
                 engine: 'google_news',
                 q: searchQuery,
                 api_key: SERPAPI_KEY
-            }
+            },
+            timeout: 20000,
         });
 
         const newsResults = response.data.news_results;
@@ -45,9 +46,9 @@ export const syncMarketPulse = async (options = {}) => {
             return { message: 'No new signals found' };
         }
 
-        // 2. Prepare for AI Processing (Batching to increase signal density)
-        const totalToProcess = Math.min(limit, newsResults.length);
-        const batchSize = 10;
+        // 2. Prepare for AI Processing — keep batches small so sync finishes under ~60s
+        const totalToProcess = Math.min(Math.min(limit, 10), newsResults.length);
+        const batchSize = 5;
         const allSynthesized = [];
 
         console.log(`[MarketSync] Processing ${totalToProcess} raw results in batches of ${batchSize}...`);
@@ -67,15 +68,39 @@ export const syncMarketPulse = async (options = {}) => {
                 .replace('{target_category}', category || 'CS')
                 .replace('{target_location}', location || 'Worldwide');
 
-            const batchSignals = await callAI(prompt);
+            let batchSignals;
+            try {
+                batchSignals = await Promise.race([
+                    callAI(prompt),
+                    new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error('AI synthesis timed out after 45s')), 45000)
+                    ),
+                ]);
+            } catch (aiErr) {
+                console.warn(`[MarketSync] AI batch failed (${aiErr.message}); inserting raw headlines as fallback`);
+                allSynthesized.push(...batch.map((r) => ({
+                    title: r.title,
+                    content_summary: r.snippet || r.title,
+                    source_url: r.link,
+                    source_name: typeof r.source === 'string' ? r.source : r.source?.name,
+                    category: category || 'CS',
+                    location: location || 'Worldwide',
+                    impact_logic: 'Raw news ingest — AI synthesis unavailable.',
+                    salary_value: 150000,
+                    demand_growth: 50,
+                    salary_index: 50,
+                    skill_match: 70,
+                })));
+                continue;
+            }
 
             // Robust extraction for batch
             let extracted = batchSignals;
             if (!Array.isArray(extracted)) {
-                const firstArrayKey = Object.keys(extracted).find(key => Array.isArray(extracted[key]));
+                const firstArrayKey = Object.keys(extracted || {}).find(key => Array.isArray(extracted[key]));
                 if (firstArrayKey) {
                     extracted = extracted[firstArrayKey];
-                } else if (extracted.title && (extracted.content_summary || extracted.impact_logic)) {
+                } else if (extracted?.title && (extracted.content_summary || extracted.impact_logic)) {
                     extracted = [extracted];
                 } else {
                     extracted = [];

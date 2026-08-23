@@ -10,9 +10,17 @@ const REQUIRED = [
 ];
 
 const RECOMMENDED = [
-  { key: 'GROQ_API_KEY', hint: 'Groq API key — AI features will use fallback without it' },
-  { key: 'GEMINI_API_KEY', hint: 'Google Gemini key — needed for AI fallback chain' },
+  { key: 'GROQ_API_KEY', hint: 'Groq API key — required for Dr Nova, Boardroom, and AI features' },
   { key: 'FRONTEND_URL', hint: 'Frontend origin for CORS (e.g. https://mustacademy.vercel.app)' },
+  { key: 'SERPAPI_KEY', hint: 'SerpAPI key — Market Pulse live sync will fail without it' },
+];
+
+const PRODUCTION_STORAGE = [
+  { key: 'S3_BUCKET', hint: 'Object storage bucket (Cloudflare R2 or AWS S3)' },
+  { key: 'S3_ACCESS_KEY_ID', hint: 'R2/S3 access key ID' },
+  { key: 'S3_SECRET_ACCESS_KEY', hint: 'R2/S3 secret access key' },
+  { key: 'S3_PUBLIC_URL', hint: 'Public CDN base URL for media (e.g. https://pub-xxx.r2.dev)' },
+  { key: 'S3_ENDPOINT', hint: 'R2 endpoint (https://<accountid>.r2.cloudflarestorage.com)' },
 ];
 
 export function validateEnv() {
@@ -32,6 +40,17 @@ export function validateEnv() {
     console.warn('\n[ENV] ⚠️  Missing recommended environment variables (non-fatal):');
     absent.forEach(({ key, hint }) => console.warn(`  • ${key} — ${hint}`));
     console.warn('');
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    const storageMissing = PRODUCTION_STORAGE.filter(({ key }) => !process.env[key]);
+    if (storageMissing.length > 0) {
+      console.warn('[ENV] ⚠️  Object storage not fully configured — uploads use ephemeral disk:');
+      storageMissing.forEach(({ key, hint }) => console.warn(`  • ${key} — ${hint}`));
+      console.warn('');
+    } else {
+      console.log('[ENV] ✓ Object storage configured');
+    }
   }
 
   console.log('[ENV] ✓ Environment validated');

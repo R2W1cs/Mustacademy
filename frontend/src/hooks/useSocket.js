@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { io } from "socket.io-client";
 
 const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
-const SOCKET_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || (isProduction ? "https://mustacademy-backend.onrender.com" : "http://localhost:3001");
+const SOCKET_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || (isProduction ? "https://mustacademy-backend.onrender.com" : "http://localhost:5000");
 
 let socketInstance = null;
 
@@ -12,14 +12,14 @@ export const useSocket = () => {
     if (!socketInstance) {
         socketInstance = io(SOCKET_URL, {
             autoConnect: true,
-            reconnection: true
+            reconnection: true,
+            withCredentials: true,
         });
 
-        const token = localStorage.getItem("token");
         const userName = localStorage.getItem("userName") || "Scholar";
-        if (token) {
-            socketInstance.emit("authenticate", { token, userName });
-        }
+        socketInstance.on("connect", () => {
+            socketInstance.emit("authenticate", { userName });
+        });
     }
 
     socketRef.current = socketInstance;

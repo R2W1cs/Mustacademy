@@ -1,14 +1,20 @@
 import jwt from 'jsonwebtoken';
 import pool from '../config/db.js';
+import { ACCESS_COOKIE } from '../utils/authCookies.js';
+
+function extractAccessToken(req) {
+  if (req.cookies?.[ACCESS_COOKIE]) return req.cookies[ACCESS_COOKIE];
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith('Bearer ')) return authHeader.split(' ')[1];
+  return null;
+}
 
 export const protect = async (req, res, next) => {
-  const authHeader = req.headers.authorization;
+  const token = extractAccessToken(req);
 
-  if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json({ message: 'No auth header' });
+  if (!token) {
+    return res.status(401).json({ message: 'Not authenticated' });
   }
-
-  const token = authHeader.split(' ')[1];
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);

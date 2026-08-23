@@ -1,21 +1,7 @@
 import pool from "../config/db.js";
 import { emitToRoom } from "../lib/io.js";
 
-// Ensure schema supports quiz scores (Self-Healing Migration)
-const ensureSchema = async () => {
-    try {
-        await pool.query(`
-      ALTER TABLE user_topic_progress 
-      ADD COLUMN IF NOT EXISTS quiz_score INTEGER DEFAULT 0;
-    `);
-    } catch (err) {
-        console.error("Schema migration warning:", err.message);
-    }
-};
-
 export const checkTopicAccess = async (req, res) => {
-    await ensureSchema();
-
     const userId = req.user.id;
     const { topicId } = req.params;
 
@@ -62,7 +48,6 @@ export const checkTopicAccess = async (req, res) => {
 };
 
 export const submitQuizResult = async (req, res) => {
-    await ensureSchema();
 
     const userId = req.user.id;
     const { topicId, score } = req.body;

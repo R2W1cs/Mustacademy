@@ -14,25 +14,34 @@ import api from "../api/axios";
 import toast from "react-hot-toast";
 import { useTheme } from "../auth/ThemeContext";
 import { useSocket } from "../hooks/useSocket";
+import { useCreatorCornerData } from "../hooks/useCreatorCornerData";
 
 export default function CreatorCorner() {
     const { theme } = useTheme();
     const [userProfile, setUserProfile] = useState(null);
     const isDark = theme === 'dark';
-    const [projects, setProjects] = useState([]);
-    const [projectsPage, setProjectsPage] = useState(1);
-    const [projectsTotalPages, setProjectsTotalPages] = useState(1);
     const [loadingMore, setLoadingMore] = useState(false);
-    const [myRequests, setMyRequests] = useState([]);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
     const [activeView, setActiveView] = useState('browse'); // 'browse', 'manage', or 'teams'
+    const {
+        projects,
+        setProjects,
+        projectsPage,
+        setProjectsPage,
+        projectsTotalPages,
+        setProjectsTotalPages,
+        myRequests,
+        setMyRequests,
+        myTeams,
+        setMyTeams,
+        isLoading,
+        fetchData,
+    } = useCreatorCornerData(activeView);
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedProject, setSelectedProject] = useState(null);
     const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
     const [activeRoom, setActiveRoom] = useState(null);
-    const [myTeams, setMyTeams] = useState([]);
     const [isAdminDashboardOpen, setIsAdminDashboardOpen] = useState(false);
     const [activeMembers, setActiveMembers] = useState([]);
     const [isCreating, setIsCreating] = useState(false);
@@ -286,28 +295,6 @@ export default function CreatorCorner() {
         fetchProfile();
         fetchData();
     }, [activeView]);
-
-    const fetchData = async () => {
-        setIsLoading(true);
-        try {
-            if (activeView === 'browse') {
-                const res = await api.get("/projects?page=1&limit=12");
-                setProjects(res.data.projects || res.data);
-                setProjectsPage(1);
-                setProjectsTotalPages(res.data.totalPages || 1);
-            } else if (activeView === 'manage') {
-                const res = await api.get("/projects/requests");
-                setMyRequests(res.data);
-            } else {
-                const res = await api.get("/projects/my-projects");
-                setMyTeams(res.data);
-            }
-        } catch (err) {
-            console.error("Failed to fetch Creator Corner data", err);
-        } finally {
-            setIsLoading(false);
-        }
-    };
 
     const handleCreateProject = async (e) => {
         e.preventDefault();

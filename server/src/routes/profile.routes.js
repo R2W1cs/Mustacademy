@@ -7,11 +7,12 @@ import {
   updateProfile,
   upgradePlan,
 } from "../controllers/profile.controller.js";
+import { validateUpdateProfile } from "../utils/validate.js";
 
 const router = express.Router();
 
 router.get("/me", protect, getMyProfile);
-router.put("/", protect, updateProfile);
+router.put("/", protect, validateUpdateProfile, updateProfile);
 router.patch("/plan", protect, upgradePlan);
 
 export default router;

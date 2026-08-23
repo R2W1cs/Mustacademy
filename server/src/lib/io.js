@@ -1,8 +1,10 @@
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
+import cookie from "cookie";
 import MultiplayerGameManager from "./MultiplayerGameManager.js";
 import pool from "../config/db.js";
 import logger from "../utils/logger.js";
+import { ACCESS_COOKIE } from "../utils/authCookies.js";
 function getAllowedOrigins() {
     if (process.env.NODE_ENV === 'production') {
         return process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : [];
@@ -34,12 +36,38 @@ export const initIo = (server) => {
 
     gameManager = new MultiplayerGameManager(io);
 
+    const bindSocketUser = (socket, decoded, userName = "Scholar") => {
+        const userId = String(decoded.id);
+        socket.data.userId = userId;
+        socket.data.userName = userName;
+        socket.join(`user_${userId}`);
+        gameManager.setOnline(userId, socket.id, userName);
+        const users = Array.from(gameManager.onlineUsers.entries()).map(([id, u]) => ({ id, name: u.userName }));
+        socket.emit("online_users_update", users);
+        logger.info(`[SOCKET] User ${userId} (${userName}) authenticated.`);
+    };
+
+    const tokenFromHandshake = (socket) => {
+        const cookies = cookie.parse(socket.handshake.headers.cookie || '');
+        return cookies[ACCESS_COOKIE] || null;
+    };
+
     io.on("connection", (socket) => {
         logger.info(`[SOCKET] User connected: ${socket.id}`);
 
+        const handshakeToken = tokenFromHandshake(socket);
+        if (handshakeToken) {
+            try {
+                const decoded = jwt.verify(handshakeToken, process.env.JWT_SECRET);
+                bindSocketUser(socket, decoded);
+            } catch {
+                // Client may authenticate explicitly after refresh
+            }
+        }
+
         socket.on("authenticate", (data) => {
-            const token = typeof data === 'object' ? data.token : null;
             const userName = (typeof data === 'object' ? data.userName : null) || "Scholar";
+            const token = (typeof data === 'object' ? data.token : null) || tokenFromHandshake(socket);
 
             if (!token) {
                 socket.emit("auth_error", { message: "No token provided" });
@@ -48,17 +76,7 @@ export const initIo = (server) => {
 
             try {
                 const decoded = jwt.verify(token, process.env.JWT_SECRET);
-                const userId = String(decoded.id);
-                socket.data.userId = userId;
-                socket.data.userName = userName;
-
-                socket.join(`user_${userId}`);
-                gameManager.setOnline(userId, socket.id, userName);
-
-                const users = Array.from(gameManager.onlineUsers.entries()).map(([id, u]) => ({ id, name: u.userName }));
-                socket.emit("online_users_update", users);
-
-                logger.info(`[SOCKET] User ${userId} (${userName}) authenticated.`);
+                bindSocketUser(socket, decoded, userName);
             } catch {
                 socket.emit("auth_error", { message: "Invalid token" });
             }

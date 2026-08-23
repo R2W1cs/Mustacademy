@@ -8,7 +8,7 @@ on:
 
 jobs:
   frontend:
-    name: Frontend — Lint & Build
+    name: Frontend — Lint, Test & Build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -30,13 +30,16 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Unit tests with coverage
+        run: npm run test:coverage
+
       - name: Build
         run: npm run build
         env:
           VITE_API_URL: https://mustacademy-backend.onrender.com/api
 
   backend:
-    name: Backend — Syntax & Import Check
+    name: Backend — Tests & Syntax
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -76,3 +79,30 @@ jobs:
           DATABASE_URL: postgresql://fake:fake@localhost/fake
           JWT_SECRET: ci-test-secret-not-real-32chars-long
           NODE_ENV: test
+
+  e2e:
+    name: Playwright E2E + a11y
+    runs-on: ubuntu-latest
+    needs: [frontend]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install root + frontend deps
+        run: |
+          npm ci
+          npm ci --prefix frontend
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
+      - name: Run E2E tests
+        run: npm run test:e2e
+        env:
+          CI: true
+          VITE_API_URL: http://127.0.0.1:5000/api

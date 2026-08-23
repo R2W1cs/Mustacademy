@@ -52,18 +52,20 @@ describe('POST /api/auth/register', () => {
         expect(res.body.message).toBe('Email already used');
     });
 
-    it('returns 201 with token and user on success', async () => {
+    it('returns 201 with user and auth cookies on success', async () => {
         pool.query
             .mockResolvedValueOnce({ rows: [] }) // no existing user
             .mockResolvedValueOnce({ rows: [{ id: 42, name: 'Bob', email: 'bob@test.com', role: 'user', token_version: 0 }] }) // insert
             .mockResolvedValueOnce({ rows: [] }) // user_stats
-            .mockResolvedValueOnce({ rows: [] }); // user_contributions
+            .mockResolvedValueOnce({ rows: [] }) // user_contributions
+            .mockResolvedValueOnce({ rows: [] }); // refresh_tokens insert
         const res = await request(app)
             .post('/api/auth/register')
             .send({ name: 'Bob', email: 'bob@test.com', password: 'secret123' });
         expect(res.status).toBe(201);
-        expect(res.body).toHaveProperty('token');
+        expect(res.body).not.toHaveProperty('token');
         expect(res.body.user).toMatchObject({ name: 'Bob', email: 'bob@test.com' });
+        expect(res.headers['set-cookie']).toBeDefined();
     });
 });
 
