@@ -121,10 +121,28 @@ export default function ProfileSetup() {
 
     const handleImageUpload = (file) => {
         if (!file) return;
+        if (!file.type?.startsWith('image/')) {
+            setError('Please choose an image file.');
+            return;
+        }
         const reader = new FileReader();
         reader.onloadend = () => {
-            setPreview(reader.result);
-            set("avatar_url", reader.result);
+            const img = new Image();
+            img.onload = () => {
+                const maxSide = 256;
+                const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.max(1, Math.round(img.width * scale));
+                canvas.height = Math.max(1, Math.round(img.height * scale));
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.72);
+                setPreview(dataUrl);
+                set("avatar_url", dataUrl);
+                setError("");
+            };
+            img.onerror = () => setError('Could not read that image.');
+            img.src = reader.result;
         };
         reader.readAsDataURL(file);
     };
@@ -145,8 +163,9 @@ export default function ProfileSetup() {
             });
             setSaved(true);
             setTimeout(() => navigate("/library"), 1400);
-        } catch {
-            setError("Data transmission failed. Protocol integrity compromised.");
+        } catch (err) {
+            const apiMsg = err.response?.data?.message || err.message;
+            setError(apiMsg || "Could not save profile. Check your connection and try again.");
         } finally {
             setSaving(false);
         }

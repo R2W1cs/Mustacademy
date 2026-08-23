@@ -11,6 +11,19 @@ import { useTheme } from "../auth/ThemeContext";
 import 'katex/dist/katex.min.css';
 import { InlineMath, BlockMath } from 'react-katex';
 import ProgrammingDeepDive from "./programming-units/ProgrammingDeepDive";
+import NetworkVisualizer from "./NetworkVisualizer";
+
+const resolveNetworkLabType = (title = "") => {
+    const t = title.toLowerCase();
+    if (/\bosi\b/.test(t) || t.includes("tcp/ip network")) return "osi";
+    if (t.includes("handshake") || t.includes("reliable delivery")) return "tcp";
+    if (/\budp\b/.test(t)) return "tcp";
+    if (/\bdns\b/.test(t)) return "dns";
+    if (t.includes("routing")) return "routing";
+    if (t.includes("ip addressing") || t.includes("subnet")) return "ip";
+    if (t.includes("packet") || (t.includes("hosts") && t.includes("internet"))) return "packet";
+    return null;
+};
 
 // ─── CODE EXECUTION BLOCK ──────────────────────────────────────────────────
 const CodeBlock = ({ children, language }) => {
@@ -592,6 +605,13 @@ const TopicContent = ({ topic, mode = 'easy' }) => {
                             <p className={`text-sm leading-relaxed ${isDark ? 'text-slate-400' : 'text-rose-800/70'}`}>{topic.failure_analysis}</p>
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* ── NETWORK LAB (inline with lesson; auto-plays) ── */}
+            {resolveNetworkLabType(topic.title) && (
+                <div className="mb-14">
+                    <NetworkVisualizer type={resolveNetworkLabType(topic.title)} />
                 </div>
             )}
 

@@ -106,7 +106,7 @@ export const validateToggleUpvote = (req, res, next) => {
 };
 
 export const validateUpdateProfile = validate({
-    avatar_url: { required: false, type: 'string', maxLength: 500 },
+    avatar_url: { required: false, type: 'string', maxLength: 400000 },
     bio: { required: false, type: 'string', maxLength: 1000 },
     passion: { required: false, type: 'string', maxLength: 200 },
     year: { required: false, type: 'integer' },

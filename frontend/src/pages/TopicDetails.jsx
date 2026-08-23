@@ -378,7 +378,24 @@ const TopicDetails = () => {
                                 >
                                     <div className="space-y-20">
                                         
-                                        {/* VISUALIZER MATRIX */}
+                                        {/* VISUALIZER MATRIX — only when a lab matches */}
+                                        {(
+                                            topic.title?.toLowerCase().includes("sorting")
+                                            || topic.title?.toLowerCase().includes("graph")
+                                            || topic.title?.toLowerCase().includes("bfs")
+                                            || topic.title?.toLowerCase().includes("dfs")
+                                            || topic.title?.toLowerCase().includes("knapsack")
+                                            || topic.title?.toLowerCase().includes("recurrence")
+                                            || topic.title?.toLowerCase().includes("complexity")
+                                            || topic.title?.toLowerCase().includes("big o")
+                                            || topic.title?.toLowerCase().includes("olap")
+                                            || topic.title?.toLowerCase().includes("warehouse")
+                                            || topic.title?.toLowerCase().includes("uml")
+                                            || topic.title?.toLowerCase().includes("sdlc")
+                                            || topic.title?.toLowerCase().includes("waterfall")
+                                            || topic.title?.toLowerCase().includes("scrum")
+                                            || topic.title?.toLowerCase().includes("agile")
+                                        ) && (
                                         <section className="space-y-16">
                                             <div className="flex items-center justify-between mb-8">
                                                 <div className="flex items-center gap-4">
@@ -390,7 +407,7 @@ const TopicDetails = () => {
 
                                             <AnimatePresence mode="wait">
                                                 {topic.title?.toLowerCase().includes("sorting") && <SortingVisualizer />}
-                                                {(topic.title?.toLowerCase().includes("graph") || topic.title?.toLowerCase().includes("search") || topic.title?.toLowerCase().includes("bfs") || topic.title?.toLowerCase().includes("dfs") || topic.title?.toLowerCase().includes("path")) && <GraphVisualizer algorithm="BFS" />}
+                                                {(topic.title?.toLowerCase().includes("graph") || topic.title?.toLowerCase().includes("bfs") || topic.title?.toLowerCase().includes("dfs")) && <GraphVisualizer algorithm="BFS" />}
                                                 {topic.title?.toLowerCase().includes("knapsack") && <KnapsackVisualizer />}
                                                 {topic.title?.toLowerCase().includes("recurrence") && <RecurrenceVisualizer />}
                                                  {(topic.title?.toLowerCase().includes("complexity") || topic.title?.toLowerCase().includes("big o") || topic.title?.toLowerCase().includes("asymptotic") || topic.title?.toLowerCase().includes("growth")) && <ComplexityVisualizer />}
@@ -399,8 +416,9 @@ const TopicDetails = () => {
                                                  {(topic.title?.toLowerCase().includes("sdlc") || topic.title?.toLowerCase().includes("waterfall") || topic.title?.toLowerCase().includes("spiral") || topic.title?.toLowerCase().includes("scrum") || topic.title?.toLowerCase().includes("agile") || topic.title?.toLowerCase().includes("kanban") || topic.title?.toLowerCase().includes("xp")) && <MethodologyVisualizer type={topic.title?.toLowerCase().includes("spiral") ? "spiral" : topic.title?.toLowerCase().includes("scrum") ? "scrum" : topic.title?.toLowerCase().includes("kanban") ? "kanban" : topic.title?.toLowerCase().includes("xp") ? "xp" : "waterfall"} />}
                                             </AnimatePresence>
                                         </section>
+                                        )}
 
-                                        {/* ACADEMIC MANUSCRIPT */}
+                                        {/* ACADEMIC MANUSCRIPT — NetworkVisualizer mounts inside TopicContent */}
                                         <section className={`prose max-w-none ${isLight ? 'prose-gray' : 'prose-invert'}`}>
                                             <TopicContent topic={topic} mode={viewMode} />
                                         </section>

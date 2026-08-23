@@ -3,10 +3,16 @@ import 'dotenv/config';
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434/api/generate';
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'llama3.2';
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const INCEPTION_API_KEY = process.env.INCEPTION_API_KEY;
+const INCEPTION_BASE_URL = (process.env.INCEPTION_BASE_URL || 'https://api.inceptionlabs.ai/v1').replace(/\/$/, '');
+export const INCEPTION_MODEL = process.env.INCEPTION_MODEL || 'mercury-2';
+const INCEPTION_REASONING = process.env.INCEPTION_REASONING_EFFORT || 'low';
 const ALLOW_OLLAMA = process.env.ALLOW_OLLAMA === 'true' || process.env.NODE_ENV !== 'production';
 // Groq retired the old llama-3.x public IDs for many accounts — use currently available models.
 export const GROQ_MODEL = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
 export const GROQ_FAST_MODEL = process.env.GROQ_FAST_MODEL || 'groq/compound-mini';
+/** Prefer inception | groq | auto (default: try Groq then Inception) */
+const AI_PRIMARY = (process.env.AI_PRIMARY || 'auto').toLowerCase();
 
 import Groq from "groq-sdk";
 export const groq = GROQ_API_KEY ? new Groq({ apiKey: GROQ_API_KEY, timeout: 20000, maxRetries: 0 }) : null;
@@ -14,6 +20,7 @@ export const groq = GROQ_API_KEY ? new Groq({ apiKey: GROQ_API_KEY, timeout: 200
 console.log(`[AI Setup] Ollama URL: ${OLLAMA_URL} (enabled=${ALLOW_OLLAMA})`);
 console.log(`[AI Setup] Groq Key present: ${!!GROQ_API_KEY}`);
 console.log(`[AI Setup] Groq models: primary=${GROQ_MODEL} fast=${GROQ_FAST_MODEL}`);
+console.log(`[AI Setup] Inception Key present: ${!!INCEPTION_API_KEY} model=${INCEPTION_MODEL} primary=${AI_PRIMARY}`);
 
 const MOCK_FALLBACKS = {
     mentor: [
@@ -29,6 +36,17 @@ const MOCK_FALLBACKS = {
 const getMockResponse = (type) => {
     const responses = MOCK_FALLBACKS[type] || MOCK_FALLBACKS.mentor;
     return responses[Math.floor(Math.random() * responses.length)];
+};
+
+const buildMessages = (prompt) => {
+    if (Array.isArray(prompt)) return prompt;
+    if (prompt && typeof prompt === 'object' && prompt.system && prompt.user) {
+        return [
+            { role: 'system', content: prompt.system },
+            { role: 'user', content: prompt.user },
+        ];
+    }
+    return [{ role: 'user', content: typeof prompt === 'string' ? prompt : JSON.stringify(prompt) }];
 };
 
 export const repairJson = (jsonStr) => {
@@ -69,18 +87,7 @@ export const repairJson = (jsonStr) => {
 export const callGroq = async (prompt, expectJson = true, model = GROQ_MODEL, maxTokens = 2048) => {
     if (!groq) throw new Error("GROQ_API_KEY missing from environment");
 
-    // Build messages array — supports string, { system, user }, or raw messages[]
-    let messages;
-    if (Array.isArray(prompt)) {
-        messages = prompt;
-    } else if (prompt && typeof prompt === 'object' && prompt.system && prompt.user) {
-        messages = [
-            { role: 'system', content: prompt.system },
-            { role: 'user', content: prompt.user },
-        ];
-    } else {
-        messages = [{ role: 'user', content: prompt }];
-    }
+    let messages = buildMessages(prompt);
 
     console.log(`[AI Groq] Attempting reasoning via ${model} (expectJson=${expectJson}, maxTokens=${maxTokens})...`);
     try {
@@ -94,7 +101,6 @@ export const callGroq = async (prompt, expectJson = true, model = GROQ_MODEL, ma
 
         if (expectJson) {
             payload.response_format = { type: "json_object" };
-            // Many Groq models need an explicit JSON instruction when response_format is set.
             const hasSystem = messages.some((m) => m.role === 'system');
             if (!hasSystem) {
                 messages = [
@@ -130,45 +136,174 @@ export const callGroq = async (prompt, expectJson = true, model = GROQ_MODEL, ma
     }
 };
 
-export const streamAI = async (prompt, model = GROQ_MODEL, maxTokens = 4096) => {
-    // Build messages array — same overload support as callGroq
-    let messages;
-    if (Array.isArray(prompt)) {
-        messages = prompt;
-    } else if (prompt && typeof prompt === 'object' && prompt.system && prompt.user) {
-        messages = [
-            { role: 'system', content: prompt.system },
-            { role: 'user', content: prompt.user },
-        ];
-    } else {
-        messages = [{ role: 'user', content: prompt }];
-    }
+/** Inception Labs Mercury (OpenAI-compatible) — https://api.inceptionlabs.ai/v1 */
+export const callInception = async (prompt, expectJson = true, model = INCEPTION_MODEL, maxTokens = 2048) => {
+    if (!INCEPTION_API_KEY) throw new Error("INCEPTION_API_KEY missing from environment");
 
-    // 1. Try Groq first
-    if (process.env.GROQ_API_KEY && groq) {
-        try {
-            console.log(`[AI Groq] Initiating stream via ${model} (maxTokens=${maxTokens})...`);
-            const stream = await groq.chat.completions.create({
-                model,
-                messages,
-                temperature: 1,
-                max_tokens: maxTokens,
-                top_p: 1,
-                stream: true,
-            });
-            return stream;
-        } catch (err) {
-            console.warn("[AI Groq Stream] Failed:", err.message);
-            if (err.message.includes("model_not_found") || err.message.includes("does not exist")) {
-                console.error(`[AI Groq Stream] Model unavailable: ${model}. Set GROQ_MODEL on the server.`);
-            }
+    let messages = buildMessages(prompt);
+    if (expectJson) {
+        const hasSystem = messages.some((m) => m.role === 'system');
+        if (!hasSystem) {
+            messages = [
+                { role: 'system', content: 'You are a JSON API. Always respond with valid JSON only. No markdown.' },
+                ...messages,
+            ];
+        } else {
+            messages = messages.map((m) =>
+                m.role === 'system'
+                    ? { ...m, content: `${m.content}\n\nAlways respond with valid JSON only.` }
+                    : m
+            );
         }
     }
 
-    // 2. Optional Ollama (local/dev only — skipped in production unless ALLOW_OLLAMA=true)
+    console.log(`[AI Inception] Calling ${model} (expectJson=${expectJson}, maxTokens=${maxTokens})...`);
+
+    // Mercury spends tokens on reasoning — keep a floor so content is not truncated to empty.
+    const tokenBudget = Math.max(maxTokens, expectJson ? 2048 : 512);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 45000);
+
+    let response;
+    try {
+        response = await fetch(`${INCEPTION_BASE_URL}/chat/completions`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${INCEPTION_API_KEY}`,
+            },
+            body: JSON.stringify({
+                model,
+                messages,
+                reasoning_effort: INCEPTION_REASONING,
+                temperature: 0.75,
+                max_tokens: tokenBudget,
+            }),
+            signal: controller.signal,
+        });
+    } finally {
+        clearTimeout(timeoutId);
+    }
+
+    if (!response.ok) {
+        const errText = await response.text().catch(() => '');
+        throw new Error(`Inception HTTP ${response.status}: ${errText.slice(0, 200)}`);
+    }
+
+    const data = await response.json();
+    const aiText = data.choices?.[0]?.message?.content;
+    if (!aiText) throw new Error("Inception returned empty response");
+
+    if (!expectJson) return aiText;
+
+    try {
+        return JSON.parse(aiText);
+    } catch (e) {
+        console.warn("[AI Inception] JSON Parse Failed, attempting Repair:", e.message);
+        return parseAiJson(aiText);
+    }
+};
+
+const streamInception = async (prompt, model = INCEPTION_MODEL, maxTokens = 4096) => {
+    if (!INCEPTION_API_KEY) throw new Error("INCEPTION_API_KEY missing from environment");
+    const messages = buildMessages(prompt);
+
+    console.log(`[AI Inception] Streaming via ${model}...`);
+    const response = await fetch(`${INCEPTION_BASE_URL}/chat/completions`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${INCEPTION_API_KEY}`,
+        },
+        body: JSON.stringify({
+            model,
+            messages,
+            reasoning_effort: INCEPTION_REASONING,
+            temperature: 0.75,
+            max_tokens: Math.max(maxTokens, 512),
+            stream: true,
+        }),
+    });
+
+    if (!response.ok) {
+        const errText = await response.text().catch(() => '');
+        throw new Error(`Inception stream HTTP ${response.status}: ${errText.slice(0, 200)}`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    return (async function* () {
+        let buffer = '';
+        try {
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, { stream: true });
+                const parts = buffer.split('\n');
+                buffer = parts.pop() || '';
+                for (const line of parts) {
+                    const trimmed = line.trim();
+                    if (!trimmed.startsWith('data:')) continue;
+                    const payload = trimmed.slice(5).trim();
+                    if (!payload || payload === '[DONE]') continue;
+                    try {
+                        const json = JSON.parse(payload);
+                        const content = json.choices?.[0]?.delta?.content;
+                        if (content) {
+                            yield { choices: [{ delta: { content } }] };
+                        }
+                    } catch {
+                        // ignore partial JSON lines
+                    }
+                }
+            }
+        } finally {
+            reader.releaseLock();
+        }
+    })();
+};
+
+export const streamAI = async (prompt, model = GROQ_MODEL, maxTokens = 4096) => {
+    const messages = buildMessages(prompt);
+    const preferInception = AI_PRIMARY === 'inception';
+
+    const tryGroq = async () => {
+        if (!(process.env.GROQ_API_KEY && groq)) return null;
+        console.log(`[AI Groq] Initiating stream via ${model} (maxTokens=${maxTokens})...`);
+        return groq.chat.completions.create({
+            model,
+            messages,
+            temperature: 1,
+            max_tokens: maxTokens,
+            top_p: 1,
+            stream: true,
+        });
+    };
+
+    const tryInception = async () => {
+        if (!INCEPTION_API_KEY) return null;
+        return streamInception(prompt, INCEPTION_MODEL, maxTokens);
+    };
+
+    const order = preferInception
+        ? [tryInception, tryGroq]
+        : [tryGroq, tryInception];
+
+    for (const attempt of order) {
+        try {
+            const stream = await attempt();
+            if (stream) return stream;
+        } catch (err) {
+            console.warn("[AI Stream] Provider failed:", err.message);
+        }
+    }
+
+    // Optional Ollama (local/dev only — skipped in production unless ALLOW_OLLAMA=true)
     if (ALLOW_OLLAMA) {
         try {
-            console.log("[AI Ollama Stream] Groq unavailable, trying local stream...");
+            console.log("[AI Ollama Stream] Cloud providers unavailable, trying local stream...");
             return await streamOllama(prompt);
         } catch (err) {
             console.warn("[AI Ollama Stream] Failed:", err.message);
@@ -177,9 +312,9 @@ export const streamAI = async (prompt, model = GROQ_MODEL, maxTokens = 4096) => 
 
     console.warn("[AI Stream] Critical failure. Deploying Mock Stream.");
     const mockReply = getMockResponse('mentor');
-    const reason = !GROQ_API_KEY
-        ? 'GROQ_API_KEY is not set on the server (Render env). Redeploy after adding it.'
-        : `Groq request failed (model=${model}). Check GROQ_MODEL / quota.`;
+    const reason = (!GROQ_API_KEY && !INCEPTION_API_KEY)
+        ? 'Set GROQ_API_KEY or INCEPTION_API_KEY on the server (Render env). Redeploy after adding it.'
+        : `Cloud AI request failed. Check GROQ_MODEL / INCEPTION_API_KEY.`;
     return (async function* () {
         const words = `⚠️ [EMERGENCY PROTOCOL ACTIVE] ${reason} ${mockReply}`.split(' ');
         for (const word of words) {
@@ -253,7 +388,7 @@ export const streamOllama = async (prompt) => {
     })();
 };
 
-// Gemini removed — Groq is the sole cloud provider.
+// Cloud providers: Groq + Inception Labs (Mercury). Optional local Ollama in non-production.
 
 // --- FAST AI WRAPPER (GROQ_FAST_MODEL — for quick-response features) ---
 // Use for: project eval, grading, career analysis, quiz, readiness check, goal submission
@@ -271,17 +406,34 @@ export const callFastAI = async (prompt, expectJson = true, maxTokens = 512) => 
     return callAI(prompt, expectJson, maxTokens);
 };
 
-// --- PRIMARY AI WRAPPER (Groq only; optional local Ollama in non-production) ---
+// --- PRIMARY AI WRAPPER (Groq / Inception; optional local Ollama in non-production) ---
 export const callAI = async (prompt, expectJson = true, maxTokens = 2048) => {
     let lastError = null;
-    if (process.env.GROQ_API_KEY) {
+    const preferInception = AI_PRIMARY === 'inception';
+
+    const tryGroq = async () => {
+        if (!process.env.GROQ_API_KEY) return null;
+        console.log(`[callAI] Attempting Groq protocol (${GROQ_MODEL})...`);
+        return callGroq(prompt, expectJson, GROQ_MODEL, maxTokens);
+    };
+
+    const tryInception = async () => {
+        if (!INCEPTION_API_KEY) return null;
+        console.log(`[callAI] Attempting Inception protocol (${INCEPTION_MODEL})...`);
+        return callInception(prompt, expectJson, INCEPTION_MODEL, maxTokens);
+    };
+
+    const order = preferInception
+        ? [tryInception, tryGroq]
+        : [tryGroq, tryInception];
+
+    for (const attempt of order) {
         try {
-            console.log(`[callAI] Attempting Groq protocol (${GROQ_MODEL})...`);
-            const groqRes = await callGroq(prompt, expectJson, GROQ_MODEL, maxTokens);
-            if (groqRes) return groqRes;
+            const res = await attempt();
+            if (res) return res;
         } catch (err) {
             lastError = err.message;
-            console.warn("[callAI] Groq failed:", err.message);
+            console.warn("[callAI] Provider failed:", err.message);
         }
     }
 
@@ -298,14 +450,14 @@ export const callAI = async (prompt, expectJson = true, maxTokens = 2048) => {
 
     console.warn("[callAI] Critical failure. Deploying Mock Protocol.");
     const mockReply = getMockResponse('mentor');
-    const prefix = !GROQ_API_KEY
-        ? "⚠️ [OFFLINE MODE — set GROQ_API_KEY on Render] "
-        : `⚠️ [OFFLINE MODE — Groq request failed${lastError ? `: ${lastError.slice(0, 120)}` : ''}] `;
+    const prefix = (!GROQ_API_KEY && !INCEPTION_API_KEY)
+        ? "⚠️ [OFFLINE MODE — set GROQ_API_KEY or INCEPTION_API_KEY on Render] "
+        : `⚠️ [OFFLINE MODE — AI request failed${lastError ? `: ${lastError.slice(0, 120)}` : ''}] `;
     if (expectJson) {
         return {
             reply: prefix + mockReply,
             segments: [
-                { speaker: "host", text: "Neural link unavailable. Set GROQ_MODEL to a model your Groq account can access, then redeploy." },
+                { speaker: "host", text: "Neural link unavailable. Set INCEPTION_API_KEY or GROQ_API_KEY, then redeploy." },
                 { speaker: "expert", text: mockReply }
             ],
             title: "Neural Link Interrupted",
@@ -344,7 +496,7 @@ export const callOllama = async (prompt, expectJson = true, retries = 2) => {
         return parseAiJson(aiText);
     } catch (e) {
         clearTimeout(timeoutId);
-        if (retries > 0) return callOllama(prompt, retries - 1);
+        if (retries > 0) return callOllama(prompt, expectJson, retries - 1);
         return { reply: "⚠️ Intelligence Synthesis Compromised. Local engine unreachable.", error: e.message };
     }
 };

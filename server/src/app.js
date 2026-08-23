@@ -78,6 +78,14 @@ app.use(
   aiRoutes
 );
 
+// Profile accepts compressed avatar data URLs (still capped in validateUpdateProfile).
+app.use(
+  '/api/profile',
+  express.json({ limit: '1mb' }),
+  express.urlencoded({ limit: '1mb', extended: true }),
+  profileRoutes
+);
+
 app.use(express.json({ limit: '100kb' }));
 app.use(express.urlencoded({ limit: '100kb', extended: true }));
 
@@ -111,7 +119,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/progress', progressRoutes);
 app.use('/api/enroll', enrollRoutes);
-app.use('/api/profile', profileRoutes);
+// /api/profile mounted earlier with a larger JSON body limit
 app.use('/api/users', userRoutes);
 app.use('/api/badges', badgeRoutes);
 app.use('/api/contributions', contributionRoutes);

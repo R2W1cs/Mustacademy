@@ -20,6 +20,21 @@ const SALARY_LABEL = (v) => {
     return `$${(v / 1000).toFixed(0)}K`;
 };
 
+/** Hide placeholder / same-origin fake pulse links (e.g. mustacademy.dev/pulse/...) */
+const isExternalSourceUrl = (url) => {
+    if (!url || typeof url !== "string") return false;
+    try {
+        const u = new URL(url);
+        if (!/^https?:$/i.test(u.protocol)) return false;
+        const host = u.hostname.replace(/^www\./, "").toLowerCase();
+        if (host === "mustacademy.dev" || host.endsWith(".mustacademy.dev")) return false;
+        if (u.pathname.startsWith("/pulse")) return false;
+        return true;
+    } catch {
+        return false;
+    }
+};
+
 const SignalCard = ({ signal, isDark }) => (
     <motion.div
         layout
@@ -56,7 +71,7 @@ const SignalCard = ({ signal, isDark }) => (
                     {signal.title}
                 </h3>
             </div>
-            {signal.source_url && (
+            {isExternalSourceUrl(signal.source_url) && (
                 <a
                     href={signal.source_url}
                     target="_blank"

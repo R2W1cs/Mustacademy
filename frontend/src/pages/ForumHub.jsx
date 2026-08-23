@@ -34,6 +34,20 @@ const DEMAND_COLOR = (v) => {
     return "text-rose-400";
 };
 
+const isExternalSourceUrl = (url) => {
+    if (!url || typeof url !== "string") return false;
+    try {
+        const u = new URL(url);
+        if (!/^https?:$/i.test(u.protocol)) return false;
+        const host = u.hostname.replace(/^www\./, "").toLowerCase();
+        if (host === "mustacademy.dev" || host.endsWith(".mustacademy.dev")) return false;
+        if (u.pathname.startsWith("/pulse")) return false;
+        return true;
+    } catch {
+        return false;
+    }
+};
+
 // ─── Signal Card ──────────────────────────────────────────────────────────────
 
 const SignalCard = ({ signal, isDark }) => (
@@ -70,7 +84,7 @@ const SignalCard = ({ signal, isDark }) => (
                     {signal.title}
                 </h3>
             </div>
-            {signal.source_url && (
+            {isExternalSourceUrl(signal.source_url) && (
                 <a href={signal.source_url} target="_blank" rel="noopener noreferrer"
                     className={`shrink-0 p-1.5 rounded-lg transition-colors ${isDark ? "text-white/20 hover:text-cyan-400 hover:bg-cyan-400/10" : "text-slate-300 hover:text-indigo-600"}`}>
                     <ExternalLink size={14} />
@@ -162,8 +176,19 @@ function MarketSignalsTab({ isDark }) {
             }, { timeout: 90000 });
             setPage(1);
             await fetchSignals(category, location, 1, false);
-            const added = res.data?.added_count ?? res.data?.synthesized_count;
-            toast.success(added != null ? `Market synced (${added} signals)` : "Market signals synced");
+            const added = res.data?.added_count ?? res.data?.synthesized_count ?? 0;
+            const live = res.data?.live_count;
+            const warning = res.data?.warning;
+            if (warning) {
+                toast.success(
+                    live != null
+                        ? `Market recovered (${live} live signals). Live news API needs a valid SERPAPI_KEY.`
+                        : res.data?.message || `Market synced (${added} signals)`,
+                    { duration: 5000 }
+                );
+            } else {
+                toast.success(live != null ? `Market synced — ${live} live signals` : `Market synced (${added} signals)`);
+            }
         } catch (err) {
             const msg = err.response?.data?.message || err.message || "Sync failed";
             toast.error(msg.includes("SERPAPI") ? "SERPAPI_KEY missing on server" : msg);
