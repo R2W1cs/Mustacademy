@@ -2,6 +2,10 @@ import 'dotenv/config';
 import { validateEnv } from './src/config/validateEnv.js';
 import { initSentry } from './src/monitoring/sentry.js';
 import { runDbMigrations } from './src/config/migrateRunner.js';
+import {
+  ensureCareerRoadmapSchema,
+  ensureCourseCareerSeed,
+} from './src/config/ensureCareerSchema.js';
 validateEnv();
 initSentry();
 
@@ -30,11 +34,18 @@ const server = http.createServer(app);
 // Initialize Socket.io
 initIo(server);
 
-// Test DB Connection + run schema migrations
+// Test DB Connection + run schema migrations + free-tier schema ensure
 pool.query('SELECT NOW()')
-  .then(() => {
+  .then(async () => {
     console.log('[DB] Connection Verified.');
-    return runDbMigrations();
+    try {
+      await runDbMigrations();
+    } catch (err) {
+      console.error('[DB] node-pg-migrate failed (continuing with ensure):', err.message);
+    }
+    // Always patch career columns — works without Render shell / migrate CLI
+    await ensureCareerRoadmapSchema();
+    await ensureCourseCareerSeed();
   })
   .catch(err => console.error('[DB] Connection FAILED:', err.message));
 

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mic, MicOff, Send, Square, ChevronRight, BookOpen, MessageSquare } from 'lucide-react';
 import api from '../api/axios';
+import { useTheme } from '../auth/ThemeContext';
 
 // Dr. Nova voice — locked to server TTS, consistent across all browsers
 const NOVA_VOICE = 'en-US-GuyNeural';
@@ -13,6 +14,9 @@ async function serverTTS(text, signal) {
 }
 
 export default function InteractivePodcastPlayer({ topic }) {
+    const { theme } = useTheme();
+    const isLight = theme === 'light';
+
     // Session phases: 'idle' | 'lesson' | 'qa'
     const [phase, setPhase] = useState('idle');
     const [lessonParagraphs, setLessonParagraphs] = useState([]);
@@ -205,21 +209,29 @@ export default function InteractivePodcastPlayer({ topic }) {
         : 0;
 
     return (
-        <div className="mt-8 rounded-2xl overflow-hidden border border-slate-800 shadow-2xl"
-            style={{ background: 'linear-gradient(145deg, #0c0f1a 0%, #0f1420 50%, #0a0d18 100%)' }}>
+        <div
+            className={`mt-8 rounded-2xl overflow-hidden border shadow-xl ${
+                isLight ? 'border-gray-200 bg-white' : 'border-slate-800'
+            }`}
+            style={isLight
+                ? { background: 'linear-gradient(145deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%)' }
+                : { background: 'linear-gradient(145deg, #0c0f1a 0%, #0f1420 50%, #0a0d18 100%)' }}
+        >
 
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800/60">
+            <div className={`flex items-center justify-between px-6 py-4 border-b ${isLight ? 'border-gray-200' : 'border-slate-800/60'}`}>
                 <div className="flex items-center gap-3">
                     <div className="relative flex items-center justify-center w-9 h-9">
                         <div className={`absolute inset-0 rounded-full bg-indigo-500/20 ${isSpeaking ? 'animate-ping' : ''}`} />
-                        <div className="relative w-7 h-7 rounded-full bg-indigo-600/30 border border-indigo-500/50 flex items-center justify-center">
-                            <span className="text-indigo-300 text-xs font-bold">N</span>
+                        <div className={`relative w-7 h-7 rounded-full border flex items-center justify-center ${
+                            isLight ? 'bg-indigo-50 border-indigo-200' : 'bg-indigo-600/30 border-indigo-500/50'
+                        }`}>
+                            <span className={`text-xs font-bold ${isLight ? 'text-indigo-600' : 'text-indigo-300'}`}>N</span>
                         </div>
                     </div>
                     <div>
-                        <p className="text-white font-semibold text-sm tracking-wide">Dr. Nova</p>
-                        <p className="text-slate-500 text-xs">Lesson Podcast</p>
+                        <p className={`font-semibold text-sm tracking-wide ${isLight ? 'text-slate-900' : 'text-white'}`}>Dr. Nova</p>
+                        <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-500'}`}>Lesson Podcast</p>
                     </div>
                 </div>
 
@@ -227,16 +239,18 @@ export default function InteractivePodcastPlayer({ topic }) {
                     {phase !== 'idle' && (
                         <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${
                             phase === 'lesson'
-                                ? 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30'
-                                : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+                                ? (isLight ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30')
+                                : (isLight ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30')
                         }`}>
                             {phase === 'lesson' ? <BookOpen size={11} /> : <MessageSquare size={11} />}
                             {phase === 'lesson' ? 'LECTURE' : 'Q&A'}
                         </div>
                     )}
-                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/60 border border-slate-700/40">
-                        <span className={`w-1.5 h-1.5 rounded-full ${isSpeaking ? 'bg-indigo-400 animate-pulse' : isGenerating ? 'bg-amber-400 animate-pulse' : 'bg-slate-600'}`} />
-                        <span className="text-slate-400 text-xs font-medium">
+                    <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border ${
+                        isLight ? 'bg-slate-50 border-gray-200' : 'bg-slate-800/60 border-slate-700/40'
+                    }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${isSpeaking ? 'bg-indigo-400 animate-pulse' : isGenerating ? 'bg-amber-400 animate-pulse' : isLight ? 'bg-slate-300' : 'bg-slate-600'}`} />
+                        <span className={`text-xs font-medium ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
                             {isSpeaking ? 'SPEAKING' : isGenerating ? 'THINKING' : isListening ? 'LISTENING' : 'IDLE'}
                         </span>
                     </div>
@@ -255,16 +269,20 @@ export default function InteractivePodcastPlayer({ topic }) {
                                 style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)' }} />
                             <div className="absolute w-24 h-24 rounded-full border border-indigo-500/20 animate-pulse" />
                             <div className="absolute w-32 h-32 rounded-full border border-indigo-500/10" />
-                            <div className="w-16 h-16 rounded-full border border-indigo-400/40 bg-indigo-950/60 flex items-center justify-center shadow-lg shadow-indigo-900/50">
-                                <span className="text-indigo-200 text-2xl font-light">N</span>
+                            <div className={`w-16 h-16 rounded-full border flex items-center justify-center shadow-lg ${
+                                isLight
+                                    ? 'border-indigo-300 bg-indigo-50 shadow-indigo-100'
+                                    : 'border-indigo-400/40 bg-indigo-950/60 shadow-indigo-900/50'
+                            }`}>
+                                <span className={`text-2xl font-light ${isLight ? 'text-indigo-600' : 'text-indigo-200'}`}>N</span>
                             </div>
                         </div>
 
                         <div className="text-center max-w-sm">
-                            <h3 className="text-white text-xl font-semibold mb-1">
+                            <h3 className={`text-xl font-semibold mb-1 ${isLight ? 'text-slate-900' : 'text-white'}`}>
                                 {topic?.title || 'Select a Topic'}
                             </h3>
-                            <p className="text-slate-400 text-sm leading-relaxed">
+                            <p className={`text-sm leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
                                 Dr. Nova will deliver a private lecture, then stay for your questions.
                             </p>
                         </div>
@@ -272,7 +290,9 @@ export default function InteractivePodcastPlayer({ topic }) {
                         <button
                             onClick={startSession}
                             disabled={isLoadingLesson}
-                            className="flex items-center gap-2 px-8 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all shadow-lg shadow-indigo-900/50 hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className={`flex items-center gap-2 px-8 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg ${
+                                isLight ? 'shadow-indigo-200' : 'shadow-indigo-900/50'
+                            }`}
                         >
                             {isLoadingLesson ? (
                                 <>
@@ -287,7 +307,7 @@ export default function InteractivePodcastPlayer({ topic }) {
                             )}
                         </button>
 
-                        {error && <p className="text-red-400 text-xs text-center">{error}</p>}
+                        {error && <p className={`text-xs text-center ${isLight ? 'text-red-600' : 'text-red-400'}`}>{error}</p>}
                     </div>
                 )}
 
@@ -305,10 +325,10 @@ export default function InteractivePodcastPlayer({ topic }) {
                                 )}
                                 <div className={`w-14 h-14 rounded-full border flex items-center justify-center transition-all duration-500 ${
                                     isSpeaking
-                                        ? 'border-indigo-400/60 bg-indigo-950/80 shadow-lg shadow-indigo-500/30'
-                                        : 'border-slate-700/60 bg-slate-900/60'
+                                        ? (isLight ? 'border-indigo-400 bg-indigo-50 shadow-lg shadow-indigo-200' : 'border-indigo-400/60 bg-indigo-950/80 shadow-lg shadow-indigo-500/30')
+                                        : (isLight ? 'border-gray-200 bg-slate-50' : 'border-slate-700/60 bg-slate-900/60')
                                 }`}>
-                                    <span className={`text-xl font-light transition-colors ${isSpeaking ? 'text-indigo-300' : 'text-slate-500'}`}>N</span>
+                                    <span className={`text-xl font-light transition-colors ${isSpeaking ? (isLight ? 'text-indigo-600' : 'text-indigo-300') : (isLight ? 'text-slate-400' : 'text-slate-500')}`}>N</span>
                                 </div>
                             </div>
 
@@ -322,11 +342,11 @@ export default function InteractivePodcastPlayer({ topic }) {
                             {/* Lesson progress bar */}
                             {phase === 'lesson' && lessonParagraphs.length > 0 && (
                                 <div className="w-48 mt-1">
-                                    <div className="flex justify-between text-slate-600 text-[10px] mb-1">
+                                    <div className={`flex justify-between text-[10px] mb-1 ${isLight ? 'text-slate-500' : 'text-slate-600'}`}>
                                         <span>Lecture progress</span>
                                         <span>{Math.round(lessonProgress)}%</span>
                                     </div>
-                                    <div className="h-0.5 bg-slate-800 rounded-full overflow-hidden">
+                                    <div className={`h-0.5 rounded-full overflow-hidden ${isLight ? 'bg-slate-200' : 'bg-slate-800'}`}>
                                         <motion.div
                                             className="h-full bg-indigo-500 rounded-full"
                                             animate={{ width: `${lessonProgress}%` }}
@@ -349,14 +369,20 @@ export default function InteractivePodcastPlayer({ topic }) {
                                         className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                                     >
                                         {msg.role === 'nova' && (
-                                            <div className="w-5 h-5 rounded-full bg-indigo-900/60 border border-indigo-700/40 flex items-center justify-center mr-2 mt-0.5 shrink-0">
-                                                <span className="text-indigo-400 text-[9px] font-bold">N</span>
+                                            <div className={`w-5 h-5 rounded-full border flex items-center justify-center mr-2 mt-0.5 shrink-0 ${
+                                                isLight ? 'bg-indigo-50 border-indigo-200' : 'bg-indigo-900/60 border-indigo-700/40'
+                                            }`}>
+                                                <span className={`text-[9px] font-bold ${isLight ? 'text-indigo-600' : 'text-indigo-400'}`}>N</span>
                                             </div>
                                         )}
                                         <div className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm leading-relaxed ${
                                             msg.role === 'user'
-                                                ? 'bg-indigo-600/20 text-indigo-100 border border-indigo-500/20 rounded-br-none'
-                                                : 'bg-slate-800/50 text-slate-200 border border-slate-700/30 rounded-bl-none'
+                                                ? (isLight
+                                                    ? 'bg-indigo-50 text-indigo-900 border border-indigo-100 rounded-br-none'
+                                                    : 'bg-indigo-600/20 text-indigo-100 border border-indigo-500/20 rounded-br-none')
+                                                : (isLight
+                                                    ? 'bg-slate-50 text-slate-800 border border-gray-200 rounded-bl-none'
+                                                    : 'bg-slate-800/50 text-slate-200 border border-slate-700/30 rounded-bl-none')
                                         }`}>
                                             {msg.text}
                                         </div>
@@ -370,10 +396,14 @@ export default function InteractivePodcastPlayer({ topic }) {
                                         animate={{ opacity: 1 }}
                                         className="flex justify-start"
                                     >
-                                        <div className="w-5 h-5 rounded-full bg-indigo-900/60 border border-indigo-700/40 flex items-center justify-center mr-2 mt-0.5 shrink-0">
-                                            <span className="text-indigo-400 text-[9px] font-bold">N</span>
+                                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center mr-2 mt-0.5 shrink-0 ${
+                                            isLight ? 'bg-indigo-50 border-indigo-200' : 'bg-indigo-900/60 border-indigo-700/40'
+                                        }`}>
+                                            <span className={`text-[9px] font-bold ${isLight ? 'text-indigo-600' : 'text-indigo-400'}`}>N</span>
                                         </div>
-                                        <div className="bg-slate-800/50 border border-slate-700/30 rounded-xl rounded-bl-none px-4 py-3">
+                                        <div className={`rounded-xl rounded-bl-none px-4 py-3 border ${
+                                            isLight ? 'bg-slate-50 border-gray-200' : 'bg-slate-800/50 border-slate-700/30'
+                                        }`}>
                                             <div className="flex gap-1.5 items-center">
                                                 <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
                                                 <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
@@ -390,7 +420,7 @@ export default function InteractivePodcastPlayer({ topic }) {
                                         animate={{ opacity: 1 }}
                                         className="flex justify-center"
                                     >
-                                        <span className="text-slate-600 text-xs italic">Dr. Nova is speaking...</span>
+                                        <span className={`text-xs italic ${isLight ? 'text-slate-500' : 'text-slate-600'}`}>Dr. Nova is speaking...</span>
                                     </motion.div>
                                 )}
                             </AnimatePresence>
@@ -399,15 +429,17 @@ export default function InteractivePodcastPlayer({ topic }) {
 
                         {/* Error */}
                         {error && (
-                            <div className="mx-5 mb-2 px-3 py-2 rounded-lg bg-red-950/40 border border-red-900/40 text-red-400 text-xs">
+                            <div className={`mx-5 mb-2 px-3 py-2 rounded-lg text-xs border ${
+                                isLight ? 'bg-red-50 border-red-200 text-red-700' : 'bg-red-950/40 border-red-900/40 text-red-400'
+                            }`}>
                                 {error}
                             </div>
                         )}
 
                         {/* Input dock */}
-                        <div className="px-5 pb-5 pt-2 border-t border-slate-800/60">
+                        <div className={`px-5 pb-5 pt-2 border-t ${isLight ? 'border-gray-200' : 'border-slate-800/60'}`}>
                             {phase === 'lesson' && (
-                                <p className="text-slate-600 text-xs text-center mb-3">
+                                <p className={`text-xs text-center mb-3 ${isLight ? 'text-slate-500' : 'text-slate-600'}`}>
                                     Lecture in progress — questions unlock after Dr. Nova finishes.
                                 </p>
                             )}
@@ -419,10 +451,13 @@ export default function InteractivePodcastPlayer({ topic }) {
                                         onChange={e => setInputValue(e.target.value)}
                                         placeholder={phase === 'lesson' ? 'Listening to lecture...' : 'Ask Dr. Nova anything...'}
                                         disabled={isGenerating || isSpeaking || phase === 'lesson'}
-                                        className="w-full rounded-xl pl-4 pr-12 py-3 text-sm outline-none transition-all
-                                            bg-slate-800/60 border border-slate-700/50 text-white placeholder-slate-600
+                                        className={`w-full rounded-xl pl-4 pr-12 py-3 text-sm outline-none transition-all
                                             focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30
-                                            disabled:opacity-40 disabled:cursor-not-allowed"
+                                            disabled:opacity-40 disabled:cursor-not-allowed ${
+                                            isLight
+                                                ? 'bg-white border border-gray-200 text-slate-900 placeholder-slate-400'
+                                                : 'bg-slate-800/60 border border-slate-700/50 text-white placeholder-slate-600'
+                                        }`}
                                     />
                                     <button
                                         type="button"
@@ -431,7 +466,9 @@ export default function InteractivePodcastPlayer({ topic }) {
                                         className={`absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg transition-all ${
                                             isListening
                                                 ? 'bg-red-500/20 text-red-400 animate-pulse'
-                                                : 'text-slate-500 hover:text-indigo-400 hover:bg-slate-700/50'
+                                                : (isLight
+                                                    ? 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50'
+                                                    : 'text-slate-500 hover:text-indigo-400 hover:bg-slate-700/50')
                                         } disabled:opacity-30 disabled:cursor-not-allowed`}
                                     >
                                         {isListening ? <MicOff size={15} /> : <Mic size={15} />}
@@ -442,7 +479,11 @@ export default function InteractivePodcastPlayer({ topic }) {
                                     <button
                                         type="button"
                                         onClick={stopAudio}
-                                        className="p-3 rounded-xl bg-red-600/20 text-red-400 border border-red-600/30 hover:bg-red-600/30 transition-all"
+                                        className={`p-3 rounded-xl border transition-all ${
+                                            isLight
+                                                ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
+                                                : 'bg-red-600/20 text-red-400 border-red-600/30 hover:bg-red-600/30'
+                                        }`}
                                     >
                                         <Square size={16} fill="currentColor" />
                                     </button>
@@ -450,7 +491,9 @@ export default function InteractivePodcastPlayer({ topic }) {
                                     <button
                                         type="submit"
                                         disabled={!inputValue.trim() || isGenerating || phase === 'lesson'}
-                                        className="p-3 rounded-xl transition-all bg-indigo-600 text-white hover:bg-indigo-500 shadow-lg shadow-indigo-900/40 hover:scale-[1.02] active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:bg-indigo-600"
+                                        className={`p-3 rounded-xl transition-all bg-indigo-600 text-white hover:bg-indigo-500 hover:scale-[1.02] active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:bg-indigo-600 shadow-lg ${
+                                            isLight ? 'shadow-indigo-200' : 'shadow-indigo-900/40'
+                                        }`}
                                     >
                                         <Send size={16} />
                                     </button>
