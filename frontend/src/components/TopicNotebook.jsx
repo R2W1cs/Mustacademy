@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import toast from "react-hot-toast";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
-    MessageSquare, Zap, FileText, GraduationCap, Sparkles,
+    Zap, FileText, Sparkles,
     Mic, VolumeX, Volume2, Target, RefreshCw, Check,
-    Upload, Trash2, BookOpen, File, FileCode, ChevronDown,
+    Upload, Trash2, BookOpen, File, FileCode,
     Brain, Send, Play
 } from "lucide-react";
 import api from "../api/axios";
@@ -200,43 +200,23 @@ const FileIcon = ({ type }) => {
 
 const formatBytes = (b) => b < 1024 ? `${b}B` : b < 1048576 ? `${(b/1024).toFixed(0)}KB` : `${(b/1048576).toFixed(1)}MB`;
 
-// ─── Topic type classifier ────────────────────────────────────────────────────
-// Concept topics get a prose masterclass (no forced algo-viz / JS labs).
-const CONCEPT_PATTERNS = /waterfall|agile|scrum|kanban|sdlc|lifecycle|life.?cycle|methodology|process model|requirements|rup\b|spiral model|incremental|prototype|feasibility|uml|use.?case|gantt|project.?management|change.?management|risk.?management|quality.?assurance|software.?testing\s*methodolog|ieee|cmmi|devops.?culture|network|internet|protocol|packet|osi|tcp|udp|ip\b|dns|http|https|routing|router|switch|subnet|cidr|dhcp|nat\b|ipv6|congestion|throughput|delay|latency|ethernet|wifi|wi-?fi|wireless|bluetooth|vpn|tls|ssl|firewall|quic|smtp|cdn|socket|encapsulation|forwarding|bgp|ospf|arp\b|mac\b|lan\b|wan\b|mtu|checksum|handshake|middleware|middlebox|security|cryptograph|encryption|authentication/i;
-
-function isConceptTopic(title = '') {
-    return CONCEPT_PATTERNS.test(title);
-}
-
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 
-// Build a full local lesson story from seeded markdown (works even if AI is down)
-function buildLocalLessonStory(topic = {}) {
-    const title = topic.title || 'This lesson';
-    const easy = topic.content_easy_markdown || topic.content_markdown || '';
-    if (!easy) {
-        return (
-            `# ${title}\n\n` +
-            `## Opening the research notebook\n` +
-            `This node does not have seeded lesson text yet. Ask me anything about **${title}** and I will teach it from first principles.\n\n` +
-            `### How to use this notebook\n` +
-            `- Ask "explain like I'm new"\n` +
-            `- Ask for a worked example\n` +
-            `- Ask "what do I still not understand?"\n` +
-            `- Turn on voice to hear the lecture\n`
-        );
-    }
-    let story = `# ${title}\n\n`;
-    story += `## Your guided story for this lesson\n`;
-    story += `Welcome. This Research Notebook walks the full story of **${title}**. Read it like a chapter, then ask me anything.\n\n`;
-    story += `---\n\n${easy}\n\n`;
-    story += `---\n\n## What you can ask me next\n`;
-    story += `- "Explain the hardest part again, slower."\n`;
-    story += `- "Give me a new worked example."\n`;
-    story += `- "What mistakes do students make here?"\n`;
-    story += `- "How does this connect to the previous lesson?"\n`;
-    story += `\n_Voice: tap the speaker on any reply (or click once on the page to enable Live Voice)._\n`;
-    return story;
+const TUTOR_CHIPS = [
+    'Explain the key idea simply',
+    'Give me a concrete example',
+    'Quiz me on this lesson',
+];
+
+// Tutor greeting — no story dump (podcast owns narration)
+function buildTutorGreeting(topic = {}) {
+    const title = topic.title || 'this lesson';
+    return (
+        `I'm your **1-on-1 AI Tutor** for **${title}**.\n\n` +
+        `The lesson page already has the reading and labs. Podcast is for listening. ` +
+        `Here we **practice** — ask anything, get examples, or quiz yourself.\n\n` +
+        `Try one of the chips below, or type your own question.`
+    );
 }
 
 const TopicNotebook = ({ topic, isDark }) => {
@@ -250,11 +230,10 @@ const TopicNotebook = ({ topic, isDark }) => {
     const [uploading, setUploading] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [activeMission, setActiveMission] = useState(null);
-    const [voiceEnabled, setVoiceEnabled] = useState(true);
+    const [voiceEnabled, setVoiceEnabled] = useState(false);
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [isListening, setIsListening] = useState(false);
     const [sessionStatus, setSessionStatus] = useState("idle");
-    const [lectureExpanded, setLectureExpanded] = useState(true);
 
     const scrollRef = useRef(null);
     const audioRef = useRef(new Audio());
@@ -292,14 +271,18 @@ const TopicNotebook = ({ topic, isDark }) => {
         return () => { window.removeEventListener('click', prime); window.removeEventListener('keydown', prime); };
     }, [sessionStatus]);
 
-    // ── Auto-speak latest AI message ──
+    // ── Auto-speak short AI answers only (skip greeting / long dumps) ──
     useEffect(() => {
-        if (!messages.length) return;
+        if (!messages.length || !voiceEnabled) return;
         const last = messages[messages.length - 1];
-        if (last.sender === 'ai' && voiceEnabled && lastSpokenRef.current < messages.length - 1) {
-            const t = setTimeout(() => { speakResponse(last.text); lastSpokenRef.current = messages.length - 1; }, 600);
-            return () => clearTimeout(t);
+        if (last.sender !== 'ai' || lastSpokenRef.current >= messages.length - 1) return;
+        const plain = String(last.text || '').replace(/[#*`]/g, '');
+        if (plain.length < 40 || plain.length > 900 || last.id?.includes('-greet')) {
+            lastSpokenRef.current = messages.length - 1;
+            return;
         }
+        const t = setTimeout(() => { speakResponse(last.text); lastSpokenRef.current = messages.length - 1; }, 600);
+        return () => clearTimeout(t);
     }, [messages.length, voiceEnabled]);
 
     // ── STT ──
@@ -319,12 +302,11 @@ const TopicNotebook = ({ topic, isDark }) => {
         recognitionRef.current.onerror = () => setIsListening(false);
     }, []);
 
-    // ── Initial fetch + auto-start masterclass ──
+    // ── Initial fetch + short tutor greeting (no story dump) ──
     useEffect(() => {
         let cancelled = false;
 
         const init = async () => {
-            // Load note & resources in parallel
             try {
                 const [noteRes, resourcesRes] = await Promise.all([
                     api.get(`/courses/topics/${topic.id}/note`),
@@ -336,86 +318,16 @@ const TopicNotebook = ({ topic, isDark }) => {
                 }
             } catch { /* silent */ }
 
-            // Always open with the full local lesson story first (AI enhances; never blank on failure)
             if (!cancelled) {
-                setLoading(true);
-                const localStory = buildLocalLessonStory(topic);
+                lastSpokenRef.current = 0;
                 setMessages([{
                     sender: 'ai',
-                    text: localStory,
-                    id: Date.now() + '-story',
-                    suggested: [
-                        'Explain the hardest idea more slowly',
-                        'Give me a worked example',
-                        'What mistakes should I avoid?',
-                        'How does this connect to the next lesson?',
-                    ],
+                    text: buildTutorGreeting(topic),
+                    id: Date.now() + '-greet',
+                    suggested: [...TUTOR_CHIPS],
                 }]);
-
-                // Keep the user message short — server loads lesson markdown via topicId
-                const masterclassMsg =
-                    `MASTERCLASS STORY — ${topic.title}.\n` +
-                    `You are the Research Notebook professor. Using the OFFICIAL LESSON CONTENT injected for topicId=${topic.id}, ` +
-                    `write a vivid FULL teaching story for this lesson (500–900 words).\n` +
-                    `Requirements:\n` +
-                    `1) Hook + why it matters in the real internet\n` +
-                    `2) Simple idea a complete beginner can picture\n` +
-                    `3) Step-by-step walkthrough\n` +
-                    `4) One strong analogy\n` +
-                    `5) One worked example with numbers or a concrete scenario\n` +
-                    `6) Common mistakes\n` +
-                    `7) 3 short check questions with answers\n` +
-                    `8) ASCII diagram of the flow if helpful\n` +
-                    `Do NOT force JavaScript labs or algo-viz for networking topics.\n` +
-                    `Do NOT say "provided below". Write the full story in your reply.`;
-
-                try {
-                    const res = await api.post('/ai/chat', {
-                        message: masterclassMsg,
-                        topicId: topic.id,
-                    });
-                    if (!cancelled) {
-                        const reply = res.data.reply || localStory;
-                        const useAi = typeof reply === 'string'
-                            && reply.length > 600
-                            && !res.data.offline
-                            && !/neural link interrupted|offline mode|system offline/i.test(reply);
-                        if (res.data.goal) setActiveMission({ title: 'Mission', description: res.data.goal.description, tasks: ['Complete the protocol'] });
-                        setMessages([{
-                            sender: 'ai',
-                            text: useAi ? reply : localStory,
-                            id: Date.now() + '-ai',
-                            suggested: res.data.suggested_questions || [
-                                'Explain the hardest idea more slowly',
-                                'Give me a worked example',
-                                'What mistakes should I avoid?',
-                            ],
-                        }]);
-                    }
-                } catch (err) {
-                    // Local lesson story already shown — only tip on auth/rate-limit so Q&A can be restored
-                    console.error('[TopicNotebook] masterclass failed — keeping local lesson story', err?.response?.status, err?.response?.data || err?.message);
-                    if (!cancelled) {
-                        const status = err?.response?.status;
-                        if (status === 401) {
-                            setMessages(prev => [...prev, {
-                                sender: 'ai',
-                                text: 'Session expired for AI chat — log out/in to restore live Q&A. The lesson story above still works.',
-                                id: Date.now() + '-tip',
-                            }]);
-                        } else if (status === 429) {
-                            setMessages(prev => [...prev, {
-                                sender: 'ai',
-                                text: 'AI rate limit — wait ~30s for live Q&A. The lesson story above still works.',
-                                id: Date.now() + '-tip',
-                            }]);
-                        }
-                    }
-                } finally {
-                    if (!cancelled) setLoading(false);
-                }
+                setLoading(false);
             }
-
         };
 
         init();
@@ -504,10 +416,15 @@ const TopicNotebook = ({ topic, isDark }) => {
 
         try {
             // Server loads full lesson via topicId — keep the chat message lean
+            // Avoid words like "masterclass"/"story" — server long-form detector matches those in the message.
             const grounded =
-                `As the Research Notebook professor for "${topic.title}", answer clearly and warmly using the official lesson first.\n\nStudent question: ${text}`;
+                `You are the 1-on-1 AI Tutor for "${topic.title}". ` +
+                `Answer the student's question clearly and warmly using the lesson content first. ` +
+                `Be concise (a few short paragraphs unless they ask for more). Prefer examples, analogies, and quick quizzes over long lectures. ` +
+                `Do not dump a full lecture unless they explicitly ask for a deep walkthrough.\n\n` +
+                `Student question: ${text}`;
             const res = await api.post('/ai/chat', { message: grounded, topicId: topic.id });
-            const reply = res.data.reply || (res.data.offline ? "I couldn't reach the live model just now — ask again in a moment, or rephrase from the lesson story above." : "Synthesis complete.");
+            const reply = res.data.reply || (res.data.offline ? "I couldn't reach the live model just now — ask again in a moment." : "Sorry — try asking again.");
 
             const missionMatch = reply.match(/```json\s*({[\s\S]*?"type":\s*"mission"[\s\S]*?})\s*```/);
             if (missionMatch) { try { setActiveMission(JSON.parse(missionMatch[1])); } catch {} }
@@ -515,37 +432,37 @@ const TopicNotebook = ({ topic, isDark }) => {
 
             setMessages(prev => {
                 if (prev.at(-1)?.text === reply && prev.at(-1)?.sender === 'ai') return prev;
-                return [...prev, { sender: 'ai', text: reply, id: Date.now() + '-ai', suggested: res.data.suggested_questions }];
+                return [...prev, {
+                    sender: 'ai',
+                    text: reply,
+                    id: Date.now() + '-ai',
+                    suggested: res.data.suggested_questions?.length ? res.data.suggested_questions : [...TUTOR_CHIPS],
+                }];
             });
         } catch (err) {
             console.error('[TopicNotebook] chat failed', err?.response?.status, err?.response?.data || err?.message);
             const status = err?.response?.status;
             const apiMsg = err?.response?.data?.message;
-            let text = 'Neural link interrupted. Please retry.';
-            if (status === 401) text = 'Session expired — log out and log back in.';
-            else if (status === 429) text = 'AI rate limit — wait a moment then retry.';
-            else if (apiMsg) text = `AI error: ${apiMsg}`;
-            else if (!err?.response) text = 'Cannot reach the AI server. Check connection/backend.';
-            setMessages(prev => [...prev, { sender: 'ai', text, id: Date.now() + '-err' }]);
+            let errText = 'Could not reach the tutor. Please retry.';
+            if (status === 401) errText = 'Session expired — log out and log back in.';
+            else if (status === 429) errText = 'AI rate limit — wait a moment then retry.';
+            else if (apiMsg) errText = `AI error: ${apiMsg}`;
+            else if (!err?.response) errText = 'Cannot reach the AI server. Check connection/backend.';
+            setMessages(prev => [...prev, { sender: 'ai', text: errText, id: Date.now() + '-err' }]);
         } finally { setLoading(false); }
-    }, [input, loading, topic.id, killAudio]);
+    }, [input, loading, topic.id, topic.title, killAudio]);
 
-    const initiateSynthesis = useCallback((force = false) => {
-        if (force) setMessages([]);
-        sendMessage(
-            `MASTERCLASS PROTOCOL — ${topic.title}. ` +
-            `Write a clear standalone lesson (about 400-600 words) directly in your reply. ` +
-            `Include these when they help (skip algo-viz for networking topics): ` +
-            `1) A visual ASCII diagram in a \`\`\`mermaid block showing how ${topic.title} works (use box-drawing chars ┌─┐│└─┘→). ` +
-            `2) Complete runnable JavaScript code (30+ lines, realistic scenario, with console.log showing output). ` +
-            `3) A markdown table showing time/space complexity per operation. ` +
-            `Also explain: the real-world hook (how is this used at Netflix/Google RIGHT NOW?), ` +
-            `the one mental model analogy that makes it click, step-by-step mechanics, ` +
-            `when to use vs when NOT to use, and the mistake 90% of students make. ` +
-            `Do NOT say "provided below". Do NOT summarize. Write the full content in your reply.`,
-            { silent: true }
-        );
-    }, [topic.title, sendMessage]);
+    const resetTutorSession = useCallback(() => {
+        killAudio();
+        lastSpokenRef.current = 0;
+        setActiveMission(null);
+        setMessages([{
+            sender: 'ai',
+            text: buildTutorGreeting(topic),
+            id: Date.now() + '-greet',
+            suggested: [...TUTOR_CHIPS],
+        }]);
+    }, [topic, killAudio]);
 
     // ── File upload ──
     const handleUpload = async (file) => {
@@ -605,7 +522,7 @@ const TopicNotebook = ({ topic, isDark }) => {
                         <Brain size={18} className={c.accentText} />
                     </div>
                     <div>
-                        <p className={`text-[10px] font-bold uppercase tracking-widest ${c.sub}`}>Research Notebook</p>
+                        <p className={`text-[10px] font-bold uppercase tracking-widest ${c.sub}`}>1-on-1 AI Tutor</p>
                         <h2 className={`text-sm font-bold leading-tight ${c.text}`}>{topic.title}</h2>
                     </div>
                 </div>
@@ -613,12 +530,18 @@ const TopicNotebook = ({ topic, isDark }) => {
                 <div className="flex items-center gap-2">
                     <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-[10px] font-bold uppercase tracking-wider ${c.badge}`}>
                         <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${isDark ? 'bg-indigo-400' : 'bg-red-500'}`} />
-                        Live Session
+                        Practice Session
                     </div>
-                    <button onClick={() => setVoiceEnabled(v => !v)} className={`p-2 rounded-xl transition-all ${voiceEnabled ? c.accentText : c.sub} hover:bg-white/5`}>
-                        {voiceEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+                    <button onClick={() => setVoiceEnabled(v => !v)} className={`p-2 rounded-xl transition-all ${voiceEnabled ? c.accentText : c.sub} hover:bg-white/5`} title={voiceEnabled ? 'Voice on (short answers)' : 'Voice off'}>
+                        {isSpeaking ? (
+                            <span className="flex gap-0.5 items-end h-4 w-4 justify-center">
+                                {[1, 2, 3].map((j) => (
+                                    <motion.div key={j} animate={{ height: [3, 10, 3] }} transition={{ repeat: Infinity, duration: 0.45, delay: j * 0.08 }} className={`w-0.5 rounded-full ${isDark ? 'bg-indigo-400' : 'bg-red-500'}`} />
+                                ))}
+                            </span>
+                        ) : voiceEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
                     </button>
-                    <button onClick={() => initiateSynthesis(true)} className={`p-2 rounded-xl ${c.sub} hover:${c.accentText} transition-all`} title="Regenerate">
+                    <button onClick={resetTutorSession} className={`p-2 rounded-xl ${c.sub} hover:${c.accentText} transition-all`} title="Reset session">
                         <RefreshCw size={16} />
                     </button>
                 </div>
@@ -636,74 +559,14 @@ const TopicNotebook = ({ topic, isDark }) => {
                         {messages.length === 0 && !loading && (
                             <div className={`flex flex-col items-center justify-center h-full gap-4 opacity-20 ${c.sub}`}>
                                 <Sparkles size={48} />
-                                <p className="text-xs font-bold uppercase tracking-widest">Initializing masterclass…</p>
+                                <p className="text-xs font-bold uppercase tracking-widest">Starting tutor…</p>
                             </div>
                         )}
 
-                        {messages.map((m, i) => {
-                            const isLecture = i === 0 && m.sender === 'ai';
+                        {messages.map((m) => {
                             const isAI = m.sender === 'ai';
+                            const isGreeting = Boolean(m.id?.includes('-greet'));
 
-                            if (isLecture) return (
-                                <motion.div key={m.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-                                    {/* LECTURE DOCUMENT CARD */}
-                                    <div className={`rounded-2xl border overflow-hidden ${c.card}`}>
-                                        {/* Card header */}
-                                        <div className={`flex items-center justify-between px-5 py-3 border-b ${c.border} ${isDark ? 'bg-white/[0.02]' : 'bg-slate-50'}`}>
-                                            <div className="flex items-center gap-3">
-                                                <div className={`p-1.5 rounded-lg ${isDark ? 'bg-indigo-500/15' : 'bg-red-50'}`}>
-                                                    <GraduationCap size={14} className={c.accentText} />
-                                                </div>
-                                                <div>
-                                                    <p className={`text-[9px] font-black uppercase tracking-widest ${c.sub}`}>Dr. Nova · Masterclass</p>
-                                                    <p className={`text-[11px] font-bold ${c.text}`}>{topic.title}</p>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                {isSpeaking && (
-                                                    <div className="flex gap-0.5 items-end h-4">
-                                                        {[1,2,3,4,5].map(j => (
-                                                            <motion.div key={j} animate={{ height: [3,10,3] }} transition={{ repeat: Infinity, duration: 0.5, delay: j*0.08 }} className={`w-0.5 rounded-full ${isDark ? 'bg-indigo-400' : 'bg-red-500'}`} />
-                                                        ))}
-                                                    </div>
-                                                )}
-                                                <button onClick={() => speakResponse(m.text)} className={`p-1.5 rounded-lg hover:bg-white/5 ${c.sub} transition-colors`}><Volume2 size={13} /></button>
-                                                <button onClick={() => setLectureExpanded(v => !v)} className={`p-1.5 rounded-lg hover:bg-white/5 ${c.sub} transition-all ${lectureExpanded ? '' : 'rotate-180'}`}><ChevronDown size={13} /></button>
-                                            </div>
-                                        </div>
-
-                                        {/* Card body */}
-                                        <AnimatePresence>
-                                            {lectureExpanded && (
-                                                <motion.div
-                                                    initial={{ height: 0, opacity: 0 }}
-                                                    animate={{ height: 'auto', opacity: 1 }}
-                                                    exit={{ height: 0, opacity: 0 }}
-                                                    transition={{ duration: 0.3 }}
-                                                    className="overflow-hidden"
-                                                >
-                                                    <div className={`px-6 py-5 prose prose-sm max-w-none ${isDark ? 'prose-invert prose-indigo' : 'prose-slate'} text-[13px] leading-relaxed ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
-                                                        <Markdown options={{ overrides: { code: MarkdownCode } }}>{m.text}</Markdown>
-                                                    </div>
-                                                </motion.div>
-                                            )}
-                                        </AnimatePresence>
-                                    </div>
-
-                                    {/* Divider after lecture */}
-                                    {messages.length > 1 && (
-                                        <div className={`flex items-center gap-3 mt-5 ${c.sub}`}>
-                                            <div className={`h-px flex-1 ${isDark ? 'bg-white/5' : 'bg-slate-200'}`} />
-                                            <span className="text-[9px] font-bold uppercase tracking-widest flex items-center gap-1.5">
-                                                <MessageSquare size={9} /> Q&A Session
-                                            </span>
-                                            <div className={`h-px flex-1 ${isDark ? 'bg-white/5' : 'bg-slate-200'}`} />
-                                        </div>
-                                    )}
-                                </motion.div>
-                            );
-
-                            // Regular chat bubbles
                             return (
                                 <motion.div key={m.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className={`flex ${isAI ? 'justify-start' : 'justify-end'}`}>
                                     <div className={`max-w-[85%] rounded-2xl px-5 py-4 text-[12px] leading-relaxed ${
@@ -713,13 +576,22 @@ const TopicNotebook = ({ topic, isDark }) => {
                                     }`}>
                                         {isAI ? (
                                             <>
+                                                {isGreeting && (
+                                                    <p className={`text-[9px] font-black uppercase tracking-widest mb-2 ${c.accentText}`}>Your tutor</p>
+                                                )}
                                                 <div className={`prose prose-sm max-w-none ${isDark ? 'prose-invert' : ''} text-[12px]`}>
                                                     <Markdown options={{ overrides: { code: MarkdownCode } }}>{m.text}</Markdown>
                                                 </div>
-                                                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5">
-                                                    <button onClick={() => speakResponse(m.text)} className={`p-1.5 rounded-lg hover:bg-white/5 ${c.sub} transition-colors`}><Volume2 size={12} /></button>
-                                                    {m.suggested?.map((q, qi) => (
-                                                        <button key={qi} onClick={() => sendMessage(q)} className={`text-[10px] px-2.5 py-1 rounded-lg border ${c.badge} hover:opacity-80 transition-all truncate max-w-[160px]`}>{q}</button>
+                                                <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-white/5">
+                                                    {!isGreeting && (
+                                                        <button type="button" onClick={() => speakResponse(m.text)} className={`p-1.5 rounded-lg hover:bg-white/5 ${c.sub} transition-colors`} title="Read aloud">
+                                                            <Volume2 size={12} />
+                                                        </button>
+                                                    )}
+                                                    {(m.suggested?.length ? m.suggested : (isGreeting ? TUTOR_CHIPS : [])).map((q, qi) => (
+                                                        <button key={qi} type="button" onClick={() => sendMessage(q)} className={`text-[10px] px-2.5 py-1 rounded-lg border ${c.badge} hover:opacity-80 transition-all`}>
+                                                            {q}
+                                                        </button>
                                                     ))}
                                                 </div>
                                             </>
@@ -739,7 +611,7 @@ const TopicNotebook = ({ topic, isDark }) => {
                                             <motion.div key={i} animate={{ scale: [1, 1.5, 1], opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 0.9, delay: i * 0.2 }}
                                                 className={`w-1.5 h-1.5 rounded-full ${isDark ? 'bg-indigo-400' : 'bg-red-500'}`} />
                                         ))}
-                                        <span className={`ml-2 text-[11px] ${c.sub}`}>Dr. Nova is thinking…</span>
+                                        <span className={`ml-2 text-[11px] ${c.sub}`}>Tutor is thinking…</span>
                                     </div>
                                 </div>
                             </div>
@@ -782,7 +654,7 @@ const TopicNotebook = ({ topic, isDark }) => {
                                     value={input}
                                     onChange={e => setInput(e.target.value)}
                                     onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-                                    placeholder="Ask Dr. Nova anything…"
+                                    placeholder="Ask your tutor anything…"
                                     className="flex-1 bg-transparent text-[13px] outline-none"
                                 />
                                 <button onClick={toggleListening} className={`p-1.5 rounded-lg transition-all ${isListening ? 'bg-red-500 text-white' : `${c.sub} hover:text-current`}`}>
@@ -896,7 +768,7 @@ const TopicNotebook = ({ topic, isDark }) => {
                                     <div className={`flex flex-col items-center justify-center py-10 gap-2 ${c.sub} opacity-40`}>
                                         <FileText size={28} />
                                         <p className="text-[11px] font-bold uppercase tracking-wide">No resources yet</p>
-                                        <p className="text-[10px] text-center">Upload your lecture slides or notes — Dr. Nova will use them when answering questions.</p>
+                                        <p className="text-[10px] text-center">Upload your lecture slides or notes — your tutor will use them when answering.</p>
                                     </div>
                                 ) : (
                                     <>

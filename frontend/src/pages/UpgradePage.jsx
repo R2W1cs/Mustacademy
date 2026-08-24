@@ -9,7 +9,7 @@ import toast from "react-hot-toast";
 const FREE_FEATURES = [
     "AI Mentor chat (unlimited)",
     "All courses & topics",
-    "Research Notebook",
+    "1-on-1 AI Tutor",
     "Forum & Market Intel",
     "Neural Clash Arena",
     "Badge & streak system",
@@ -18,7 +18,7 @@ const FREE_FEATURES = [
 
 const PREMIUM_FEATURES = [
     { label: "Everything in Free", highlight: false },
-    { label: "Dr. Nova interactive masterclass", icon: Brain, highlight: true },
+    { label: "Dr. Nova lesson podcast", icon: Brain, highlight: true },
     { label: "AI Career Roadmap generation", icon: Map, highlight: true },
     { label: "Priority AI response speed", icon: Zap, highlight: false },
 ];
@@ -58,7 +58,7 @@ export default function UpgradePage() {
                         Unlock <span className="text-indigo-400">Premium</span>
                     </h1>
                     <p className={`text-sm font-medium max-w-xl mx-auto leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                        Activate your full academic arsenal — Dr. Nova masterclasses and personalized career roadmaps.
+                        Activate your full academic arsenal — lesson podcasts and personalized career roadmaps.
                     </p>
                 </motion.div>
             </div>

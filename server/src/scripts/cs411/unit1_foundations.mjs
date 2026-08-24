@@ -62,7 +62,7 @@ A **hero** graduate of CS 411 can:
 1. Press **Play** / **Step** on the animations above until the motion matches the idea in your head.
 2. Read the story (simple idea → steps → analogy → check yourself).
 3. Switch to **Deep Architecture** when you want interview / systems depth.
-4. Use **Research Notebook** for follow-up questions about *this* lesson.
+4. Use **1-on-1 AI Tutor** for follow-up questions about *this* lesson.
 5. When something breaks in real life, ask: *which layer?* *which hop?* *loss or delay?*
 
 ## Real analogy
