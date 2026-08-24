@@ -26,6 +26,7 @@ const ResetPassword = lazy(() => import("../pages/ResetPassword"));
 const ForumHub = lazy(() => import("../pages/ForumHub"));
 const InterviewPage = lazy(() => import("../pages/InterviewPage"));
 const CreatorCorner = lazy(() => import("../pages/CreatorCorner"));
+const PodcastStudio = lazy(() => import("../pages/PodcastStudio"));
 const NotFound = lazy(() => import("../pages/NotFound"));
 const UpgradePage = lazy(() => import("../pages/UpgradePage"));
 const AdminKBPage = lazy(() => import("../pages/AdminKBPage"));
@@ -89,7 +90,7 @@ export default function AppRoutes() {
       <Route path="/forum/thread/:id" element={protectedLayout(ThreadDetailsPage)} />
       <Route path="/interview-boardroom" element={protectedLayout(InterviewPage)} />
       <Route path="/creator-corner" element={protectedLayout(CreatorCorner)} />
-      <Route path="/podcast-studio" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/podcast-studio" element={protectedLayout(PodcastStudio)} />
       <Route path="/upgrade" element={protectedLayout(UpgradePage)} />
 
       {/* Admin / professor */}

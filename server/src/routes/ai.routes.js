@@ -61,10 +61,10 @@ router.post("/library/interact", protect, aiLimiter, interactWithProfessor);
 router.post("/topics/synthesize", protect, heavyAiLimiter, synthesizeTopic);
 router.post("/topics/exercises", protect, aiLimiter, generateTopicExercises);
 
-// Podcasts & audio content (parked — set ENABLE_PODCAST=true to re-enable for SaaS)
-router.post("/topics/podcast", protect, requirePodcastEnabled, requirePremium, heavyAiLimiter, generateTopicPodcast);
+// Podcasts & audio — open to all authenticated users (premium gate removed for now)
+router.post("/topics/podcast", protect, requirePodcastEnabled, heavyAiLimiter, generateTopicPodcast);
 router.post("/topics/podcast/question", protect, requirePodcastEnabled, aiLimiter, askPodcastQuestion);
-router.post("/interactive-podcast", protect, requirePodcastEnabled, requirePremium, aiLimiter, generateInteractivePodcast);
+router.post("/interactive-podcast", protect, requirePodcastEnabled, aiLimiter, generateInteractivePodcast);
 router.post("/nova-lesson", protect, requirePremium, aiLimiter, generateNovaLesson);
 router.post("/podcast/speech", protect, requirePodcastEnabled, generatePodcastSpeech);
 router.get("/podcast/speech", requirePodcastEnabled, generatePodcastSpeech);

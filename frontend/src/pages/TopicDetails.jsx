@@ -5,10 +5,11 @@ import toast from "react-hot-toast";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import {
     ChevronRight, Zap, Brain, Sparkles, ShieldCheck, CheckCircle,
-    Layers, Clock
+    Layers, Clock, Headphones
 } from "lucide-react";
 
 import TopicContent from "../components/TopicContent";
+import TopicPodcastPlayer from "../components/TopicPodcastPlayer";
 import TopicSongPlayer from "../components/TopicSongPlayer";
 import TopicNotebook from "../components/TopicNotebook";
 import QuizModal from "../components/QuizModal";
@@ -275,6 +276,13 @@ const TopicDetails = () => {
                                         <Sparkles size={14} className="inline mr-2" /> Research Notebook
                                     </button>
                                     <button
+                                        onClick={() => setViewMode('podcast')}
+                                        className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${viewMode === 'podcast' ? (isLight ? 'bg-red-600 text-white shadow-lg' : 'bg-indigo-600 text-white shadow-lg') : (isLight ? 'text-gray-500 hover:text-gray-700' : 'text-slate-500 hover:text-slate-300')}`}
+                                    >
+                                        <Headphones size={12} />
+                                        Podcast
+                                    </button>
+                                    <button
                                         onClick={() => setIsCustomizing(true)}
                                         className={`hidden sm:flex px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isLight ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100' : 'text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20'}`}
                                     >
@@ -340,6 +348,16 @@ const TopicDetails = () => {
                                     className="w-full"
                                 >
                                     <TopicNotebook topic={topic} isDark={!isLight} />
+                                </motion.div>
+                            ) : viewMode === 'podcast' ? (
+                                <motion.div
+                                    key="podcast"
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -20 }}
+                                    className="max-w-3xl mx-auto w-full"
+                                >
+                                    <TopicPodcastPlayer topic={topic} />
                                 </motion.div>
                             ) : (
                                 <motion.main
