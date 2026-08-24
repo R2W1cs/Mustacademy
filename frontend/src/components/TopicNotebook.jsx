@@ -522,13 +522,13 @@ const TopicNotebook = ({ topic, isDark }) => {
                         <Brain size={18} className={c.accentText} />
                     </div>
                     <div>
-                        <p className={`text-[10px] font-bold uppercase tracking-widest ${c.sub}`}>1-on-1 AI Tutor</p>
-                        <h2 className={`text-sm font-bold leading-tight ${c.text}`}>{topic.title}</h2>
+                        <p className={`text-xs font-bold uppercase tracking-widest ${c.sub}`}>1-on-1 AI Tutor</p>
+                        <h2 className={`text-base font-bold leading-tight ${c.text}`}>{topic.title}</h2>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-[10px] font-bold uppercase tracking-wider ${c.badge}`}>
+                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-bold uppercase tracking-wider ${c.badge}`}>
                         <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${isDark ? 'bg-indigo-400' : 'bg-red-500'}`} />
                         Practice Session
                     </div>
@@ -559,7 +559,7 @@ const TopicNotebook = ({ topic, isDark }) => {
                         {messages.length === 0 && !loading && (
                             <div className={`flex flex-col items-center justify-center h-full gap-4 opacity-20 ${c.sub}`}>
                                 <Sparkles size={48} />
-                                <p className="text-xs font-bold uppercase tracking-widest">Starting tutor…</p>
+                                <p className="text-sm font-bold uppercase tracking-widest">Starting tutor…</p>
                             </div>
                         )}
 
@@ -569,7 +569,7 @@ const TopicNotebook = ({ topic, isDark }) => {
 
                             return (
                                 <motion.div key={m.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className={`flex ${isAI ? 'justify-start' : 'justify-end'}`}>
-                                    <div className={`max-w-[85%] rounded-2xl px-5 py-4 text-[12px] leading-relaxed ${
+                                    <div className={`max-w-[85%] rounded-2xl px-5 py-4 text-sm leading-relaxed ${
                                         isAI
                                             ? `${c.card} border ${c.text} rounded-tl-sm`
                                             : `${isDark ? 'bg-indigo-600' : 'bg-[#c01636]'} text-white rounded-tr-sm`
@@ -577,9 +577,9 @@ const TopicNotebook = ({ topic, isDark }) => {
                                         {isAI ? (
                                             <>
                                                 {isGreeting && (
-                                                    <p className={`text-[9px] font-black uppercase tracking-widest mb-2 ${c.accentText}`}>Your tutor</p>
+                                                    <p className={`text-[11px] font-black uppercase tracking-widest mb-2 ${c.accentText}`}>Your tutor</p>
                                                 )}
-                                                <div className={`prose prose-sm max-w-none ${isDark ? 'prose-invert' : ''} text-[12px]`}>
+                                                <div className={`prose prose-sm max-w-none ${isDark ? 'prose-invert' : ''} text-sm`}>
                                                     <Markdown options={{ overrides: { code: MarkdownCode } }}>{m.text}</Markdown>
                                                 </div>
                                                 <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-white/5">
@@ -589,7 +589,7 @@ const TopicNotebook = ({ topic, isDark }) => {
                                                         </button>
                                                     )}
                                                     {(m.suggested?.length ? m.suggested : (isGreeting ? TUTOR_CHIPS : [])).map((q, qi) => (
-                                                        <button key={qi} type="button" onClick={() => sendMessage(q)} className={`text-[10px] px-2.5 py-1 rounded-lg border ${c.badge} hover:opacity-80 transition-all`}>
+                                                        <button key={qi} type="button" onClick={() => sendMessage(q)} className={`text-xs px-2.5 py-1 rounded-lg border ${c.badge} hover:opacity-80 transition-all`}>
                                                             {q}
                                                         </button>
                                                     ))}
@@ -611,7 +611,7 @@ const TopicNotebook = ({ topic, isDark }) => {
                                             <motion.div key={i} animate={{ scale: [1, 1.5, 1], opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 0.9, delay: i * 0.2 }}
                                                 className={`w-1.5 h-1.5 rounded-full ${isDark ? 'bg-indigo-400' : 'bg-red-500'}`} />
                                         ))}
-                                        <span className={`ml-2 text-[11px] ${c.sub}`}>Tutor is thinking…</span>
+                                        <span className={`ml-2 text-xs ${c.sub}`}>Tutor is thinking…</span>
                                     </div>
                                 </div>
                             </div>
@@ -623,12 +623,12 @@ const TopicNotebook = ({ topic, isDark }) => {
                                 className={`p-5 rounded-2xl border ${isDark ? 'bg-indigo-500/5 border-indigo-500/20' : 'bg-red-50 border-red-200'}`}>
                                 <div className="flex items-center gap-3 mb-3">
                                     <Target size={16} className={c.accentText} />
-                                    <p className={`text-[11px] font-black uppercase tracking-wider ${c.accentText}`}>{activeMission.title}</p>
+                                    <p className={`text-xs font-black uppercase tracking-wider ${c.accentText}`}>{activeMission.title}</p>
                                 </div>
-                                <p className={`text-[12px] mb-4 ${c.text}`}>{activeMission.description}</p>
+                                <p className={`text-sm mb-4 ${c.text}`}>{activeMission.description}</p>
                                 <div className="space-y-2">
                                     {activeMission.tasks?.map((t, i) => (
-                                        <div key={i} className={`flex items-center gap-2.5 text-[11px] ${c.sub}`}>
+                                        <div key={i} className={`flex items-center gap-2.5 text-xs ${c.sub}`}>
                                             <div className={`w-4 h-4 rounded border flex items-center justify-center ${activeMission.completed ? (isDark ? 'bg-indigo-500 border-indigo-500' : 'bg-red-500 border-red-500') : c.border}`}>
                                                 {activeMission.completed && <Check size={10} className="text-white" />}
                                             </div>
@@ -638,7 +638,7 @@ const TopicNotebook = ({ topic, isDark }) => {
                                 </div>
                                 {!activeMission.completed && (
                                     <button onClick={() => { setActiveMission(p => ({...p, completed: true})); sendMessage("Mission complete!"); }}
-                                        className={`mt-4 w-full py-2.5 rounded-xl text-white text-[10px] font-black uppercase tracking-widest ${c.accent} transition-all`}>
+                                        className={`mt-4 w-full py-2.5 rounded-xl text-white text-xs font-black uppercase tracking-widest ${c.accent} transition-all`}>
                                         Mark Complete
                                     </button>
                                 )}
@@ -655,7 +655,7 @@ const TopicNotebook = ({ topic, isDark }) => {
                                     onChange={e => setInput(e.target.value)}
                                     onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
                                     placeholder="Ask your tutor anything…"
-                                    className="flex-1 bg-transparent text-[13px] outline-none"
+                                    className="flex-1 bg-transparent text-sm outline-none"
                                 />
                                 <button onClick={toggleListening} className={`p-1.5 rounded-lg transition-all ${isListening ? 'bg-red-500 text-white' : `${c.sub} hover:text-current`}`}>
                                     <Mic size={15} />
@@ -669,7 +669,7 @@ const TopicNotebook = ({ topic, isDark }) => {
 
                         {/* Vault resources active indicator */}
                         {resources.length > 0 && (
-                            <p className={`mt-2 text-[10px] ${c.sub} flex items-center gap-1.5`}>
+                            <p className={`mt-2 text-xs ${c.sub} flex items-center gap-1.5`}>
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                                 {resources.length} vault resource{resources.length > 1 ? 's' : ''} active in AI context
                             </p>
@@ -688,14 +688,14 @@ const TopicNotebook = ({ topic, isDark }) => {
                             { id: 'missions', icon: <Target size={13} />, label: 'Missions' },
                         ].map(tab => (
                             <button key={tab.id} onClick={() => setRightTab(tab.id)}
-                                className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-[10px] font-bold uppercase tracking-wider transition-all border-b-2 ${
+                                className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${
                                     rightTab === tab.id
                                         ? `${c.accentText} ${isDark ? 'border-indigo-500' : 'border-[#c01636]'}`
                                         : `${c.sub} border-transparent hover:border-current`
                                 }`}>
                                 {tab.icon}{tab.label}
                                 {tab.id === 'vault' && resources.length > 0 && (
-                                    <span className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-black ${isDark ? 'bg-indigo-500/20 text-indigo-400' : 'bg-red-100 text-red-600'}`}>{resources.length}</span>
+                                    <span className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-black ${isDark ? 'bg-indigo-500/20 text-indigo-400' : 'bg-red-100 text-red-600'}`}>{resources.length}</span>
                                 )}
                             </button>
                         ))}
@@ -705,8 +705,8 @@ const TopicNotebook = ({ topic, isDark }) => {
                     {rightTab === 'notes' && (
                         <div className="flex-1 flex flex-col overflow-hidden">
                             <div className={`flex items-center justify-between px-5 py-3 border-b ${c.border}`}>
-                                <span className={`text-[10px] font-bold uppercase tracking-widest ${c.sub}`}>Personal Notes</span>
-                                <div className={`flex items-center gap-1.5 text-[9px] font-bold uppercase ${c.sub}`}>
+                                <span className={`text-xs font-bold uppercase tracking-widest ${c.sub}`}>Personal Notes</span>
+                                <div className={`flex items-center gap-1.5 text-[10px] font-bold uppercase ${c.sub}`}>
                                     <div className={`w-1.5 h-1.5 rounded-full ${isSaving ? (isDark ? 'bg-indigo-400 animate-pulse' : 'bg-red-400 animate-pulse') : 'bg-emerald-500'}`} />
                                     {isSaving ? 'Saving…' : 'Saved'}
                                 </div>
@@ -715,7 +715,7 @@ const TopicNotebook = ({ topic, isDark }) => {
                                 value={note}
                                 onChange={e => setNote(e.target.value)}
                                 placeholder={`Your notes on ${topic.title}…\n\nJot down key concepts, personal insights, or questions to revisit.`}
-                                className={`flex-1 resize-none p-5 text-[13px] leading-relaxed bg-transparent outline-none no-scrollbar ${c.text} placeholder:${c.sub}`}
+                                className={`flex-1 resize-none p-5 text-sm leading-relaxed bg-transparent outline-none no-scrollbar ${c.text} placeholder:${c.sub}`}
                             />
                         </div>
                     )}
@@ -724,8 +724,8 @@ const TopicNotebook = ({ topic, isDark }) => {
                     {rightTab === 'vault' && (
                         <div className="flex-1 flex flex-col overflow-hidden">
                             <div className={`px-5 py-3 border-b ${c.border}`}>
-                                <p className={`text-[10px] font-bold uppercase tracking-widest ${c.sub}`}>Upload Resources</p>
-                                <p className={`text-[11px] mt-0.5 ${c.sub} opacity-70`}>PDF, PPTX, DOCX, TXT — AI uses these as context</p>
+                                <p className={`text-xs font-bold uppercase tracking-widest ${c.sub}`}>Upload Resources</p>
+                                <p className={`text-xs mt-0.5 ${c.sub} opacity-70`}>PDF, PPTX, DOCX, TXT — AI uses these as context</p>
                             </div>
 
                             {/* Dropzone */}
@@ -745,15 +745,15 @@ const TopicNotebook = ({ topic, isDark }) => {
                                             <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}>
                                                 <RefreshCw size={20} className={c.accentText} />
                                             </motion.div>
-                                            <p className={`text-[11px] font-bold ${c.accentText}`}>Processing file…</p>
+                                            <p className={`text-xs font-bold ${c.accentText}`}>Processing file…</p>
                                         </>
                                     ) : (
                                         <>
                                             <Upload size={20} className={isDragging ? c.accentText : c.sub} />
-                                            <p className={`text-[11px] font-bold ${isDragging ? c.accentText : c.text}`}>
+                                            <p className={`text-xs font-bold ${isDragging ? c.accentText : c.text}`}>
                                                 {isDragging ? 'Drop to upload' : 'Drop file or click to browse'}
                                             </p>
-                                            <p className={`text-[10px] ${c.sub}`}>PDF · PPTX · DOCX · TXT — up to 20MB</p>
+                                            <p className={`text-xs ${c.sub}`}>PDF · PPTX · DOCX · TXT — up to 20MB</p>
                                         </>
                                     )}
                                 </div>
@@ -767,19 +767,19 @@ const TopicNotebook = ({ topic, isDark }) => {
                                 {resources.length === 0 ? (
                                     <div className={`flex flex-col items-center justify-center py-10 gap-2 ${c.sub} opacity-40`}>
                                         <FileText size={28} />
-                                        <p className="text-[11px] font-bold uppercase tracking-wide">No resources yet</p>
-                                        <p className="text-[10px] text-center">Upload your lecture slides or notes — your tutor will use them when answering.</p>
+                                        <p className="text-xs font-bold uppercase tracking-wide">No resources yet</p>
+                                        <p className="text-xs text-center">Upload your lecture slides or notes — your tutor will use them when answering.</p>
                                     </div>
                                 ) : (
                                     <>
-                                        <p className={`text-[10px] font-bold uppercase tracking-widest ${c.sub} mb-1`}>{resources.length} Active Resource{resources.length > 1 ? 's' : ''}</p>
+                                        <p className={`text-xs font-bold uppercase tracking-widest ${c.sub} mb-1`}>{resources.length} Active Resource{resources.length > 1 ? 's' : ''}</p>
                                         {resources.map(r => (
                                             <motion.div key={r.id} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }}
                                                 className={`flex items-center gap-3 p-3.5 rounded-xl border ${c.card} group`}>
                                                 <div className="shrink-0"><FileIcon type={r.file_type} /></div>
                                                 <div className="flex-1 min-w-0">
-                                                    <p className={`text-[12px] font-semibold truncate ${c.text}`}>{r.title}</p>
-                                                    <p className={`text-[10px] ${c.sub}`}>{r.file_type.toUpperCase()} · {formatBytes(r.file_size || 0)}</p>
+                                                    <p className={`text-sm font-semibold truncate ${c.text}`}>{r.title}</p>
+                                                    <p className={`text-xs ${c.sub}`}>{r.file_type.toUpperCase()} · {formatBytes(r.file_size || 0)}</p>
                                                 </div>
                                                 <div className="flex items-center gap-1.5 shrink-0">
                                                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" title="Active in AI context" />
@@ -803,12 +803,12 @@ const TopicNotebook = ({ topic, isDark }) => {
                                 <div className={`p-5 rounded-2xl border ${isDark ? 'bg-indigo-500/5 border-indigo-500/20' : 'bg-red-50 border-red-200'}`}>
                                     <div className="flex items-center gap-2 mb-3">
                                         <Target size={16} className={c.accentText} />
-                                        <p className={`text-[11px] font-black uppercase tracking-wider ${c.accentText}`}>{activeMission.title}</p>
+                                        <p className={`text-xs font-black uppercase tracking-wider ${c.accentText}`}>{activeMission.title}</p>
                                     </div>
-                                    <p className={`text-[12px] mb-4 leading-relaxed ${c.text}`}>{activeMission.description}</p>
+                                    <p className={`text-sm mb-4 leading-relaxed ${c.text}`}>{activeMission.description}</p>
                                     <div className="space-y-2.5">
                                         {activeMission.tasks?.map((t, i) => (
-                                            <div key={i} className={`flex items-center gap-3 text-[12px] ${activeMission.completed ? `line-through ${c.sub}` : c.text}`}>
+                                            <div key={i} className={`flex items-center gap-3 text-sm ${activeMission.completed ? `line-through ${c.sub}` : c.text}`}>
                                                 <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${activeMission.completed ? (isDark ? 'bg-indigo-500 border-indigo-500' : 'bg-red-500 border-red-500') : c.border}`}>
                                                     {activeMission.completed && <Check size={10} className="text-white" />}
                                                 </div>
@@ -818,7 +818,7 @@ const TopicNotebook = ({ topic, isDark }) => {
                                     </div>
                                     {!activeMission.completed && (
                                         <button onClick={() => { setActiveMission(p => ({...p, completed: true})); sendMessage("Mission complete. Ready for next challenge."); }}
-                                            className={`mt-5 w-full py-3 rounded-xl text-white text-[10px] font-black uppercase tracking-widest ${c.accent} transition-all shadow-lg`}>
+                                            className={`mt-5 w-full py-3 rounded-xl text-white text-xs font-black uppercase tracking-widest ${c.accent} transition-all shadow-lg`}>
                                             Complete Mission
                                         </button>
                                     )}
@@ -826,7 +826,7 @@ const TopicNotebook = ({ topic, isDark }) => {
                             ) : (
                                 <div className={`flex flex-col items-center justify-center h-full gap-3 ${c.sub} opacity-30`}>
                                     <Zap size={36} />
-                                    <p className="text-[11px] font-bold uppercase tracking-widest text-center">No active mission<br />Keep asking questions!</p>
+                                    <p className="text-xs font-bold uppercase tracking-widest text-center">No active mission<br />Keep asking questions!</p>
                                 </div>
                             )}
                         </div>
