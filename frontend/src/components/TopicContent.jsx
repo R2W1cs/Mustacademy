@@ -12,25 +12,7 @@ import 'katex/dist/katex.min.css';
 import { InlineMath, BlockMath } from 'react-katex';
 import ProgrammingDeepDive from "./programming-units/ProgrammingDeepDive";
 import NetworkVisualizer from "./NetworkVisualizer";
-
-const resolveNetworkLabType = (title = "") => {
-    const t = title.toLowerCase();
-    // Course map / intro — always show the packet journey so students see labs immediately
-    if (t.includes("welcome") || t.includes("zero-to-hero") || t.includes("zero to hero") || t.includes("course map")) return "packet";
-    if (/\bosi\b/.test(t) || t.includes("tcp/ip") || t.includes("encapsulation") || t.includes("network models")) return "osi";
-    if (t.includes("delay") || t.includes("feel slow") || t.includes("traceroute")) return "delay";
-    if (t.includes("throughput") || t.includes("bottleneck")) return "throughput";
-    if (t.includes("congestion") || t.includes("queuing") || t.includes("queueing")) return "congestion";
-    if (/\bnat\b/.test(t) || t.includes("public ip")) return "nat";
-    if (/\bhttp\b/.test(t) || t.includes("web request") || t.includes("cookies, caches") || t.includes("page load hero") || t.includes("secure page")) return "http";
-    if (t.includes("handshake") || t.includes("reliable delivery") || t.includes("reliable data") || /\btls\b/.test(t) || /\btcp\b/.test(t)) return "tcp";
-    if (/\budp\b/.test(t) || t.includes("quic")) return "tcp";
-    if (/\bdns\b/.test(t) || t.includes("names to addresses")) return "dns";
-    if (t.includes("routing") || t.includes("forwarding vs routing") || t.includes("inside a router") || /\bospf\b/.test(t) || /\bbgp\b/.test(t) || t.includes("control plane") || t.includes("sdn") || t.includes("network core")) return "routing";
-    if (t.includes("ip addressing") || t.includes("subnet") || /\bdhcp\b/.test(t) || /\bipv6\b/.test(t) || /\barp\b/.test(t) || t.includes("packets, hosts")) return "ip";
-    if (t.includes("packet") || (t.includes("hosts") && t.includes("links")) || t.includes("internet, really") || t.includes("network edge") || t.includes("protocol?") || t.includes("ethernet") || t.includes("wi-fi") || t.includes("wifi") || t.includes("link layer") || t.includes("firewall") || t.includes("vpn") || t.includes("circuit switching")) return "packet";
-    return null;
-};
+import { resolveNetworkLabs } from "../utils/networkLabs";
 
 // ─── CODE EXECUTION BLOCK ──────────────────────────────────────────────────
 const CodeBlock = ({ children, language }) => {
@@ -399,8 +381,7 @@ const TopicExercises = ({ topicId, topicTitle }) => {
 };
 
 // ─── MARKDOWN OVERRIDES FACTORY ────────────────────────────────────────────
-const buildOverrides = (isDark, mode) => {
-    const isDeep = mode === 'deep';
+const buildOverrides = (isDark) => {
     const accent = isDark ? 'indigo' : 'red';
     const accentHex = isDark ? '#6366f1' : '#c01636';
 
@@ -436,7 +417,7 @@ const buildOverrides = (isDark, mode) => {
         // ── Body ──
         p: {
             component: ({ children }) => (
-                <p className={`text-[15px] leading-[1.9] mb-6 ${isDeep ? 'font-mono text-[13px] leading-relaxed' : 'font-medium'} ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{children}</p>
+                <p className={`text-[15px] leading-[1.9] mb-6 font-medium ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{children}</p>
             )
         },
 
@@ -535,11 +516,9 @@ const TopicContent = ({ topic, mode = 'easy' }) => {
     const isDark = theme === 'dark';
     if (!topic) return null;
 
-    const activeContent = mode === 'deep'
-        ? (topic.content_deep_markdown || topic.content_markdown)
-        : (topic.content_easy_markdown || topic.content_markdown);
-
-    const isShowingFallback = (mode === 'deep' && !topic.content_deep_markdown) || (mode === 'easy' && !topic.content_easy_markdown);
+    // Single lesson track — Deep Architecture removed across the platform
+    const activeContent = topic.content_easy_markdown || topic.content_markdown || '';
+    const isShowingFallback = !topic.content_easy_markdown && !!topic.content_markdown;
 
     const programmingDomain = (() => {
         const t = (topic.title || '').toLowerCase();
@@ -550,7 +529,7 @@ const TopicContent = ({ topic, mode = 'easy' }) => {
         return null;
     })();
 
-    useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }, [topic.id, mode]);
+    useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }, [topic.id]);
 
     const accent = isDark ? 'indigo' : 'red';
     const accentCls = isDark ? 'text-indigo-400' : 'text-red-600';
@@ -581,8 +560,7 @@ const TopicContent = ({ topic, mode = 'easy' }) => {
             {/* ── MODE BADGE ── */}
             <div className="flex items-center gap-4 mb-12">
                 <div className={`flex items-center gap-2.5 px-4 py-2 rounded-xl border text-[10px] font-black uppercase tracking-widest ${isDark ? `bg-${accent}-500/10 border-${accent}-500/20 ${accentCls}` : `bg-${accent}-50 border-${accent}-200 ${accentCls}`}`}>
-                    {mode === 'deep' ? <Terminal size={13} /> : <BookOpen size={13} />}
-                    {mode === 'deep' ? 'Deep Architecture' : 'Essential Protocol'}
+                    <BookOpen size={13} /> Lesson
                 </div>
                 {isShowingFallback && (
                     <span className="text-[9px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-500 px-3 py-1.5 rounded-xl border border-amber-500/20 animate-pulse">
@@ -591,49 +569,31 @@ const TopicContent = ({ topic, mode = 'easy' }) => {
                 )}
             </div>
 
-            {/* ── DEEP MODE EXTRAS ── */}
-            {mode === 'deep' && (topic.first_principles || topic.structural_breakdown || topic.failure_analysis) && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-14">
-                    {topic.first_principles && (
-                        <IntelCard title="First Principles" icon={<Zap size={14} />} color={accent} isDark={isDark}>
-                            <p className={`text-sm leading-relaxed font-mono ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{topic.first_principles}</p>
-                        </IntelCard>
-                    )}
-                    {topic.structural_breakdown && (
-                        <IntelCard title="Structural Architecture" icon={<Code2 size={14} />} color={accent} isDark={isDark}>
-                            <pre className={`text-xs leading-relaxed whitespace-pre-wrap ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{topic.structural_breakdown}</pre>
-                        </IntelCard>
-                    )}
-                    {topic.failure_analysis && (
-                        <div className={`md:col-span-2 p-6 rounded-2xl border border-rose-500/20 ${isDark ? 'bg-rose-500/[0.04]' : 'bg-rose-50'}`}>
-                            <div className="flex items-center gap-2 mb-3 text-[10px] font-black uppercase tracking-widest text-rose-400">
-                                <XCircle size={13} /> Critical Failure Modes
-                            </div>
-                            <p className={`text-sm leading-relaxed ${isDark ? 'text-slate-400' : 'text-rose-800/70'}`}>{topic.failure_analysis}</p>
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {/* ── NETWORK LAB (inline with lesson; auto-plays) ── */}
-            {resolveNetworkLabType(topic.title) && (
-                <div className="mb-14">
-                    <div className={`flex items-center justify-between gap-4 mb-4 px-1`}>
-                        <div>
+            {/* ── NETWORK LABS (one or more inline animations per lesson) ── */}
+            {(() => {
+                const labs = resolveNetworkLabs(topic.title);
+                if (!labs.length) return null;
+                return (
+                    <div className="mb-14 space-y-8">
+                        <div className="px-1">
                             <p className={`text-[10px] font-black uppercase tracking-[0.25em] mb-1 ${isDark ? 'text-cyan-400' : 'text-cyan-700'}`}>
-                                Interactive lab · Animation
+                                Interactive lab{labs.length > 1 ? 's' : ''} · Animation
                             </p>
                             <h3 className={`text-lg font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
                                 See this idea move
                             </h3>
                             <p className={`text-xs mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                                Press Play / Step below — this lab lives on the lesson page (Essential & Deep). No separate tab.
+                                {labs.length > 1
+                                    ? `${labs.length} animations for this lesson — press Play or Step on each.`
+                                    : 'Press Play or Step to walk through the concept.'}
                             </p>
                         </div>
+                        {labs.map((labType) => (
+                            <NetworkVisualizer key={labType} type={labType} />
+                        ))}
                     </div>
-                    <NetworkVisualizer type={resolveNetworkLabType(topic.title)} />
-                </div>
-            )}
+                );
+            })()}
 
             {/* ── PROGRAMMING DEEP DIVE ── */}
             {programmingDomain && <ProgrammingDeepDive type={programmingDomain} />}
@@ -644,7 +604,7 @@ const TopicContent = ({ topic, mode = 'easy' }) => {
                 <div className={`absolute left-0 top-0 bottom-0 w-px hidden xl:block ${isDark ? 'bg-gradient-to-b from-indigo-500/30 via-indigo-500/10 to-transparent' : 'bg-gradient-to-b from-red-400/20 via-red-400/5 to-transparent'}`}
                     style={{ left: '-3rem' }} />
 
-                <Markdown options={{ overrides: buildOverrides(isDark, mode) }}>
+                <Markdown options={{ overrides: buildOverrides(isDark) }}>
                     {processedContent}
                 </Markdown>
             </article>

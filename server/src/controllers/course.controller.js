@@ -227,7 +227,28 @@ export const getTopicById = async (req, res) => {
       return res.status(404).json({ message: "Topic not found" });
     }
 
-    res.json(result.rows[0]);
+    const topic = result.rows[0];
+    const navRes = await pool.query(
+      `
+      SELECT id, title,
+             lag(id) OVER (ORDER BY id) AS prev_topic_id,
+             lead(id) OVER (ORDER BY id) AS next_topic_id,
+             lag(title) OVER (ORDER BY id) AS prev_topic_title,
+             lead(title) OVER (ORDER BY id) AS next_topic_title
+      FROM topics
+      WHERE course_id = $1
+      `,
+      [topic.course_id]
+    );
+    const nav = navRes.rows.find((r) => Number(r.id) === Number(id)) || {};
+
+    res.json({
+      ...topic,
+      prev_topic_id: nav.prev_topic_id || null,
+      next_topic_id: nav.next_topic_id || null,
+      prev_topic_title: nav.prev_topic_title || null,
+      next_topic_title: nav.next_topic_title || null,
+    });
   } catch (err) {
     console.error('[getTopicById] DB error:', err.message);
     res.status(500).json({ message: 'Failed to load topic' });
