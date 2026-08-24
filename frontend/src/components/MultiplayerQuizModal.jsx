@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Users, Zap, Trophy, MessageSquare, Send, Settings, Crown } from "lucide-react";
-import { useSocket } from "../hooks/useSocket";
+import { useSocket, authenticateSocket } from "../hooks/useSocket";
 import { runConfetti } from "../utils/confetti";
 import { getAllCourses } from "../api/courses";
 import toast from "react-hot-toast";
@@ -144,6 +144,8 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
     const [chatOpen, setChatOpen]       = useState(false);
     const [quizReady, setQuizReady]     = useState(false);
     const [creatingRoom, setCreatingRoom] = useState(true);
+    const [lobbyError, setLobbyError] = useState("");
+    const [lobbyKey, setLobbyKey] = useState(0);
     const chatEnd   = useRef(null);
     const pickedRef = useRef(null);
 
@@ -153,13 +155,26 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
     useEffect(() => {
         let cancelled = false;
         let started = false;
+        let hasRoom = false;
 
-        const startLobby = () => {
-            if (cancelled || started || room) return;
+        const startLobby = async () => {
+            if (cancelled || started || hasRoom) return;
             started = true;
             setCreatingRoom(true);
+            setLobbyError("");
             setQuizReady(false);
-            if (action === 'join' && joinCode) {
+
+            const ok = await authenticateSocket(socket);
+            if (cancelled) return;
+            if (!ok) {
+                started = false;
+                setCreatingRoom(false);
+                setLobbyError("Could not authenticate the arena. Log out, log back in, then retry.");
+                toast.error("Arena auth failed — re-login and try again");
+                return;
+            }
+
+            if (action === "join" && joinCode) {
                 socket.emit("join_quiz_room", { roomId: joinCode.trim().toUpperCase(), userId, userName });
             } else {
                 socket.emit("create_quiz_room", {
@@ -172,7 +187,7 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
             socket.emit("get_online_users");
         };
 
-        if (action === 'host' || !action) {
+        if (action === "host" || !action) {
             getAllCourses({ params: { limit: 200 } })
                 .then((r) => {
                     const list = Array.isArray(r.data) ? r.data : (r.data?.courses || []);
@@ -182,64 +197,96 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
         }
 
         const enterRoom = (d) => {
+            if (!d?.id) {
+                setCreatingRoom(false);
+                setLobbyError("Server returned a room without a PIN. Retry.");
+                return;
+            }
+            hasRoom = true;
             setRoom(d.id);
             setPlayers([...(d.players || [])]);
             setTopic_(d.topic || topic_ || "General CS");
             setGameState("lobby");
             setCreatingRoom(false);
+            setLobbyError("");
             setQuizReady(d.quizStatus === "ready" || Boolean(d.quiz?.questions?.length));
         };
 
-        socket.on("authenticated", startLobby);
-        // If handshake already authenticated before this effect ran, start immediately.
-        if (socket.connected) {
-            // Ask server to re-auth; it will emit authenticated again.
-            socket.emit("authenticate", { userName });
-            // Fallback: if already authed via cookie handshake, don't wait forever.
-            const t = setTimeout(startLobby, 800);
-            socket.once("authenticated", () => clearTimeout(t));
-        } else {
-            socket.once("connect", () => {
-                socket.emit("authenticate", { userName });
-            });
-        }
+        const failLobby = (msg) => {
+            started = false;
+            setCreatingRoom(false);
+            setLobbyError(msg);
+            toast.error(msg);
+        };
 
-        socket.on("room_created",       enterRoom);
-        socket.on("joined_successfully",enterRoom);
-        socket.on("room_updated",       d => { setTopic_(d.topic); setPlayers([...(d.players || [])]); setQuizReady(d.quizStatus === "ready" || Boolean(d.quiz?.questions?.length)); });
-        socket.on("join_failed",        e => { toast.error(`Join failed: ${e}`); onClose(); });
-        socket.on("player_joined",      p => setPlayers([...(p || [])]));
-        socket.on("online_users_update",u => setOnlineUsers(u || []));
-        socket.on("quiz_ready",         () => { setQuizReady(true); toast.success("Quiz ready — launch when everyone is set"); });
-        socket.on("quiz_status",        (d) => { if (d?.status === "generating") setQuizReady(false); });
-        socket.on("auth_error",         (e) => toast.error(e?.message || "Socket auth failed — refresh and try again"));
-        socket.on("error",              (e) => toast.error(e?.message || "Arena error"));
-
-        socket.on("question_started", d => {
-            setGameState("question"); setQuestion(d.question);
-            setTimeLeft(d.timeRemaining); setTimeTotal(d.timePerQuestion || 15);
-            setAnsweredCount(0); setPicked(null); pickedRef.current = null; setReveal(null);
+        socket.on("room_created", enterRoom);
+        socket.on("joined_successfully", enterRoom);
+        socket.on("room_updated", (d) => {
+            setTopic_(d.topic);
+            setPlayers([...(d.players || [])]);
+            setQuizReady(d.quizStatus === "ready" || Boolean(d.quiz?.questions?.length));
         });
-        socket.on("timer_tick",       t => setTimeLeft(t));
-        socket.on("player_answered",  d => setAnsweredCount(d.answeredCount));
-        socket.on("answer_revealed",  d => {
-            setGameState("leaderboard"); setReveal(d); setBoard(d.leaderboard);
+        socket.on("join_failed", (e) => failLobby(typeof e === "string" ? e : (e?.message || "Join failed")));
+        socket.on("player_joined", (p) => setPlayers([...(p || [])]));
+        socket.on("online_users_update", (u) => setOnlineUsers(u || []));
+        socket.on("quiz_ready", () => {
+            setQuizReady(true);
+            toast.success("Quiz ready — launch when everyone is set");
+        });
+        socket.on("quiz_status", (d) => {
+            if (d?.status === "generating") setQuizReady(false);
+        });
+        socket.on("auth_error", (e) => failLobby(e?.message || "Socket auth failed — refresh and try again"));
+        socket.on("error", (e) => failLobby(e?.message || "Arena error"));
+
+        socket.on("question_started", (d) => {
+            setGameState("question");
+            setQuestion(d.question);
+            setTimeLeft(d.timeRemaining);
+            setTimeTotal(d.timePerQuestion || 15);
+            setAnsweredCount(0);
+            setPicked(null);
+            pickedRef.current = null;
+            setReveal(null);
+        });
+        socket.on("timer_tick", (t) => setTimeLeft(t));
+        socket.on("player_answered", (d) => setAnsweredCount(d.answeredCount));
+        socket.on("answer_revealed", (d) => {
+            setGameState("leaderboard");
+            setReveal(d);
+            setBoard(d.leaderboard);
             pickedRef.current === null || pickedRef.current !== d.correctIndex ? playFail() : playWin();
         });
-        socket.on("game_finished", d => {
-            setGameState("finished"); setBoard(d.leaderboard);
+        socket.on("game_finished", (d) => {
+            setGameState("finished");
+            setBoard(d.leaderboard);
             if (d.leaderboard[0]?.id === userId) runConfetti();
         });
-        socket.on("match_chat", m => setMsgs(p => [...p.slice(-49), m]));
+        socket.on("match_chat", (m) => setMsgs((p) => [...p.slice(-49), m]));
         socket.on("meme_alert", () => playFail());
+
+        if (socket.connected) startLobby();
+        else socket.once("connect", startLobby);
+
+        const watchdog = setTimeout(() => {
+            if (!cancelled && !hasRoom) {
+                setCreatingRoom(false);
+                setLobbyError((prev) => prev || "Timed out creating the room. Retry or re-login.");
+            }
+        }, 15000);
 
         return () => {
             cancelled = true;
-            ["authenticated","room_created","joined_successfully","room_updated","join_failed","player_joined",
-            "online_users_update","quiz_ready","quiz_status","auth_error","error","question_started","timer_tick","player_answered","answer_revealed",
-            "game_finished","match_chat","meme_alert"].forEach(e => socket.off(e));
+            clearTimeout(watchdog);
+            socket.off("connect", startLobby);
+            [
+                "room_created", "joined_successfully", "room_updated", "join_failed", "player_joined",
+                "online_users_update", "quiz_ready", "quiz_status", "auth_error", "error",
+                "question_started", "timer_tick", "player_answered", "answer_revealed",
+                "game_finished", "match_chat", "meme_alert",
+            ].forEach((e) => socket.off(e));
         };
-    }, []);
+    }, [lobbyKey]);
 
     useEffect(() => { if (chatOpen) chatEnd.current?.scrollIntoView({ behavior:'smooth' }); }, [msgs, chatOpen]);
 
@@ -375,8 +422,18 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
                                     <div className="flex items-center justify-center gap-2 mt-3">
                                         <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${room ? 'bg-emerald-400' : 'bg-amber-400'}`} />
                                         <span className={`text-[11px] font-bold uppercase tracking-widest ${room ? 'text-emerald-400' : 'text-amber-400'}`}>
-                                            {!room ? (creatingRoom ? 'Creating room…' : 'Waiting for server…') : (quizReady ? 'Lobby Open · Quiz Ready' : 'Lobby Open · Generating quiz…')}
+                                            {!room ? (creatingRoom ? 'Creating room…' : (lobbyError || 'Waiting for server…')) : (quizReady ? 'Lobby Open · Quiz Ready' : 'Lobby Open · Generating quiz…')}
                                         </span>
+                                        {lobbyError && !creatingRoom && !room && (
+                                            <button
+                                                type="button"
+                                                onClick={() => { setLobbyKey((k) => k + 1); }}
+                                                className="mt-3 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest text-white"
+                                                style={{ background: '#6366f1' }}
+                                            >
+                                                Retry create room
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
 

@@ -181,6 +181,24 @@ export const getSession = async (req, res) => {
   res.json({ user: rows[0] });
 };
 
+/** Short-lived JWT for Socket.IO (cookies often miss cross-origin WS handshakes). */
+export const getWsToken = async (req, res) => {
+  const { rows } = await pool.query(
+    'SELECT id, role, token_version FROM users WHERE id = $1',
+    [req.user.id]
+  );
+  if (!rows.length) {
+    return res.status(401).json({ message: 'Invalid token' });
+  }
+  const user = rows[0];
+  const token = jwt.sign(
+    { id: user.id, role: user.role, tv: user.token_version ?? 0 },
+    process.env.JWT_SECRET,
+    { expiresIn: '10m' }
+  );
+  res.json({ token, userName: req.user.name || undefined });
+};
+
 export const forgotPassword = async (req, res) => {
   const { email } = req.body;
 

@@ -7,6 +7,7 @@ import {
   forgotPassword,
   resetPassword,
   getSession,
+  getWsToken,
 } from '../controllers/auth.controller.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { authLimiter } from '../middleware/rateLimiter.js';
@@ -27,5 +28,6 @@ router.post('/reset-password', authLimiter, validateResetPassword, asyncHandler(
 router.post('/refresh', authLimiter, asyncHandler(refresh));
 router.post('/logout', asyncHandler(logout));
 router.get('/session', protect, asyncHandler(getSession));
+router.get('/ws-token', protect, asyncHandler(getWsToken));
 
 export default router;

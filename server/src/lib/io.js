@@ -7,7 +7,16 @@ import logger from "../utils/logger.js";
 import { ACCESS_COOKIE } from "../utils/authCookies.js";
 function getAllowedOrigins() {
     if (process.env.NODE_ENV === 'production') {
-        return process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : [];
+        const origins = [];
+        if (process.env.FRONTEND_URL) origins.push(process.env.FRONTEND_URL);
+        // Comma-separated extras (e.g. preview deploys)
+        if (process.env.FRONTEND_URLS) {
+            for (const o of process.env.FRONTEND_URLS.split(',')) {
+                const t = o.trim();
+                if (t && !origins.includes(t)) origins.push(t);
+            }
+        }
+        return origins;
     }
     const devOrigins = [
         'http://localhost:5173',
