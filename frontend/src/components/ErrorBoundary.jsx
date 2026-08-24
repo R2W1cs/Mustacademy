@@ -1,6 +1,7 @@
 import { Component } from "react";
 
-const CHUNK_RELOAD_KEY = "must_chunk_reload";
+const CHUNK_RELOAD_AT = "must_chunk_reload_at";
+const RELOAD_COOLDOWN_MS = 15000;
 
 function isChunkLoadError(error) {
     const msg = String(error?.message || error || "");
@@ -11,6 +12,21 @@ function isChunkLoadError(error) {
         /ChunkLoadError/i.test(msg) ||
         error?.name === "ChunkLoadError"
     );
+}
+
+function hardReloadForChunk() {
+    try {
+        const last = Number(sessionStorage.getItem(CHUNK_RELOAD_AT) || 0);
+        const now = Date.now();
+        if (now - last < RELOAD_COOLDOWN_MS) return false;
+        sessionStorage.setItem(CHUNK_RELOAD_AT, String(now));
+    } catch {
+        /* ignore */
+    }
+    const url = new URL(window.location.href);
+    url.searchParams.set("_cb", String(Date.now()));
+    window.location.replace(url.pathname + url.search + url.hash);
+    return true;
 }
 
 export default class ErrorBoundary extends Component {
@@ -29,31 +45,21 @@ export default class ErrorBoundary extends Component {
 
     componentDidCatch(error, info) {
         console.error("[ErrorBoundary] Caught:", error, info.componentStack);
-
-        // After a deploy, open tabs keep old hashed chunk URLs. Hard-reload once
-        // so the browser picks up the new index.html + asset map.
         if (isChunkLoadError(error)) {
-            try {
-                const alreadyReloaded = sessionStorage.getItem(CHUNK_RELOAD_KEY);
-                if (!alreadyReloaded) {
-                    sessionStorage.setItem(CHUNK_RELOAD_KEY, "1");
-                    window.location.reload();
-                    return;
-                }
-            } catch {
-                // sessionStorage unavailable — fall through to UI
-            }
+            hardReloadForChunk();
         }
     }
 
     handleRetry = () => {
         if (this.state.isChunkError) {
             try {
-                sessionStorage.removeItem(CHUNK_RELOAD_KEY);
+                sessionStorage.removeItem(CHUNK_RELOAD_AT);
             } catch {
                 /* ignore */
             }
-            window.location.reload();
+            const url = new URL(window.location.href);
+            url.searchParams.set("_cb", String(Date.now()));
+            window.location.replace(url.pathname + url.search + url.hash);
             return;
         }
         this.setState({ hasError: false, error: null, isChunkError: false });

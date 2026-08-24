@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { BrowserRouter } from "react-router-dom";
 import AppRoutes from "./routes/AppRoutes";
 import { Analytics } from "@vercel/analytics/react";
@@ -7,15 +6,6 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import SkipToContent from "./components/a11y/SkipToContent";
 
 export default function App() {
-  // Allow one auto-reload per deploy-related chunk miss (see ErrorBoundary).
-  useEffect(() => {
-    try {
-      sessionStorage.removeItem("must_chunk_reload");
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
   return (
     <BrowserRouter>
       <SkipToContent />

@@ -12,6 +12,43 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <title>MustAcademy</title>
+    <script>
+      // Survive Vite deploys: old tabs keep hashed chunk URLs that 404 after publish.
+      (function () {
+        var KEY = "must_chunk_reload_at";
+        var WINDOW_MS = 15000;
+        function isChunkMsg(msg) {
+          msg = String(msg || "");
+          return /Failed to fetch dynamically imported module/i.test(msg)
+            || /Importing a module script failed/i.test(msg)
+            || /error loading dynamically imported module/i.test(msg)
+            || /ChunkLoadError/i.test(msg);
+        }
+        function reloadOnce() {
+          try {
+            var last = Number(sessionStorage.getItem(KEY) || 0);
+            var now = Date.now();
+            if (now - last < WINDOW_MS) return;
+            sessionStorage.setItem(KEY, String(now));
+          } catch (e) {}
+          var url = new URL(window.location.href);
+          url.searchParams.set("_cb", String(Date.now()));
+          window.location.replace(url.pathname + url.search + url.hash);
+        }
+        window.addEventListener("vite:preloadError", function (event) {
+          try { event.preventDefault(); } catch (e) {}
+          reloadOnce();
+        });
+        window.addEventListener("unhandledrejection", function (event) {
+          var reason = event && event.reason;
+          var msg = reason && (reason.message || reason);
+          if (isChunkMsg(msg)) {
+            try { event.preventDefault(); } catch (e) {}
+            reloadOnce();
+          }
+        });
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
