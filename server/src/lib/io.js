@@ -35,8 +35,9 @@ let gameManager;
 
 export const initIo = (server) => {
     io = new Server(server, {
-        // Under `/api` so the access cookie (historically path=/api) is also sent.
-        path: '/api/socket.io',
+        // Default path so client/server stay compatible across staggered deploys.
+        // Access cookie uses path `/`, so it is sent to /socket.io.
+        path: '/socket.io',
         cors: {
             origin: getAllowedOrigins(),
             methods: ["GET", "POST", "OPTIONS"],
@@ -60,6 +61,8 @@ export const initIo = (server) => {
     };
 
     const tokenFromHandshake = (socket) => {
+        const fromAuth = socket.handshake?.auth?.token;
+        if (fromAuth) return fromAuth;
         const cookies = cookie.parse(socket.handshake.headers.cookie || '');
         return cookies[ACCESS_COOKIE] || null;
     };
