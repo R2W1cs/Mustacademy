@@ -187,7 +187,7 @@ const CourseDetails = () => {
                           to={`/topics/${topic.id}`}
                           className={`text-[9px] font-black uppercase tracking-[0.2em] px-6 py-3 rounded-xl border transition-all ${isDark ? 'bg-white/5 hover:bg-white/10 text-white border-white/5' : 'bg-amber-400 text-amber-950 hover:bg-amber-500 border-amber-400 shadow-lg shadow-amber-200'}`}
                         >
-                          Deep Dive Protocol
+                          Open lesson
                         </Link>
                         <button
                           onClick={() => toggleTopic(topic.id)}
