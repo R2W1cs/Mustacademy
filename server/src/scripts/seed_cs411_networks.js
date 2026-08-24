@@ -1,8 +1,8 @@
 /**
  * Seed CS 411: Computer Networks topics.
  *
- * Rich lesson content lives in enrich_cs411_networks.mjs (source of truth).
- * This seed imports that data so INSERT and UPDATE stay aligned.
+ * Rich lesson content lives in cs411/unit*.mjs and is re-exported from
+ * enrich_cs411_networks.mjs (source of truth for INSERT and UPDATE).
  *
  * Usage (from server/): node src/scripts/seed_cs411_networks.js
  * Enrich existing rows: node src/scripts/enrich_cs411_networks.mjs
@@ -18,7 +18,7 @@ dotenv.config({ path: path.join(__dirname, "../../.env") });
 
 async function seed() {
   console.log("Seeding CS 411: Computer Networks (visual-first lessons)...");
-  console.log("  (content from enrich_cs411_networks.mjs)");
+  console.log("  (content from enrich_cs411_networks.mjs → cs411/unit*.mjs)");
   try {
     const courseRes = await pool.query(
       `SELECT id, name FROM courses
@@ -27,7 +27,9 @@ async function seed() {
        LIMIT 1`
     );
     if (courseRes.rows.length === 0) {
-      throw new Error("Computer Networks / CS 411 course not found. Run seed_courses / seed_curriculum first.");
+      throw new Error(
+        "Computer Networks / CS 411 course not found. Run seed_courses / seed_curriculum first."
+      );
     }
     const { id: courseId, name } = courseRes.rows[0];
     console.log(`  Course: ${name} (id=${courseId})`);
@@ -50,10 +52,12 @@ async function seed() {
           JSON.stringify(t.learning_objectives),
           t.content_easy_markdown,
           t.content_deep_markdown,
-          t.content_easy_markdown
+          t.content_easy_markdown,
         ]
       );
-      console.log(`  OK ${t.title} (easy=${t.content_easy_markdown.length}, deep=${t.content_deep_markdown.length})`);
+      console.log(
+        `  OK ${t.title} (easy=${t.content_easy_markdown.length}, deep=${t.content_deep_markdown.length})`
+      );
     }
     console.log(`\nCS 411 done -- ${topics.length} topics seeded.`);
   } catch (err) {

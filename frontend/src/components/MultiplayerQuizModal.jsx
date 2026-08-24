@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Users, Zap, Trophy, MessageSquare, Send, Settings, Crown } from "lucide-react";
 import { useSocket, authenticateSocket, getSocketStatus } from "../hooks/useSocket";
@@ -145,8 +146,14 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
     const [quizReady, setQuizReady]     = useState(false);
     const [creatingRoom, setCreatingRoom] = useState(true);
     const [lobbyError, setLobbyError] = useState("");
-    const chatEnd   = useRef(null);
-    const pickedRef = useRef(null);
+    const chatEnd     = useRef(null);
+    const pickedRef   = useRef(null);
+    const contentRef  = useRef(null);
+
+    // Standings/question headers were clipping because scroll position carried over between phases
+    useEffect(() => {
+        if (contentRef.current) contentRef.current.scrollTop = 0;
+    }, [gameState]);
 
     const userId   = localStorage.getItem("userId");
     const userName = localStorage.getItem("userName") || "Scholar";
@@ -307,7 +314,7 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
     const timerPct = timeTotal > 0 ? timeLeft / timeTotal : 0;
     const circumference = 2 * Math.PI * 28;
 
-    return (
+    return createPortal(
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-3" style={{ background: ui.overlay, backdropFilter: 'blur(20px)' }}>
             <motion.div
                 initial={{ scale: 0.88, opacity: 0, y: 20 }}
@@ -321,7 +328,7 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
                 <div className="absolute -bottom-32 -left-32 w-[400px] h-[400px] rounded-full pointer-events-none" style={{ background: `radial-gradient(circle, ${ui.blobB} 0%, transparent 70%)` }} />
 
                 {/* ── HEADER ── */}
-                <div className="relative z-10 flex items-center justify-between px-6 py-3.5" style={{ borderBottom: `1px solid ${ui.headerBorder}`, background: ui.headerBg, backdropFilter: 'blur(12px)' }}>
+                <div className="flex-shrink-0 relative z-10 flex items-center justify-between px-6 py-3.5" style={{ borderBottom: `1px solid ${ui.headerBorder}`, background: ui.headerBg, backdropFilter: 'blur(12px)' }}>
                     {/* Logo */}
                     <div className="flex items-center gap-2.5">
                         <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#6366f1,#c026d3)' }}>
@@ -408,7 +415,8 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
                 </AnimatePresence>
 
                 {/* ── MAIN CONTENT ── */}
-                <div className="flex-1 overflow-y-auto relative z-10" style={{ padding: '1.5rem' }}>
+                {/* min-h-0 so flex child can scroll; avoid clipping tall italic titles */}
+                <div ref={contentRef} className="flex-1 min-h-0 overflow-y-auto relative z-10" style={{ padding: '1.5rem 1.5rem 1.75rem' }}>
                     <AnimatePresence mode="wait">
 
                         {/* ══════════ LOBBY ══════════ */}
@@ -676,52 +684,104 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
 
                         {/* ══════════ LEADERBOARD ══════════ */}
                         {gameState === "leaderboard" && (
-                            <motion.div key="leaderboard" initial={{ opacity:0,y:12 }} animate={{ opacity:1,y:0 }} className="h-full flex flex-col gap-5">
-                                <div className="flex items-start justify-between gap-4">
-                                    <div>
-                                        <h2 className="text-4xl font-black italic mb-1" style={{ color: ui.text }}>Standings</h2>
-                                        <p className="text-sm font-bold uppercase tracking-widest" style={{ color: '#6366f1' }}>After Question {question?.index + 1}</p>
+                            <motion.div
+                                key="leaderboard"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="flex flex-col gap-4"
+                            >
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                                    <div className="min-w-0">
+                                        <h2 className="text-3xl sm:text-4xl font-black leading-tight tracking-tight" style={{ color: ui.text }}>
+                                            Standings
+                                        </h2>
+                                        <p className="text-sm font-bold uppercase tracking-widest mt-1" style={{ color: '#6366f1' }}>
+                                            After Question {question?.index + 1}
+                                        </p>
                                     </div>
                                     {reveal && (
-                                        <div className="flex items-center gap-3 px-5 py-3 rounded-2xl flex-shrink-0" style={{ background: ui.card, border: `1px solid ${ui.cardBorder}` }}>
-                                            <div className="w-11 h-11 rounded-xl flex items-center justify-center text-lg font-black text-white" style={{ background: COLORS[reveal.correctIndex]?.bg }}>
+                                        <div
+                                            className="flex items-center gap-3 px-4 py-3 rounded-2xl flex-shrink-0 self-start sm:self-auto"
+                                            style={{ background: ui.card, border: `1px solid ${ui.cardBorder}` }}
+                                        >
+                                            <div
+                                                className="w-11 h-11 rounded-xl flex items-center justify-center text-lg font-black text-white"
+                                                style={{ background: COLORS[reveal.correctIndex]?.bg }}
+                                            >
                                                 {COLORS[reveal.correctIndex]?.shape}
                                             </div>
-                                            <div>
-                                                <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: ui.muted }}>Correct Answer</p>
-                                                <p className="text-sm font-bold max-w-[180px] truncate" style={{ color: ui.text }}>{question?.options?.[reveal.correctIndex]}</p>
+                                            <div className="min-w-0">
+                                                <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: ui.muted }}>
+                                                    Correct Answer
+                                                </p>
+                                                <p className="text-sm font-bold max-w-[200px] truncate" style={{ color: ui.text }}>
+                                                    {question?.options?.[reveal.correctIndex]}
+                                                </p>
                                             </div>
-                                            <div className="text-3xl font-black ml-2" style={{ color: picked === reveal.correctIndex ? '#22c55e' : '#ef4444' }}>
+                                            <div
+                                                className="text-3xl font-black ml-1 leading-none"
+                                                style={{ color: picked === reveal.correctIndex ? '#22c55e' : '#ef4444' }}
+                                            >
                                                 {picked === reveal.correctIndex ? '✓' : '✗'}
                                             </div>
                                         </div>
                                     )}
                                 </div>
 
-                                <div className="flex-1 space-y-2.5 overflow-y-auto">
+                                <div className="space-y-2.5">
                                     {board.map((p, i) => (
-                                        <motion.div key={p.id} initial={{ opacity:0,x:-16 }} animate={{ opacity:1,x:0 }} transition={{ delay: i*0.04 }}
+                                        <motion.div
+                                            key={p.id}
+                                            initial={{ opacity: 0, x: -16 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            transition={{ delay: i * 0.04 }}
                                             className="flex items-center gap-4 px-5 py-4 rounded-2xl"
-                                            style={{ background: p.id===userId ? (isDark ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.1)') : ui.card, border: p.id===userId ? '1px solid rgba(99,102,241,0.35)' : `1px solid ${ui.cardBorder}` }}>
-                                            <span className="text-2xl font-black w-10 text-center" style={{ color: i===0 ? '#fbbf24' : ui.faint }}>
-                                                {i === 0 ? <Crown size={22} className="mx-auto" style={{ color: '#fbbf24' }} /> : `#${i+1}`}
+                                            style={{
+                                                background: p.id === userId
+                                                    ? (isDark ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.1)')
+                                                    : ui.card,
+                                                border: p.id === userId
+                                                    ? '1px solid rgba(99,102,241,0.35)'
+                                                    : `1px solid ${ui.cardBorder}`,
+                                            }}
+                                        >
+                                            <span className="text-2xl font-black w-10 text-center flex-shrink-0" style={{ color: i === 0 ? '#fbbf24' : ui.faint }}>
+                                                {i === 0 ? <Crown size={22} className="mx-auto" style={{ color: '#fbbf24' }} /> : `#${i + 1}`}
                                             </span>
-                                            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-base font-black text-white" style={{ background: AVATAR_COLORS[i % AVATAR_COLORS.length] }}>
+                                            <div
+                                                className="w-10 h-10 rounded-xl flex items-center justify-center text-base font-black text-white flex-shrink-0"
+                                                style={{ background: AVATAR_COLORS[i % AVATAR_COLORS.length] }}
+                                            >
                                                 {p.name.charAt(0)}
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-bold truncate" style={{ color: ui.text }}>{p.name}{p.id===userId ? ' (You)' : ''}</p>
-                                                {p.streak > 1 && <span className="text-[10px] font-black" style={{ color: '#f97316' }}>🔥 {p.streak}x streak</span>}
+                                                <p className="text-sm font-bold truncate" style={{ color: ui.text }}>
+                                                    {p.name}{p.id === userId ? ' (You)' : ''}
+                                                </p>
+                                                {p.streak > 1 && (
+                                                    <span className="text-[10px] font-black" style={{ color: '#f97316' }}>
+                                                        🔥 {p.streak}x streak
+                                                    </span>
+                                                )}
                                             </div>
-                                            <span className="text-xl font-black tabular-nums" style={{ color: '#6366f1' }}>{p.score.toLocaleString()}</span>
+                                            <span className="text-xl font-black tabular-nums flex-shrink-0" style={{ color: '#6366f1' }}>
+                                                {p.score.toLocaleString()}
+                                            </span>
                                         </motion.div>
                                     ))}
                                 </div>
 
                                 {reveal?.explanation && (
-                                    <div className="px-5 py-4 rounded-2xl" style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)' }}>
-                                        <p className="text-xs leading-relaxed" style={{ color: 'rgba(200,210,255,0.7)' }}>
-                                            <span className="font-black mr-2" style={{ color: ui.text }}>Why:</span>{reveal.explanation}
+                                    <div
+                                        className="px-5 py-4 rounded-2xl"
+                                        style={{
+                                            background: isDark ? 'rgba(99,102,241,0.12)' : 'rgba(99,102,241,0.08)',
+                                            border: `1px solid ${isDark ? 'rgba(99,102,241,0.28)' : 'rgba(99,102,241,0.22)'}`,
+                                        }}
+                                    >
+                                        <p className="text-sm leading-relaxed" style={{ color: ui.muted }}>
+                                            <span className="font-black mr-2" style={{ color: ui.text }}>Why:</span>
+                                            {reveal.explanation}
                                         </p>
                                     </div>
                                 )}
@@ -778,5 +838,5 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
                 </div>
             </motion.div>
         </div>
-    );
+    , document.body);
 }

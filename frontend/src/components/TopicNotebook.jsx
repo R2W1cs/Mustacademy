@@ -201,13 +201,46 @@ const FileIcon = ({ type }) => {
 const formatBytes = (b) => b < 1024 ? `${b}B` : b < 1048576 ? `${(b/1024).toFixed(0)}KB` : `${(b/1048576).toFixed(1)}MB`;
 
 // ─── Topic type classifier ────────────────────────────────────────────────────
-const THEORETICAL_PATTERNS = /waterfall|agile|scrum|kanban|sdlc|lifecycle|life.?cycle|methodology|process model|requirements|rup\b|spiral model|incremental|prototype|feasibility|uml|use.?case|gantt|project.?management|change.?management|risk.?management|quality.?assurance|software.?testing\s*methodolog|ieee|cmmi|devops.?culture/i;
+// Concept topics get a prose masterclass (no forced algo-viz / JS labs).
+const CONCEPT_PATTERNS = /waterfall|agile|scrum|kanban|sdlc|lifecycle|life.?cycle|methodology|process model|requirements|rup\b|spiral model|incremental|prototype|feasibility|uml|use.?case|gantt|project.?management|change.?management|risk.?management|quality.?assurance|software.?testing\s*methodolog|ieee|cmmi|devops.?culture|network|internet|protocol|packet|osi|tcp|udp|ip\b|dns|http|https|routing|router|switch|subnet|cidr|dhcp|nat\b|ipv6|congestion|throughput|delay|latency|ethernet|wifi|wi-?fi|wireless|bluetooth|vpn|tls|ssl|firewall|quic|smtp|cdn|socket|encapsulation|forwarding|bgp|ospf|arp\b|mac\b|lan\b|wan\b|mtu|checksum|handshake|middleware|middlebox|security|cryptograph|encryption|authentication/i;
 
-function isTheoreticalTopic(title = '') {
-    return THEORETICAL_PATTERNS.test(title);
+function isConceptTopic(title = '') {
+    return CONCEPT_PATTERNS.test(title);
 }
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
+
+// Build a full local lesson story from seeded markdown (works even if AI is down)
+function buildLocalLessonStory(topic = {}) {
+    const title = topic.title || 'This lesson';
+    const easy = topic.content_easy_markdown || topic.content_markdown || '';
+    const deep = topic.content_deep_markdown || '';
+    if (!easy && !deep) {
+        return (
+            `# ${title}\n\n` +
+            `## Opening the research notebook\n` +
+            `This node does not have seeded lesson text yet. Ask me anything about **${title}** and I will teach it from first principles.\n\n` +
+            `### How to use this notebook\n` +
+            `- Ask "explain like I'm new"\n` +
+            `- Ask for a worked example\n` +
+            `- Ask "what do I still not understand?"\n` +
+            `- Turn on voice to hear the lecture\n`
+        );
+    }
+    let story = `# ${title}\n\n`;
+    story += `## Your guided story for this lesson\n`;
+    story += `Welcome. This Research Notebook walks the full story of **${title}** — from first intuition to deep mechanics. Read it like a chapter, then ask me anything.\n\n`;
+    if (easy) story += `---\n\n## Essential story\n\n${easy}\n\n`;
+    if (deep) story += `---\n\n## Go deeper\n\n${deep}\n\n`;
+    story += `---\n\n## What you can ask me next\n`;
+    story += `- "Explain the hardest part again, slower."\n`;
+    story += `- "Give me a new worked example."\n`;
+    story += `- "What mistakes do students make here?"\n`;
+    story += `- "How does this connect to the previous lesson?"\n`;
+    story += `\n_Voice: tap the speaker on any reply (or click once on the page to enable Live Voice)._\n`;
+    return story;
+}
+
 const TopicNotebook = ({ topic, isDark }) => {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
@@ -305,43 +338,79 @@ const TopicNotebook = ({ topic, isDark }) => {
                 }
             } catch { /* silent */ }
 
-            // Auto-start masterclass (direct API call — no stale closure risk)
+            // Always open with the full local lesson story first (AI enhances; never blank on failure)
             if (!cancelled) {
                 setLoading(true);
-                const theoretical = isTheoreticalTopic(topic.title);
-                const masterclassMsg = theoretical
-                    ? `MASTERCLASS PROTOCOL — ${topic.title}. ` +
-                      `Write a COMPLETE standalone lesson (minimum 800 words) directly in your reply. ` +
-                      `This is a theoretical/process topic — do NOT include code blocks or algorithm visualizers. ` +
-                      `You MUST include: ` +
-                      `1) A process/flow diagram using ASCII box-drawing chars (┌─┐│└─┘→) showing the phases or flow of ${topic.title}. ` +
-                      `2) A comparison table (e.g. advantages vs disadvantages, or phase breakdown with deliverables). ` +
-                      `Also explain: the real-world context (which companies/projects use this and why), ` +
-                      `the key phases or principles, common pitfalls, and when to choose this over alternatives. ` +
-                      `Do NOT say "provided below". Do NOT summarize. Write the full content in your reply.`
-                    : `MASTERCLASS PROTOCOL — ${topic.title}. ` +
-                      `Write a COMPLETE standalone lesson (minimum 800 words) directly in your reply. ` +
-                      `You MUST include ALL THREE or the response is invalid: ` +
-                      `1) An interactive algorithm visualizer in a \`\`\`algo-viz block (NOT mermaid, NOT json — exactly algo-viz) showing how ${topic.title} works step by step. ` +
-                      `2) Complete runnable JavaScript code (30+ lines, realistic scenario, with console.log showing output and __step__() calls for Step-Through mode). ` +
-                      `3) A markdown table showing time/space complexity per operation. ` +
-                      `Also explain: the real-world hook (how is this used at Netflix/Google RIGHT NOW?), ` +
-                      `the one mental model analogy that makes it click, step-by-step mechanics, ` +
-                      `when to use vs when NOT to use, and the mistake 90% of students make. ` +
-                      `Do NOT say "provided below". Do NOT summarize. Write the full content in your reply.`;
+                const localStory = buildLocalLessonStory(topic);
+                setMessages([{
+                    sender: 'ai',
+                    text: localStory,
+                    id: Date.now() + '-story',
+                    suggested: [
+                        'Explain the hardest idea more slowly',
+                        'Give me a worked example',
+                        'What mistakes should I avoid?',
+                        'How does this connect to the next lesson?',
+                    ],
+                }]);
+
+                const lessonExcerpt = [
+                    topic.content_easy_markdown || topic.content_markdown || '',
+                    topic.content_deep_markdown || '',
+                ].filter(Boolean).join('\n\n').slice(0, 9000);
+
+                const masterclassMsg =
+                    `MASTERCLASS STORY — ${topic.title}.\n` +
+                    `You are the Research Notebook professor. Using the OFFICIAL LESSON CONTENT below (and your expertise), ` +
+                    `rewrite a vivid FULL teaching story for this lesson (500–900 words).\n` +
+                    `Requirements:\n` +
+                    `1) Hook + why it matters in the real internet\n` +
+                    `2) Simple idea a complete beginner can picture\n` +
+                    `3) Step-by-step walkthrough\n` +
+                    `4) One strong analogy\n` +
+                    `5) One worked example with numbers or a concrete scenario\n` +
+                    `6) Common mistakes\n` +
+                    `7) 3 short check questions with answers\n` +
+                    `8) ASCII diagram of the flow if helpful\n` +
+                    `Do NOT force JavaScript labs or algo-viz for networking topics.\n` +
+                    `Do NOT say "provided below". Write the full story in your reply.\n\n` +
+                    `OFFICIAL LESSON CONTENT:\n${lessonExcerpt || '(use general CS networking knowledge for this title)'}`;
+
                 try {
-                    const res = await api.post("/ai/chat", { message: masterclassMsg, topicId: topic.id });
+                    const res = await api.post('/ai/chat', {
+                        message: masterclassMsg,
+                        topicId: topic.id,
+                        lessonContext: lessonExcerpt,
+                    });
                     if (!cancelled) {
-                        const reply = res.data.reply || "Synthesis complete.";
-                        if (res.data.goal) setActiveMission({ title: "Mission", description: res.data.goal.description, tasks: ["Complete the protocol"] });
-                        setMessages([{ sender: 'ai', text: reply, id: Date.now() + '-ai', suggested: res.data.suggested_questions }]);
+                        const reply = res.data.reply || localStory;
+                        const useAi = typeof reply === 'string' && reply.length > 600 && !/neural link interrupted|offline mode|system offline/i.test(reply);
+                        if (res.data.goal) setActiveMission({ title: 'Mission', description: res.data.goal.description, tasks: ['Complete the protocol'] });
+                        setMessages([{
+                            sender: 'ai',
+                            text: useAi ? reply : localStory,
+                            id: Date.now() + '-ai',
+                            suggested: res.data.suggested_questions || [
+                                'Explain the hardest idea more slowly',
+                                'Give me a worked example',
+                                'What mistakes should I avoid?',
+                            ],
+                        }]);
                     }
-                } catch {
-                    if (!cancelled) setMessages([{ sender: 'ai', text: "Neural link interrupted. Please retry.", id: Date.now() + '-err' }]);
+                } catch (err) {
+                    console.error('[TopicNotebook] masterclass failed — keeping local lesson story', err?.response?.status, err?.response?.data || err?.message);
+                    if (!cancelled) {
+                        const status = err?.response?.status;
+                        let tip = 'AI narration is temporarily unavailable — you still have the full lesson story above. Ask questions anytime.';
+                        if (status === 401) tip = 'Session expired for AI chat — log out/in to restore live Q&A. The lesson story above still works.';
+                        else if (status === 429) tip = 'AI rate limit — wait ~30s for live Q&A. The lesson story above still works.';
+                        setMessages(prev => [...prev, { sender: 'ai', text: tip, id: Date.now() + '-tip' }]);
+                    }
                 } finally {
                     if (!cancelled) setLoading(false);
                 }
             }
+
         };
 
         init();
@@ -387,7 +456,17 @@ const TopicNotebook = ({ topic, isDark }) => {
             audio.onended = () => { killAudio(); URL.revokeObjectURL(url); };
             audio.onerror = () => { killAudio(); URL.revokeObjectURL(url); };
             await audio.play().catch(() => {});
-        } catch { killAudio(); }
+        } catch {
+            try {
+                window.speechSynthesis?.cancel();
+                const u = new SpeechSynthesisUtterance(clean);
+                u.rate = 1.02;
+                u.onend = () => setIsSpeaking(false);
+                u.onerror = () => setIsSpeaking(false);
+                setIsSpeaking(true);
+                window.speechSynthesis?.speak(u);
+            } catch { killAudio(); }
+        }
     }, [voiceEnabled, sessionStatus, killAudio]);
 
     // ── Listening ──
@@ -419,7 +498,14 @@ const TopicNotebook = ({ topic, isDark }) => {
         setInput(""); setLoading(true);
 
         try {
-            const res = await api.post("/ai/chat", { message: text, topicId: topic.id });
+            const lessonExcerpt = [
+                topic.content_easy_markdown || topic.content_markdown || '',
+                topic.content_deep_markdown || '',
+            ].filter(Boolean).join('\n\n').slice(0, 7000);
+            const grounded = lessonExcerpt
+                ? `${text}\n\n(Context: answer as the Research Notebook professor for "${topic.title}". Use the lesson first. Be clear, warm, detailed. Lesson excerpt:\n${lessonExcerpt.slice(0, 3500)})`
+                : text;
+            const res = await api.post('/ai/chat', { message: grounded, topicId: topic.id, lessonContext: lessonExcerpt });
             const reply = res.data.reply || "Synthesis complete.";
 
             const missionMatch = reply.match(/```json\s*({[\s\S]*?"type":\s*"mission"[\s\S]*?})\s*```/);
@@ -430,8 +516,16 @@ const TopicNotebook = ({ topic, isDark }) => {
                 if (prev.at(-1)?.text === reply && prev.at(-1)?.sender === 'ai') return prev;
                 return [...prev, { sender: 'ai', text: reply, id: Date.now() + '-ai', suggested: res.data.suggested_questions }];
             });
-        } catch {
-            setMessages(prev => [...prev, { sender: 'ai', text: "Neural link interrupted. Please retry.", id: Date.now() + '-err' }]);
+        } catch (err) {
+            console.error('[TopicNotebook] chat failed', err?.response?.status, err?.response?.data || err?.message);
+            const status = err?.response?.status;
+            const apiMsg = err?.response?.data?.message;
+            let text = 'Neural link interrupted. Please retry.';
+            if (status === 401) text = 'Session expired — log out and log back in.';
+            else if (status === 429) text = 'AI rate limit — wait a moment then retry.';
+            else if (apiMsg) text = `AI error: ${apiMsg}`;
+            else if (!err?.response) text = 'Cannot reach the AI server. Check connection/backend.';
+            setMessages(prev => [...prev, { sender: 'ai', text, id: Date.now() + '-err' }]);
         } finally { setLoading(false); }
     }, [input, loading, topic.id, killAudio]);
 
@@ -439,8 +533,8 @@ const TopicNotebook = ({ topic, isDark }) => {
         if (force) setMessages([]);
         sendMessage(
             `MASTERCLASS PROTOCOL — ${topic.title}. ` +
-            `Write a COMPLETE standalone lesson (minimum 800 words) directly in your reply. ` +
-            `You MUST include ALL THREE or the response is invalid: ` +
+            `Write a clear standalone lesson (about 400-600 words) directly in your reply. ` +
+            `Include these when they help (skip algo-viz for networking topics): ` +
             `1) A visual ASCII diagram in a \`\`\`mermaid block showing how ${topic.title} works (use box-drawing chars ┌─┐│└─┘→). ` +
             `2) Complete runnable JavaScript code (30+ lines, realistic scenario, with console.log showing output). ` +
             `3) A markdown table showing time/space complexity per operation. ` +

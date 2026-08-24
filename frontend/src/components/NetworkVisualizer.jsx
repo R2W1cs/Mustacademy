@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Play, RotateCcw, Network, Layers, Route, Server, Smartphone,
-    Globe, Search, Activity, ArrowRight, Wifi
+    Globe, Search, Activity, ArrowRight, Wifi, Timer, Gauge, Shield
 } from 'lucide-react';
 import { useTheme } from '../auth/ThemeContext';
 
@@ -13,7 +13,44 @@ const META = {
     dns: { title: 'DNS Lookup', subtitle: 'Names become IP addresses', icon: Search },
     routing: { title: 'Routing Path', subtitle: 'Find the shortest path across routers', icon: Route },
     ip: { title: 'IP Address Anatomy', subtitle: 'Network bits vs host bits', icon: Globe },
+    delay: { title: 'The Four Delays', subtitle: 'Processing · Queueing · Transmission · Propagation', icon: Timer },
+    throughput: { title: 'Throughput Bottleneck', subtitle: 'The slowest link sets your speed', icon: Gauge },
+    congestion: { title: 'Congestion Window', subtitle: 'AIMD: probe up, cut on loss', icon: Activity },
+    http: { title: 'HTTP Request Pipeline', subtitle: 'Browser → DNS → TCP → HTTP → response', icon: Globe },
+    nat: { title: 'NAT Translation', subtitle: 'Private addresses share one public IP', icon: Shield },
 };
+
+const DELAY_STEPS = [
+    { name: 'Processing', ms: 0.01, tip: 'Router looks up the next hop (tiny on modern gear).' },
+    { name: 'Queueing', ms: 5, tip: 'Waiting behind other packets — grows under congestion.' },
+    { name: 'Transmission', ms: 1.2, tip: 'Pushing bits onto the wire: L / R (size ÷ rate).' },
+    { name: 'Propagation', ms: 10, tip: 'Speed-of-signal × distance (fiber ≈ 2×10⁸ m/s).' },
+];
+
+const THROUGHPUT_LINKS = [
+    { name: 'Wi-Fi', mbps: 40 },
+    { name: 'ISP uplink', mbps: 100 },
+    { name: 'Server NIC', mbps: 1000 },
+];
+
+const CONGESTION_CWND = [1, 2, 4, 8, 12, 16, 8, 9, 10, 11];
+
+const HTTP_STEPS = [
+    { actor: 'Browser', text: 'User hits Enter on must.edu' },
+    { actor: 'DNS', text: 'Resolve must.edu → IP' },
+    { actor: 'TCP', text: 'Three-way handshake' },
+    { actor: 'TLS', text: 'Secure the channel (HTTPS)' },
+    { actor: 'HTTP', text: 'GET / HTTP/1.1' },
+    { actor: 'Server', text: '200 OK + HTML bytes' },
+];
+
+const NAT_STEPS = [
+    { side: 'LAN', text: 'Laptop 192.168.1.10:51515 sends to 93.184.216.34:443' },
+    { side: 'NAT', text: 'Rewrite source → 203.0.113.8:40001 and remember the mapping' },
+    { side: 'WAN', text: 'Internet sees only the public IP:port' },
+    { side: 'NAT', text: 'Reply to :40001 → translate back to 192.168.1.10:51515' },
+    { side: 'LAN', text: 'Laptop receives the response — NAT was invisible' },
+];
 
 const OSI_LAYERS = [
     { name: 'Application', tcp: 'Application', adds: 'HTTP / DNS / your data', color: 'bg-rose-500' },
@@ -78,6 +115,11 @@ const NetworkVisualizer = ({ type = 'packet' }) => {
         if (mode === 'dns') return DNS_STEPS.length - 1;
         if (mode === 'routing') return BEST_PATH.length - 1;
         if (mode === 'ip') return 2;
+        if (mode === 'delay') return DELAY_STEPS.length - 1;
+        if (mode === 'throughput') return THROUGHPUT_LINKS.length - 1;
+        if (mode === 'congestion') return CONGESTION_CWND.length - 1;
+        if (mode === 'http') return HTTP_STEPS.length - 1;
+        if (mode === 'nat') return NAT_STEPS.length - 1;
         return 0;
     })();
 
@@ -388,7 +430,125 @@ const NetworkVisualizer = ({ type = 'packet' }) => {
                                 <div className="bg-cyan-500 h-full transition-all" style={{ width: `${(ipParts.networkBits / 32) * 100}%` }} />
                                 <div className="bg-indigo-500/70 h-full transition-all" style={{ width: `${(ipParts.hostBits / 32) * 100}%` }} />
                             </div>
-                            <p className={`text-center text-xs ${muted}`}>Cyan = network · Indigo = host — same idea as a street name vs house number.</p>
+                            <p className={`text-center text-xs ${muted}`}>Cyan = network · Indigo = host — street name vs house number.</p>
+                        </motion.div>
+                    )}
+
+                    {mode === 'delay' && (
+                        <motion.div key="delay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
+                            {DELAY_STEPS.map((d, i) => {
+                                const active = step === i;
+                                const done = step > i;
+                                return (
+                                    <motion.div
+                                        key={d.name}
+                                        animate={{ opacity: done || active ? 1 : 0.4, scale: active ? 1.02 : 1 }}
+                                        className={`flex items-center gap-4 p-4 rounded-2xl border ${active ? 'border-cyan-400/50 bg-cyan-500/10' : card}`}
+                                    >
+                                        <div className={`w-14 h-14 rounded-xl flex flex-col items-center justify-center ${active ? 'bg-cyan-500 text-white' : 'bg-white/5'}`}>
+                                            <span className="text-sm font-black">{d.ms}</span>
+                                            <span className="text-[8px] uppercase">ms</span>
+                                        </div>
+                                        <div>
+                                            <div className="text-[10px] font-black uppercase tracking-widest text-cyan-400">{d.name} delay</div>
+                                            <div className="text-sm font-medium">{d.tip}</div>
+                                        </div>
+                                    </motion.div>
+                                );
+                            })}
+                            <p className={`text-center text-sm ${muted}`}>
+                                Total ≈ {DELAY_STEPS.slice(0, step + 1).reduce((a, d) => a + d.ms, 0).toFixed(2)} ms so far — queueing is usually the surprise.
+                            </p>
+                        </motion.div>
+                    )}
+
+                    {mode === 'throughput' && (
+                        <motion.div key="throughput" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
+                            <div className="grid gap-3">
+                                {THROUGHPUT_LINKS.map((link, i) => {
+                                    const active = step === i;
+                                    const bottleneck = Math.min(...THROUGHPUT_LINKS.map((l) => l.mbps));
+                                    const isBottle = link.mbps === bottleneck;
+                                    return (
+                                        <div key={link.name} className={`p-4 rounded-2xl border ${active ? 'border-cyan-400/50 bg-cyan-500/10' : card}`}>
+                                            <div className="flex justify-between text-xs font-black uppercase tracking-widest mb-2">
+                                                <span>{link.name}</span>
+                                                <span className={isBottle ? 'text-amber-400' : muted}>{link.mbps} Mbps {isBottle ? '· bottleneck' : ''}</span>
+                                            </div>
+                                            <div className="h-3 rounded-full bg-white/5 overflow-hidden">
+                                                <motion.div
+                                                    className={`h-full ${isBottle ? 'bg-amber-400' : 'bg-cyan-500'}`}
+                                                    animate={{ width: step >= i ? `${(link.mbps / 1000) * 100}%` : '0%' }}
+                                                />
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            <p className={`text-center text-sm ${muted}`}>
+                                End-to-end throughput ≈ <span className="font-bold text-amber-400">{Math.min(...THROUGHPUT_LINKS.map((l) => l.mbps))} Mbps</span> — the slowest hop wins.
+                            </p>
+                        </motion.div>
+                    )}
+
+                    {mode === 'congestion' && (
+                        <motion.div key="congestion" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
+                            <div className={`p-4 rounded-2xl border ${card}`}>
+                                <p className={`text-[10px] font-black uppercase tracking-widest mb-3 ${muted}`}>Congestion window (segments)</p>
+                                <div className="flex items-end gap-1.5 h-40">
+                                    {CONGESTION_CWND.map((w, i) => (
+                                        <motion.div
+                                            key={i}
+                                            className={`flex-1 rounded-t-lg ${i === step ? 'bg-cyan-400' : i < step ? 'bg-cyan-600/70' : 'bg-white/10'}`}
+                                            animate={{ height: `${(Math.min(w, 16) / 16) * 100}%` }}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                            <p className={`text-center text-sm ${muted}`}>
+                                Step {step + 1}: cwnd = <span className="font-bold text-cyan-400">{CONGESTION_CWND[step]}</span>
+                                {CONGESTION_CWND[step] < (CONGESTION_CWND[step - 1] || 0) ? ' — loss → multiplicative decrease' : ' — probe upward (AIMD / slow start)'}
+                            </p>
+                        </motion.div>
+                    )}
+
+                    {mode === 'http' && (
+                        <motion.div key="http" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-3">
+                            {HTTP_STEPS.map((s, i) => {
+                                const active = step === i;
+                                const done = step > i;
+                                return (
+                                    <motion.div
+                                        key={`${s.actor}-${i}`}
+                                        animate={{ opacity: done || active ? 1 : 0.35, x: active ? 0 : -6 }}
+                                        className={`flex items-center gap-4 p-4 rounded-2xl border ${active ? 'border-cyan-400/50 bg-cyan-500/10' : card}`}
+                                    >
+                                        <div className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest ${active ? 'bg-cyan-500 text-white' : 'bg-white/5'}`}>
+                                            {s.actor}
+                                        </div>
+                                        <div className="text-sm font-medium">{s.text}</div>
+                                    </motion.div>
+                                );
+                            })}
+                        </motion.div>
+                    )}
+
+                    {mode === 'nat' && (
+                        <motion.div key="nat" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-3">
+                            {NAT_STEPS.map((s, i) => {
+                                const active = step === i;
+                                const done = step > i;
+                                return (
+                                    <motion.div
+                                        key={`${s.side}-${i}`}
+                                        animate={{ opacity: done || active ? 1 : 0.35 }}
+                                        className={`p-4 rounded-2xl border ${active ? 'border-cyan-400/50 bg-cyan-500/10' : card}`}
+                                    >
+                                        <div className="text-[10px] font-black uppercase tracking-widest text-cyan-400 mb-1">{s.side}</div>
+                                        <div className="text-sm font-medium font-mono leading-relaxed">{s.text}</div>
+                                    </motion.div>
+                                );
+                            })}
                         </motion.div>
                     )}
                 </AnimatePresence>
