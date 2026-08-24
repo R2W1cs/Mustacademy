@@ -15,18 +15,20 @@ import NetworkVisualizer from "./NetworkVisualizer";
 
 const resolveNetworkLabType = (title = "") => {
     const t = title.toLowerCase();
-    if (/\bosi\b/.test(t) || t.includes("tcp/ip") || t.includes("encapsulation")) return "osi";
+    // Course map / intro — always show the packet journey so students see labs immediately
+    if (t.includes("welcome") || t.includes("zero-to-hero") || t.includes("zero to hero") || t.includes("course map")) return "packet";
+    if (/\bosi\b/.test(t) || t.includes("tcp/ip") || t.includes("encapsulation") || t.includes("network models")) return "osi";
     if (t.includes("delay") || t.includes("feel slow") || t.includes("traceroute")) return "delay";
     if (t.includes("throughput") || t.includes("bottleneck")) return "throughput";
-    if (t.includes("congestion")) return "congestion";
+    if (t.includes("congestion") || t.includes("queuing") || t.includes("queueing")) return "congestion";
     if (/\bnat\b/.test(t) || t.includes("public ip")) return "nat";
     if (/\bhttp\b/.test(t) || t.includes("web request") || t.includes("cookies, caches") || t.includes("page load hero") || t.includes("secure page")) return "http";
-    if (t.includes("handshake") || t.includes("reliable delivery") || t.includes("reliable data") || /\btls\b/.test(t)) return "tcp";
+    if (t.includes("handshake") || t.includes("reliable delivery") || t.includes("reliable data") || /\btls\b/.test(t) || /\btcp\b/.test(t)) return "tcp";
     if (/\budp\b/.test(t) || t.includes("quic")) return "tcp";
     if (/\bdns\b/.test(t) || t.includes("names to addresses")) return "dns";
-    if (t.includes("routing") || t.includes("forwarding vs routing") || t.includes("inside a router") || /\bospf\b/.test(t) || /\bbgp\b/.test(t) || t.includes("control plane") || t.includes("sdn")) return "routing";
-    if (t.includes("ip addressing") || t.includes("subnet") || /\bdhcp\b/.test(t) || /\bipv6\b/.test(t) || /\barp\b/.test(t)) return "ip";
-    if (t.includes("packet") || (t.includes("hosts") && t.includes("links")) || t.includes("internet, really") || t.includes("network core") || t.includes("network edge") || t.includes("protocol?") || t.includes("ethernet") || t.includes("wi-fi") || t.includes("wifi") || t.includes("link layer") || t.includes("firewall") || t.includes("vpn")) return "packet";
+    if (t.includes("routing") || t.includes("forwarding vs routing") || t.includes("inside a router") || /\bospf\b/.test(t) || /\bbgp\b/.test(t) || t.includes("control plane") || t.includes("sdn") || t.includes("network core")) return "routing";
+    if (t.includes("ip addressing") || t.includes("subnet") || /\bdhcp\b/.test(t) || /\bipv6\b/.test(t) || /\barp\b/.test(t) || t.includes("packets, hosts")) return "ip";
+    if (t.includes("packet") || (t.includes("hosts") && t.includes("links")) || t.includes("internet, really") || t.includes("network edge") || t.includes("protocol?") || t.includes("ethernet") || t.includes("wi-fi") || t.includes("wifi") || t.includes("link layer") || t.includes("firewall") || t.includes("vpn") || t.includes("circuit switching")) return "packet";
     return null;
 };
 
@@ -584,7 +586,7 @@ const TopicContent = ({ topic, mode = 'easy' }) => {
                 </div>
                 {isShowingFallback && (
                     <span className="text-[9px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-500 px-3 py-1.5 rounded-xl border border-amber-500/20 animate-pulse">
-                        Legacy content · Re-forge recommended
+                        Legacy content
                     </span>
                 )}
             </div>
@@ -616,6 +618,19 @@ const TopicContent = ({ topic, mode = 'easy' }) => {
             {/* ── NETWORK LAB (inline with lesson; auto-plays) ── */}
             {resolveNetworkLabType(topic.title) && (
                 <div className="mb-14">
+                    <div className={`flex items-center justify-between gap-4 mb-4 px-1`}>
+                        <div>
+                            <p className={`text-[10px] font-black uppercase tracking-[0.25em] mb-1 ${isDark ? 'text-cyan-400' : 'text-cyan-700'}`}>
+                                Interactive lab · Animation
+                            </p>
+                            <h3 className={`text-lg font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                                See this idea move
+                            </h3>
+                            <p className={`text-xs mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                                Press Play / Step below — this lab lives on the lesson page (Essential & Deep). No separate tab.
+                            </p>
+                        </div>
+                    </div>
                     <NetworkVisualizer type={resolveNetworkLabType(topic.title)} />
                 </div>
             )}

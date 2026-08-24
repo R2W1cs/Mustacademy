@@ -173,11 +173,11 @@ const CourseDetails = () => {
                         </span>
                         {topic.completed ? (
                           <span className="text-[8px] font-black px-2 py-1 rounded bg-emerald-500/10 text-emerald-400 uppercase tracking-widest border border-emerald-500/20 shadow-lg">
-                            Synthesized
+                            Completed
                           </span>
                         ) : (
-                          <span className="text-[8px] font-black px-2 py-1 rounded bg-orange-500/10 text-orange-400 uppercase tracking-widest border border-orange-500/20">
-                            Pending Research
+                          <span className="text-[8px] font-black px-2 py-1 rounded bg-sky-500/10 text-sky-400 uppercase tracking-widest border border-sky-500/20">
+                            Not started
                           </span>
                         )}
                       </div>

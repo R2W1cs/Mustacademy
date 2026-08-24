@@ -16,79 +16,107 @@ export const topics = [
       "A 'hero' can explain a page load end-to-end: names, packets, routes, and protocols"
     ],
     learning_objectives: [
-      "Describe what CS 411 covers and how Units 1–5 fit together",
+      "Describe what CS 411 covers and how Units 1–8 fit together",
+      "Find interactive labs on the lesson page (Essential/Deep), not a separate tab",
       "Explain when to read Essential vs Deep content",
       "Name the skills that mark a networks 'hero' graduate",
-      "Use labs (Packet Journey, OSI Stack, Delay Lab, and others) as practice, not decoration",
       "Adopt a debugging habit: ask which layer and which hop failed"
     ],
     content_easy_markdown: `# Welcome to Computer Networks — Your Zero-to-Hero Map
 
-## How it started
-Computer networks used to be specialist territory: phone companies, research labs, and a handful of universities. Today every app you use — chat, maps, streaming, banking — is a network application. This course exists so you can go from "Wi-Fi magically works" to "I can explain why it works, why it feels slow, and how to fix it when it doesn't."
+## Where are the interactive labs & animations?
+**Right here on this lesson page** — look above this story for the panel titled **Interactive lab · Animation**.
 
-You start at zero on purpose. We assume no prior networking course. Unit 1 builds vocabulary. Later units add performance, applications, transport, and the IP data plane.
+That animated **Packet Journey** (Laptop → Router → ISP → Server) is not a separate menu item. On every Networks lesson that has a matching lab, MustAcademy mounts it **inline under Essential / Deep** — same place, same page. Press **Play** or **Step**.
+
+| Unit theme | Labs you will see on those lessons |
+| --- | --- |
+| Foundations | Packet Journey, OSI & TCP/IP Stack |
+| Performance | Four Delays, Throughput Bottleneck, Congestion Window |
+| Application | DNS Lookup, HTTP Request Pipeline |
+| Transport | TCP Three-Way Handshake |
+| Data / IP | IP Address Anatomy, Routing Path, NAT |
+
+If you only read the text and skip Play, you miss half the course.
+
+## How it started
+Computer networks used to be specialist territory: phone companies, research labs, and a handful of universities. Today every app you use — chat, maps, streaming, banking — is a network application. This course takes you from "Wi-Fi magically works" to "I can explain why it works, why it feels slow, and how to fix it."
+
+You start at zero on purpose. Unit 1 builds vocabulary. Later units add performance, applications, transport, the IP data plane, control plane, link/wireless, and security.
 
 ## The simple idea
-Networking is organized storytelling about **moving data between machines**.
+Networking is storytelling about **moving data between machines**.
 
-- **Hosts** create and consume data (your laptop, a phone, a cloud server).
+- **Hosts** create and consume data (laptop, phone, cloud server).
 - **Links and routers** carry and forward that data.
-- **Protocols** are the shared rules so strangers' computers can cooperate.
+- **Protocols** are shared rules so strangers' computers can cooperate.
 - **Layers** split the huge problem into smaller jobs (bits, packets, ports, apps).
 
-MustAcademy gives you two tracks per lesson:
-- **Essential (Easy)** — friendly, concrete, zero-to-hero. Read this first. Always.
-- **Deep** — mechanisms, numbers, failure cases, interview tips. Read when you want mastery or a job interview.
+## Essential vs Deep (the two tracks)
+- **Essential Protocol** (this tab) — friendly, concrete, zero-to-hero. Read first. Always.
+- **Deep Architecture** — mechanisms, numbers, failure cases, interview tips.
 
-A **hero** at the end of CS 411 can:
+A **hero** graduate of CS 411 can:
 1. Trace a browser request from DNS to HTTP response.
 2. Name the four delays and spot a bottleneck.
 3. Contrast UDP vs TCP and when each fits.
 4. Read an IP address with a prefix and say what needs a router.
-5. Use a lab to verify an idea instead of only memorizing slides.
+5. Use an on-page lab to verify an idea — not only memorize slides.
 
-## Step-by-step: how to use this course
-1. Skim the Unit map (Foundations → Performance → Application → Transport → Data Plane).
-2. Open a lesson's Essential content and complete **Check yourself**.
-3. Run the linked lab when the lesson says **See it** (Packet Journey, OSI & TCP/IP Stack, Delay Lab, Throughput Lab, etc.).
-4. Only then open Deep — treat it as "why engineers care."
-5. When something breaks in real life, ask: *layer?* *hop?* *loss or delay?*
+## Your zero-to-hero unit map
+1. **Foundations** — Internet, protocols, packets, edge vs core, OSI/TCP/IP, encapsulation.
+2. **Performance** — delays, queues, throughput, congestion intuition.
+3. **Application** — HTTP, DNS, email/CDN intuition, cookies & caches.
+4. **Transport** — UDP, TCP, reliability, congestion control, QUIC taste.
+5. **Data plane** — IP, forwarding, NAT, DHCP, IPv6.
+6. **Control plane** — routing algorithms, OSPF/BGP intuition, SDN peek.
+7. **Link & wireless** — frames, Ethernet, ARP, Wi-Fi.
+8. **Security** — threats, crypto/TLS intuition, firewalls, VPNs, secure page-load capstone.
+
+## Step-by-step: how to use each lesson
+1. Stay on **Essential Protocol** and scroll to the **Interactive lab** at the top — press Play once.
+2. Read the story sections (simple idea → steps → analogy → check yourself).
+3. Switch to **Deep Architecture** only when you want interview / systems depth.
+4. Use **Research Notebook** to ask follow-up questions about *this* lesson.
+5. When something breaks in real life, ask: *which layer?* *which hop?* *loss or delay?*
 
 ## Real analogy
-Learning networks is like learning a city transit system. Essential is the tourist map: stations, lines, how to transfer. Deep is the operations manual: schedules, delays, failure modes, how dispatchers recover. Heroes can guide a friend *and* explain why the train is late.
+Learning networks is like learning a city transit system. Essential is the tourist map. Deep is the operations manual. The **lab animation** is the live train tracker — you watch a hop move instead of only reading the timetable.
 
 ## Worked example
-You click a video. Hero-level narration (you'll earn every phrase in later units):
-- DNS turns the name into an IP (**Application / naming**).
+You click a video. Hero-level narration (you will earn every phrase later):
+- DNS turns the name into an IP (**Application**).
 - Your OS opens a transport connection (**Transport**).
 - IP packets hop router to router (**Network / data plane**).
 - Delays and queues decide if it feels snappy (**Performance**).
 - HTTP (or a streaming protocol) fetches chunks (**Application**).
 
-You do not need that full story today — you only need the map.
+Today you only need the map — and one Play on the Packet Journey above.
 
 ## Common mistakes
-- Jumping to Deep and drowning in acronyms before the intuition sticks.
-- Treating labs as optional fluff — they are the practice gym.
+- Looking for labs in a separate "Labs" tab — they live **on the lesson page**.
+- Jumping to Deep and drowning in acronyms before intuition sticks.
+- Treating animations as optional fluff — they are the practice gym.
 - Memorizing OSI layer names without knowing each layer's *job*.
 - Believing "the internet is down" is a diagnosis — it is a symptom.
-- Skipping Unit 1 because "everyone knows Wi-Fi" — vocabulary gaps haunt later exams.
 
 ## Check yourself
-1. What is the difference between Essential and Deep in MustAcademy?
-   - Answer: Essential builds intuition for everyone; Deep adds mechanisms, math, and interview depth.
-2. Name three units you will meet after Foundations.
-   - Answer: Performance, Application Layer, Transport (then Data Plane).
+1. Where do interactive labs appear in MustAcademy?
+   - Answer: Inline on the lesson page under Essential/Deep (Interactive lab · Animation), not a separate course tab.
+2. What is Essential vs Deep?
+   - Answer: Essential builds intuition first; Deep adds mechanisms, math, and interview depth.
 3. What question should you ask first when debugging?
    - Answer: Which layer or hop failed — not "is the internet broken forever?"
 
-## See it
-Before Unit 1 ends, open the **Packet Journey** lab and press **Play** once. You do not need every detail yet — just watch a message hop Laptop → Router → ISP → Server. That motion is the heartbeat of the whole course.`,
-    content_deep_markdown: `# Course Design and Hero Outcomes (Deep)
+## See it now
+Scroll up to **Packet Journey**, press **Play**, then **Step**. Say at each hop: "edge host or forwarding hop?" That motion is the heartbeat of the whole course.`,
+    content_deep_markdown: `# Course Design, Labs, and Hero Outcomes (Deep)
+
+## Why labs sit on the lesson page
+Passive reading underprepares you for traceroute interpretation and outage triage. Each matching CS 411 lesson mounts an interactive animation (Packet Journey, OSI stack, Delay, Throughput, Congestion, TCP handshake, DNS, HTTP pipeline, IP anatomy, Routing, NAT, …) **above the manuscript** so cause → effect stays tied to the same topic. There is no separate lab catalog to hunt for.
 
 ## Why zero-to-hero sequencing works
-Industry and academia both suffer from "assume the reader already knows packets." We deliberately front-load shared vocabulary (host, packet, protocol, edge, core, layer) before performance math and TCP state machines. Students who skip foundations often fail later on congestion control *because* they never internalized store-and-forward and queuing.
+Industry and academia both suffer from "assume the reader already knows packets." We front-load shared vocabulary (host, packet, protocol, edge, core, layer) before performance math and TCP state machines. Students who skip foundations often fail later on congestion control because they never internalized store-and-forward and queuing.
 
 ## Essential vs Deep — engineering reading strategy
 - **Essential**: mental models, analogies, check questions, lab hooks. Target: explain to a classmate in 90 seconds.
@@ -96,16 +124,13 @@ Industry and academia both suffer from "assume the reader already knows packets.
 
 Interview tip: when asked "Walk me through loading a URL," structure by stages (DNS → TCP/QUIC → TLS → HTTP → render) and name *where reliability and naming live*. That narrative is the course spine.
 
-## Lab pedagogy
-Interactive labs (Packet Journey, OSI & TCP/IP Stack, Delay Lab, Throughput Lab, TCP Handshake, DNS Lookup, IP Address Anatomy, Routing Path, and topic-specific labs) exist to force *causal* understanding: change one knob, observe one effect. Passive reading alone underprepares you for traceroute interpretation and outage triage.
-
 ## Failure cases heroes notice early
-- Symptom: "site won't load." Heroes separate DNS failure, TCP SYN drop, TLS cert error, and HTTP 502.
-- Symptom: "slow." Heroes ask delay vs throughput vs loss, not only "bad Wi-Fi."
-- Symptom: "works on phone, not laptop." Heroes think local edge config, not global internet collapse.
+- Symptom: "site won't load." Separate DNS failure, TCP SYN drop, TLS cert error, and HTTP 502.
+- Symptom: "slow." Ask delay vs throughput vs loss, not only "bad Wi-Fi."
+- Symptom: "works on phone, not laptop." Think local edge config, not global internet collapse.
 
 ## What "done" looks like for Unit 1
-You can draw edge vs core, define a protocol, sketch encapsulation, and contrast circuit vs packet switching without notes. Everything later hangs on that scaffolding.`,
+You can draw edge vs core, define a protocol, sketch encapsulation, contrast circuit vs packet switching, and run the Packet Journey lab without notes. Everything later hangs on that scaffolding.`,
   }),
 
   lesson({
