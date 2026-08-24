@@ -15,13 +15,18 @@ import NetworkVisualizer from "./NetworkVisualizer";
 
 const resolveNetworkLabType = (title = "") => {
     const t = title.toLowerCase();
-    if (/\bosi\b/.test(t) || t.includes("tcp/ip network")) return "osi";
-    if (t.includes("handshake") || t.includes("reliable delivery")) return "tcp";
-    if (/\budp\b/.test(t)) return "tcp";
-    if (/\bdns\b/.test(t)) return "dns";
-    if (t.includes("routing")) return "routing";
-    if (t.includes("ip addressing") || t.includes("subnet")) return "ip";
-    if (t.includes("packet") || (t.includes("hosts") && t.includes("internet"))) return "packet";
+    if (/\bosi\b/.test(t) || t.includes("tcp/ip") || t.includes("encapsulation")) return "osi";
+    if (t.includes("delay") || t.includes("feel slow") || t.includes("traceroute")) return "delay";
+    if (t.includes("throughput") || t.includes("bottleneck")) return "throughput";
+    if (t.includes("congestion")) return "congestion";
+    if (/\bnat\b/.test(t) || t.includes("public ip")) return "nat";
+    if (/\bhttp\b/.test(t) || t.includes("web request") || t.includes("cookies, caches") || t.includes("page load hero") || t.includes("secure page")) return "http";
+    if (t.includes("handshake") || t.includes("reliable delivery") || t.includes("reliable data") || /\btls\b/.test(t)) return "tcp";
+    if (/\budp\b/.test(t) || t.includes("quic")) return "tcp";
+    if (/\bdns\b/.test(t) || t.includes("names to addresses")) return "dns";
+    if (t.includes("routing") || t.includes("forwarding vs routing") || t.includes("inside a router") || /\bospf\b/.test(t) || /\bbgp\b/.test(t) || t.includes("control plane") || t.includes("sdn")) return "routing";
+    if (t.includes("ip addressing") || t.includes("subnet") || /\bdhcp\b/.test(t) || /\bipv6\b/.test(t) || /\barp\b/.test(t)) return "ip";
+    if (t.includes("packet") || (t.includes("hosts") && t.includes("links")) || t.includes("internet, really") || t.includes("network core") || t.includes("network edge") || t.includes("protocol?") || t.includes("ethernet") || t.includes("wi-fi") || t.includes("wifi") || t.includes("link layer") || t.includes("firewall") || t.includes("vpn")) return "packet";
     return null;
 };
 
@@ -539,7 +544,7 @@ const TopicContent = ({ topic, mode = 'easy' }) => {
         if (t.includes('c programming') || t.includes('pointer') || t.includes('memory')) return 'c';
         if (t.includes('java') || t.includes('jvm') || t.includes('object oriented')) return 'java';
         if (t.includes('python') || t.includes('scripting')) return 'python';
-        if (t.includes('web development') || t.includes('frontend') || t.includes('http')) return 'web';
+        if (t.includes('web development') || t.includes('frontend') || (t.includes('http') && t.includes('javascript'))) return 'web';
         return null;
     })();
 

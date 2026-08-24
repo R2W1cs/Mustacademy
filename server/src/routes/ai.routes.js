@@ -1,6 +1,7 @@
 import express from "express";
 import { protect, requirePremium } from "../middleware/auth.middleware.js";
 import { aiLimiter, heavyAiLimiter } from "../middleware/rateLimiter.js";
+import { requirePodcastEnabled } from "../config/features.js";
 
 // Domain controllers (split from the original monolithic ai.controller.js)
 import { chatWithMentor, chatWithMentorStream, getChatSessions, getSessionMessages, generateFiller } from "../controllers/mentor.controller.js";
@@ -60,13 +61,13 @@ router.post("/library/interact", protect, aiLimiter, interactWithProfessor);
 router.post("/topics/synthesize", protect, heavyAiLimiter, synthesizeTopic);
 router.post("/topics/exercises", protect, aiLimiter, generateTopicExercises);
 
-// Podcasts & audio content
-router.post("/topics/podcast", protect, requirePremium, heavyAiLimiter, generateTopicPodcast);
-router.post("/topics/podcast/question", protect, aiLimiter, askPodcastQuestion);
-router.post("/interactive-podcast", protect, requirePremium, aiLimiter, generateInteractivePodcast);
+// Podcasts & audio content (parked — set ENABLE_PODCAST=true to re-enable for SaaS)
+router.post("/topics/podcast", protect, requirePodcastEnabled, requirePremium, heavyAiLimiter, generateTopicPodcast);
+router.post("/topics/podcast/question", protect, requirePodcastEnabled, aiLimiter, askPodcastQuestion);
+router.post("/interactive-podcast", protect, requirePodcastEnabled, requirePremium, aiLimiter, generateInteractivePodcast);
 router.post("/nova-lesson", protect, requirePremium, aiLimiter, generateNovaLesson);
-router.post("/podcast/speech", protect, generatePodcastSpeech);
-router.get("/podcast/speech", generatePodcastSpeech);
+router.post("/podcast/speech", protect, requirePodcastEnabled, generatePodcastSpeech);
+router.get("/podcast/speech", requirePodcastEnabled, generatePodcastSpeech);
 
 // Masterclass
 router.post("/masterclass/generate", protect, requirePremium, heavyAiLimiter, generateMasterclassEpisode);

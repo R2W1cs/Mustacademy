@@ -182,6 +182,9 @@ export function retrieveKBContext(query, topicTitle, topK = TOP_K_CHUNKS) {
  */
 export function selectRuleModules(query) {
     const queryLower = query.toLowerCase();
+    const isMasterclass = /masterclass|research notebook|official lesson content/.test(queryLower);
+    const isNetworking = /network|tcp|udp|ip |dns|http|osi|routing|packet|socket|congestion|nat |wifi|wireless|ethernet/.test(queryLower);
+    const skipCodeViz = isMasterclass || isNetworking;
     const selected = [];
 
     for (const mod of RULE_MODULES) {
@@ -189,6 +192,7 @@ export function selectRuleModules(query) {
             selected.push(mod.content);
             continue;
         }
+        if (skipCodeViz && (mod.id === 'algo_viz' || mod.id === 'runnable_code')) continue;
         const hit = mod.tags.some(tag => queryLower.includes(tag));
         if (hit) selected.push(mod.content);
     }

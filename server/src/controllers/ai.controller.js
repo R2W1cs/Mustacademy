@@ -45,11 +45,27 @@ export const chatWithMentor = async (req, res) => {
 
             if (topicId) {
                 const topicRes = await pool.query(
-                    "SELECT title, content_markdown as content FROM topics WHERE id = $1",
+                    `SELECT title,
+                            COALESCE(content_easy_markdown, content_markdown, '') AS easy,
+                            COALESCE(content_deep_markdown, '') AS deep
+                     FROM topics WHERE id = $1`,
                     [topicId]
                 );
                 if (topicRes.rows.length > 0) {
                     detectedTopic = topicRes.rows[0].title;
+                    const easyLesson = (topicRes.rows[0].easy || '').slice(0, 12000);
+                    const deepLesson = (topicRes.rows[0].deep || '').slice(0, 8000);
+                    if (easyLesson || deepLesson) {
+                        scholarlyContext +=
+                            "\n\n--- OFFICIAL LESSON CONTENT (teach from this) ---\n" +
+                            `Topic: ${detectedTopic}\n\n` +
+                            (easyLesson ? `ESSENTIAL TRACK:\n${easyLesson}\n\n` : '') +
+                            (deepLesson ? `DEEP TRACK:\n${deepLesson}\n` : '') +
+                            "--- END OFFICIAL LESSON CONTENT ---\n" +
+                            "\nYou are the Research Notebook professor for this exact lesson. " +
+                            "For MASTERCLASS/STORY: write a full teaching story covering every key idea in order (hook, simple idea, steps, analogy, worked example, mistakes, check questions). " +
+                            "For follow-ups: answer using the lesson first, clearly and warmly. Networking topics: no forced algo-viz/JS.\n";
+                    }
 
                     // User-uploaded vault resources for this topic
                     const resourcesRes = await pool.query(
@@ -59,7 +75,7 @@ export const chatWithMentor = async (req, res) => {
                         [topicId, userId]
                     );
                     if (resourcesRes.rows.length > 0) {
-                        scholarlyContext = "\n\n--- STUDENT VAULT RESOURCES ---\n" +
+                        scholarlyContext += "\n\n--- STUDENT VAULT RESOURCES ---\n" +
                             resourcesRes.rows.map(r =>
                                 `[${r.file_type.toUpperCase()}] ${r.title}:\n${r.extracted_text.slice(0, 4000)}`
                             ).join("\n\n---\n\n") +
@@ -112,10 +128,14 @@ export const chatWithMentor = async (req, res) => {
             streamMode: false,
         }) + (forceExerciseInstruction || '');
 
+        // Longer token budget for masterclass / deep lessons (short budget truncates JSON and looks like a "Neural link" failure)
+        const wantsLongForm = /MASTERCLASS|STORY|minimum \d+ words|standalone lesson|400-600 words|500.?900 words/i.test(String(message));
+        const tokenBudget = wantsLongForm ? 4096 : 2048;
+
         // 3. Call AI with system/user split and bounded token budget
         const aiData = await callAI(
             { system: systemPrompt, user: `Student: ${message}` },
-            true, 2048
+            true, tokenBudget
         );
 
         // 4. Attempt to Save History (Allowed to fail silently)
