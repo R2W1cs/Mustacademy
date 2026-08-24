@@ -620,10 +620,24 @@ const CareerRoadmap = () => {
         setLoadingStep(0);
         try {
             const res = await generateFullRoadmap(career);
+            if (!res.data?.years?.length) {
+                throw new Error("incomplete_roadmap");
+            }
             setRoadmap(res.data);
             setView("roadmap");
-        } catch {
-            toast.error("Failed to generate roadmap. Please retry.");
+        } catch (err) {
+            const status = err.response?.status;
+            const code = err.response?.data?.error;
+            const serverMsg = err.response?.data?.message;
+            if (status === 403 && (code === "premium_required" || serverMsg?.includes?.("premium"))) {
+                toast.error("Career roadmaps require Premium. Upgrade to generate your plan.");
+            } else if (status === 401) {
+                toast.error("Session expired. Please sign in again.");
+            } else if (serverMsg) {
+                toast.error(serverMsg);
+            } else {
+                toast.error("Failed to generate roadmap. Please retry.");
+            }
             setView("selector");
         }
     };

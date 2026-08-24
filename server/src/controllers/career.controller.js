@@ -1,6 +1,6 @@
 import pool from "../config/db.js";
 import { CAREER_ARCHITECT_PROMPT, FULL_ROADMAP_PROMPT } from "../utils/aiRules.js";
-import { callFastAI } from "../utils/aiClient.js";
+import { callAI, callFastAI } from "../utils/aiClient.js";
 
 const safeStringify = (val) => {
     if (val === null || val === undefined) return "";
@@ -143,10 +143,20 @@ export const generateFullRoadmap = async (req, res) => {
     try {
         const careerText = career.trim().slice(0, 200); // cap free-text field to ~50 tokens
         const prompt = FULL_ROADMAP_PROMPT.replace(/{career}/g, careerText);
-        const data = await callFastAI(prompt, true, 2048);
+        // Full 3-year JSON is large — use primary model with a high token budget (fast 2k truncates).
+        const data = await callAI(prompt, true, 8192);
+        if (!data?.years?.length) {
+            console.error('[Career] Roadmap response missing years:', Object.keys(data || {}));
+            return res.status(502).json({
+                message: 'AI returned an incomplete roadmap. Please retry in a moment.',
+            });
+        }
         res.json(data);
     } catch (err) {
         console.error('[Career] Full roadmap generation error:', err.message);
-        res.status(500).json({ message: 'Failed to generate roadmap. Please retry.' });
+        res.status(500).json({
+            message: 'Failed to generate roadmap. Please retry.',
+            error: err.message,
+        });
     }
 };
