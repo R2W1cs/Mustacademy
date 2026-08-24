@@ -4,7 +4,7 @@ import { useTheme } from "../auth/ThemeContext";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import {
-    ChevronRight, Zap, Brain, Sparkles, ShieldCheck, CheckCircle,
+    ChevronRight, Sparkles, ShieldCheck, CheckCircle,
     Layers, Clock, Headphones
 } from "lucide-react";
 
@@ -38,10 +38,7 @@ const TopicDetails = () => {
     const [access, setAccess] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isQuizOpen, setIsQuizOpen] = useState(false);
-    const [isSynthesizing, setIsSynthesizing] = useState(false);
     const [viewMode, setViewMode] = useState('easy');
-    const [customInstruction, setCustomInstruction] = useState("");
-    const [isCustomizing, setIsCustomizing] = useState(false);
 
     // Scroll Progress - Default to entire page
     const { scrollYProgress } = useScroll();
@@ -69,41 +66,18 @@ const TopicDetails = () => {
 
     useEffect(() => {
         if (!id || id === "undefined") return;
-        const init = async () => {
-            const data = await loadData();
-            if (data && !data.content_markdown && !data.content_easy_markdown && !isSynthesizing) {
-                handleSynthesize();
-            }
-        };
-        init();
+        loadData();
     }, [id]);
 
     // Body scroll lock for modals
     useEffect(() => {
-        if (isQuizOpen || isSynthesizing) {
+        if (isQuizOpen) {
             document.body.style.overflow = 'hidden';
         } else {
             document.body.style.overflow = '';
         }
         return () => { document.body.style.overflow = ''; };
-    }, [isQuizOpen, isSynthesizing]);
-
-    const handleSynthesize = async () => {
-        setIsSynthesizing(true);
-        const toastId = toast.loading("Synthesizing content...");
-        try {
-            await api.post("/ai/topics/synthesize", { topicId: id, customInstruction });
-            setIsCustomizing(false);
-            setCustomInstruction("");
-            await loadData();
-            toast.success("Content synthesized.", { id: toastId });
-        } catch (err) {
-            console.error(err);
-            toast.error("Synthesis failed. Try again.", { id: toastId });
-        } finally {
-            setIsSynthesizing(false);
-        }
-    };
+    }, [isQuizOpen]);
 
     const handleToggle = async () => {
         try {
@@ -182,36 +156,11 @@ const TopicDetails = () => {
                     </div>
 
                     {/* PROGRESS BAR */}
+                    {/* Scroll progress */}
                     <motion.div
                         className={`fixed top-0 left-0 right-0 h-1 z-[60] origin-left ${isLight ? 'bg-gradient-to-r from-red-500 via-red-400 to-rose-500 shadow-lg shadow-red-500/20' : 'bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shadow-lg shadow-indigo-500/20'}`}
                         style={{ scaleX: scrollYProgress }}
                     />
-
-                    {/* AI SYNC OVERLAY */}
-                    <AnimatePresence>
-                        {isSynthesizing && (
-                            <motion.div
-                                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                                className={`fixed inset-0 z-[100] backdrop-blur-xl flex items-center justify-center p-6 ${isLight ? 'bg-white/80' : 'bg-[#050810]/80'}`}
-                            >
-                                <motion.div
-                                    initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }}
-                                    className={`glass-morphism max-w-md w-full p-12 rounded-[2.5rem] flex flex-col items-center ${isLight ? 'bg-white/90' : 'bg-zinc-900/50'}`}
-                                >
-                                    <Sparkles className={`mb-8 animate-pulse ${isLight ? 'text-red-500' : 'text-indigo-400'}`} size={48} />
-                                    <h2 className={`text-3xl font-black uppercase italic tracking-tighter mb-4 ${isLight ? 'text-gray-900' : 'text-white'}`}>Synthesizing</h2>
-                                    <p className={`text-[10px] font-black uppercase tracking-[0.4em] mb-10 ${isLight ? 'text-red-600/60' : 'text-indigo-400/60'}`}>Deploying High-Fidelity Architecture</p>
-                                    <div className={`w-full h-1 rounded-full overflow-hidden relative ${isLight ? 'bg-gray-200' : 'bg-white/5'}`}>
-                                        <motion.div
-                                            animate={{ left: ["-100%", "100%"] }}
-                                            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                                            className={`absolute top-0 bottom-0 w-1/2 bg-gradient-to-r from-transparent to-transparent ${isLight ? 'via-red-400' : 'via-cyan-400'}`}
-                                        />
-                                    </div>
-                                </motion.div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
 
                     <div className="relative z-10 w-full mx-auto px-6 lg:px-20 py-16 lg:py-24 max-w-[1600px]">
                         {/* CINEMATIC HERO */}
@@ -282,12 +231,6 @@ const TopicDetails = () => {
                                         <Headphones size={12} />
                                         Podcast
                                     </button>
-                                    <button
-                                        onClick={() => setIsCustomizing(true)}
-                                        className={`hidden sm:flex px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isLight ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100' : 'text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20'}`}
-                                    >
-                                        <Zap size={14} className="inline mr-2" /> Re-Forge Node
-                                    </button>
                                 </div>
 
                                 <div className="flex items-center gap-2 pr-2">
@@ -311,30 +254,6 @@ const TopicDetails = () => {
                                     </button>
                                 </div>
                             </div>
-                            
-                            <AnimatePresence>
-                                {isCustomizing && (
-                                    <motion.div 
-                                        initial={{ height: 0, opacity: 0, marginTop: 0 }} 
-                                        animate={{ height: 'auto', opacity: 1, marginTop: 16 }} 
-                                        exit={{ height: 0, opacity: 0, marginTop: 0 }}
-                                        className="overflow-hidden"
-                                    >
-                                        <div className={`glass-morphism p-4 rounded-2xl shadow-xl border ${isLight ? 'bg-white border-emerald-200' : 'bg-zinc-900 border-emerald-500/20'}`}>
-                                            <textarea 
-                                                value={customInstruction}
-                                                onChange={(e) => setCustomInstruction(e.target.value)}
-                                                placeholder="Forge Instruction... (e.g. 'Explain with hardware focus')"
-                                                className={`w-full border rounded-xl p-4 text-[10px] font-medium outline-none transition-all min-h-[80px] mb-3 ${isLight ? 'bg-emerald-50/50 border-emerald-100 text-gray-800 focus:border-emerald-400' : 'bg-black/40 border-emerald-500/10 text-slate-200 focus:border-emerald-500/30'}`}
-                                            />
-                                            <div className="flex gap-2">
-                                                <button onClick={() => setIsCustomizing(false)} className={`flex-1 py-2.5 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all ${isLight ? 'bg-gray-100 hover:bg-gray-200 text-gray-600' : 'bg-white/5 hover:bg-white/10 text-slate-300'}`}>Abort</button>
-                                                <button onClick={handleSynthesize} className="flex-[2] py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[9px] font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20">Execute Sync</button>
-                                            </div>
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
                         </div>
 
                         {/* DYNAMIC CONTENT GRID */}

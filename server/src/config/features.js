@@ -1,6 +1,7 @@
 /**
  * Product feature flags.
- * Podcast is free for all users for now. Set ENABLE_PODCAST=false to kill-switch it.
+ * Podcast + Dr. Nova lessons are free for all authenticated users for now.
+ * Set ENABLE_PODCAST=false to kill-switch podcast/Nova audio APIs.
  * Later SaaS: gate with requirePremium again and/or plan checks.
  */
 export const FEATURES = {
