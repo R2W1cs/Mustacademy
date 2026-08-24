@@ -25,6 +25,8 @@ const META = {
     firewall: { title: 'Firewall Filter', subtitle: 'Allow or drop based on policy', icon: Shield },
     vpn: { title: 'VPN Tunnel', subtitle: 'Encrypt and wrap traffic across the public net', icon: Lock },
     smtp: { title: 'SMTP Mail Path', subtitle: 'Message hops from MUA → servers → inbox', icon: Server },
+    timeline: { title: 'Concept Walkthrough', subtitle: 'Step through this lesson idea', icon: Activity },
+    delivery: { title: 'Message Delivery', subtitle: 'Watch a message cross the Internet', icon: Wifi },
 };
 
 const DELAY_STEPS = [
@@ -153,12 +155,19 @@ const EDGES = [
 ];
 const BEST_PATH = ['A', 'B', 'E'];
 
-const NetworkVisualizer = ({ type = 'packet' }) => {
+const NetworkVisualizer = ({ type = 'packet', config = null }) => {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
-    const mode = META[type] ? type : 'packet';
-    const meta = META[mode];
+    const mode = META[type] ? type : (config?.steps || config?.hops ? type : 'packet');
+    const baseMeta = META[mode] || META.timeline;
+    const meta = {
+        title: config?.title || baseMeta.title,
+        subtitle: config?.subtitle || baseMeta.subtitle,
+        icon: baseMeta.icon,
+    };
     const Icon = meta.icon;
+    const customSteps = config?.steps || null;
+    const customHops = config?.hops || null;
 
     const [step, setStep] = useState(0);
     const [playing, setPlaying] = useState(false);
@@ -166,6 +175,8 @@ const NetworkVisualizer = ({ type = 'packet' }) => {
     const [cidr, setCidr] = useState(24);
 
     const maxStep = (() => {
+        if (mode === 'timeline' && customSteps?.length) return customSteps.length - 1;
+        if (mode === 'delivery' && customHops?.length) return customHops.length - 1;
         if (mode === 'osi') return OSI_LAYERS.length - 1;
         if (mode === 'packet') return PACKET_HOPS.length - 1;
         if (mode === 'tcp') return TCP_STEPS.length - 1;
@@ -184,14 +195,16 @@ const NetworkVisualizer = ({ type = 'packet' }) => {
         if (mode === 'firewall') return FIREWALL_STEPS.length - 1;
         if (mode === 'vpn') return VPN_STEPS.length - 1;
         if (mode === 'smtp') return SMTP_STEPS.length - 1;
+        if (customSteps?.length) return customSteps.length - 1;
         return 0;
     })();
 
+    // Reset when lesson lab config changes (title, hops, or steps)
     useEffect(() => {
         setStep(0);
         setSelectedLayer(0);
-        setPlaying(true); // auto-run so the lab is never a static screenshot
-    }, [mode]);
+        setPlaying(true);
+    }, [mode, meta.title, meta.subtitle, customSteps?.length, customHops?.length]);
 
     useEffect(() => {
         if (!playing) return undefined;
@@ -766,6 +779,71 @@ const NetworkVisualizer = ({ type = 'packet' }) => {
                                     </motion.div>
                                 );
                             })}
+                        </motion.div>
+                    )}
+
+                    {(mode === 'timeline' || (customSteps?.length && !['osi','packet','tcp','dns','routing','ip','delay','throughput','congestion','http','nat','multiplex','circuit','arp','wifi','firewall','vpn','smtp','delivery'].includes(mode))) && customSteps && (
+                        <motion.div key={`timeline-${meta.title}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-3">
+                            {customSteps.map((s, i) => {
+                                const active = step === i;
+                                const actor = s.actor || s.label || `Step ${i + 1}`;
+                                const text = s.text || s.detail || s.tip || '';
+                                return (
+                                    <motion.div
+                                        key={`${actor}-${i}`}
+                                        animate={{ opacity: step >= i ? 1 : 0.35, x: active ? 0 : -4 }}
+                                        className={`flex items-start gap-4 p-4 rounded-2xl border ${active ? 'border-cyan-400/50 bg-cyan-500/10' : card}`}
+                                    >
+                                        <div className={`mt-0.5 min-w-[4.5rem] px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-center ${active ? 'bg-cyan-500 text-white' : 'bg-white/5'}`}>
+                                            {actor}
+                                        </div>
+                                        <div className="text-sm font-medium leading-relaxed pt-0.5">{text}</div>
+                                    </motion.div>
+                                );
+                            })}
+                        </motion.div>
+                    )}
+
+                    {mode === 'delivery' && customHops && (
+                        <motion.div key={`delivery-${meta.title}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                            <div className="relative flex items-center justify-between gap-1 md:gap-2 px-1 py-8 overflow-x-auto">
+                                <div className={`absolute left-6 right-6 top-1/2 h-0.5 ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
+                                {customHops.map((hop, i) => {
+                                    const active = step === i;
+                                    const done = step > i;
+                                    return (
+                                        <div key={`${hop.label}-${i}`} className="relative z-10 flex flex-col items-center gap-2 flex-1 min-w-[72px]">
+                                            <motion.div
+                                                animate={{ scale: active ? 1.12 : 1, opacity: done || active ? 1 : 0.4 }}
+                                                className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl border flex items-center justify-center ${
+                                                    active ? 'bg-cyan-500 text-white border-cyan-300 shadow-lg shadow-cyan-500/30'
+                                                        : done ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                                                            : card
+                                                }`}
+                                            >
+                                                {i === 0 ? <Smartphone size={20} /> : i === customHops.length - 1 ? <Server size={20} /> : <Network size={20} />}
+                                            </motion.div>
+                                            <div className="text-center px-0.5">
+                                                <div className="text-[9px] font-black uppercase tracking-wider leading-tight">{hop.label}</div>
+                                                {hop.layer && (
+                                                    <div className="text-[8px] font-bold uppercase tracking-widest text-cyan-400 mt-0.5">{hop.layer}</div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                                <motion.div
+                                    className="absolute top-[calc(50%-10px)] w-5 h-5 rounded-full bg-amber-400 shadow-lg shadow-amber-400/50 z-20 pointer-events-none"
+                                    animate={{ left: `calc(${(step / Math.max(customHops.length - 1, 1)) * 100}% - 10px)` }}
+                                    transition={{ type: 'spring', stiffness: 120, damping: 18 }}
+                                />
+                            </div>
+                            <div className={`p-4 rounded-2xl border text-center ${card}`}>
+                                <p className="text-sm font-medium">
+                                    <span className="font-black text-cyan-400">{customHops[step]?.label}</span>
+                                    {customHops[step]?.detail ? ` — ${customHops[step].detail}` : ''}
+                                </p>
+                            </div>
                         </motion.div>
                     )}
                 </AnimatePresence>

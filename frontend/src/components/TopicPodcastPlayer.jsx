@@ -219,7 +219,7 @@ export default function InteractivePodcastPlayer({ topic }) {
                     </div>
                     <div>
                         <p className="text-white font-semibold text-sm tracking-wide">Dr. Nova</p>
-                        <p className="text-slate-500 text-xs">1-on-1 AI Tutor</p>
+                        <p className="text-slate-500 text-xs">Lesson Podcast</p>
                     </div>
                 </div>
 

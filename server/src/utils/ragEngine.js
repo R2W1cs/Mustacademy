@@ -182,7 +182,8 @@ export function retrieveKBContext(query, topicTitle, topK = TOP_K_CHUNKS) {
  */
 export function selectRuleModules(query) {
     const queryLower = query.toLowerCase();
-    const isMasterclass = /masterclass|research notebook|official lesson content/.test(queryLower);
+    // Long-form / notebook dumps only — do not match "1-on-1 AI Tutor" (short practice chat).
+    const isMasterclass = /deliver a masterclass|research notebook|official lesson content/.test(queryLower);
     const isNetworking = /network|tcp|udp|ip |dns|http|osi|routing|packet|socket|congestion|nat |wifi|wireless|ethernet/.test(queryLower);
     const skipCodeViz = isMasterclass || isNetworking;
     const selected = [];

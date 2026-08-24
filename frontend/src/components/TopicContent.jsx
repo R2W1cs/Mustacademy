@@ -577,19 +577,23 @@ const TopicContent = ({ topic, mode = 'easy' }) => {
                     <div className="mb-14 space-y-8">
                         <div className="px-1">
                             <p className={`text-[10px] font-black uppercase tracking-[0.25em] mb-1 ${isDark ? 'text-cyan-400' : 'text-cyan-700'}`}>
-                                Interactive lab{labs.length > 1 ? 's' : ''} · Animation
+                                Lesson lab{labs.length > 1 ? 's' : ''}
                             </p>
                             <h3 className={`text-lg font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
                                 See this idea move
                             </h3>
                             <p className={`text-xs mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                                 {labs.length > 1
-                                    ? `${labs.length} animations for this lesson — press Play or Step on each.`
-                                    : 'Press Play or Step to walk through the concept.'}
+                                    ? `${labs.length} lesson-specific animations — Play or Step each one.`
+                                    : 'A lesson-specific animation — press Play or Step.'}
                             </p>
                         </div>
-                        {labs.map((labType) => (
-                            <NetworkVisualizer key={labType} type={labType} />
+                        {labs.map((lab, i) => (
+                            <NetworkVisualizer
+                                key={`${lab.type}-${lab.config?.title || i}`}
+                                type={lab.type}
+                                config={lab.config || null}
+                            />
                         ))}
                     </div>
                 );

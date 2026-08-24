@@ -228,7 +228,7 @@ const TopicDetails = () => {
                                         onClick={() => setViewMode('notebook')}
                                         className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'notebook' ? (isLight ? 'bg-red-600 text-white shadow-lg shadow-red-500/30' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30') : (isLight ? 'text-gray-500 hover:text-gray-700' : 'text-slate-500 hover:text-slate-300')}`}
                                     >
-                                        <Sparkles size={14} className="inline mr-2" /> Research Notebook
+                                        <Sparkles size={14} className="inline mr-2" /> 1-on-1 AI Tutor
                                     </button>
                                     <button
                                         onClick={() => setViewMode('podcast')}

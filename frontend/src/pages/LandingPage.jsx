@@ -108,7 +108,7 @@ const TESTIMONIALS = [
         stars: 5,
     },
     {
-        quote: "The AI notebook explained recursion better than my professor ever did. The step-by-step visualizations are genuinely impressive.",
+        quote: "The 1-on-1 AI Tutor explained recursion better than my professor ever did. The step-by-step visualizations are genuinely impressive.",
         name: "Sara M.", role: "Software Engineering Intern", avatar: "S", color: "#8b5cf6",
         stars: 5,
     },
@@ -295,7 +295,7 @@ export default function LandingPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 text-left">
                         {[
                             { icon: GitBranch, title: "Structured Roadmaps", desc: "Curated learning paths built by industry experts", color: "from-[#6366f1] to-[#8b5cf6]" },
-                            { icon: Brain, title: "Interactive Lessons", desc: "Labs, animations, and Research Notebook on every topic", color: "from-[#8b5cf6] to-[#a855f7]" },
+                            { icon: Brain, title: "Interactive Lessons", desc: "Labs, animations, and 1-on-1 AI Tutor on every topic", color: "from-[#8b5cf6] to-[#a855f7]" },
                             { icon: Sparkles, title: "AI Assistant", desc: "Instant personalized guidance available 24/7", color: "from-[#ec4899] to-[#f43f5e]" },
                             { icon: Trophy, title: "Interview Prep", desc: "Real-world coding challenges and mock interviews", color: "from-[#10b981] to-[#14b8a6]" },
                             { icon: Zap, title: "Project Corner", desc: "Start implementing your ideas with our guidance and support", color: "from-[#f59e0b] to-[#eab308]" },
@@ -516,15 +516,15 @@ export default function LandingPage() {
                     </div>
 
                     <div className="space-y-10">
-                        {/* Row 1 — AI Notebook */}
+                        {/* Row 1 — 1-on-1 AI Tutor */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-                            {/* Mock notebook */}
+                            {/* Mock tutor panel */}
                             <div className="order-2 lg:order-1 rounded-2xl overflow-hidden border border-white/10 shadow-xl">
                                 <div className={`px-4 py-3 flex items-center gap-2 border-b ${isDark ? 'bg-[#0d0f1e] border-white/5' : 'bg-slate-800 border-white/10'}`}>
                                     <div className="w-3 h-3 rounded-full bg-rose-500/70" />
                                     <div className="w-3 h-3 rounded-full bg-amber-400/70" />
                                     <div className="w-3 h-3 rounded-full bg-emerald-500/70" />
-                                    <span className="ml-2 text-[11px] text-white/25 font-mono">Notebook — Binary Trees.md</span>
+                                    <span className="ml-2 text-[11px] text-white/25 font-mono">1-on-1 AI Tutor — Binary Trees</span>
                                 </div>
                                 <div className={`p-5 space-y-3 ${isDark ? 'bg-[#0d0f1e]' : 'bg-slate-900'}`}>
                                     <div className="h-2.5 bg-white/10 rounded-full w-3/4" />
@@ -553,11 +553,11 @@ export default function LandingPage() {
                             </div>
                             <div className="order-1 lg:order-2">
                                 <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold mb-4 ${isDark ? 'bg-indigo-500/10 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>
-                                    <Brain className="w-3.5 h-3.5" /> AI Notebook
+                                    <Brain className="w-3.5 h-3.5" /> 1-on-1 AI Tutor
                                 </div>
-                                <h3 className={`text-2xl sm:text-3xl font-bold mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>Learn any topic with an AI professor</h3>
+                                <h3 className={`text-2xl sm:text-3xl font-bold mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>Practice any topic with a personal tutor</h3>
                                 <p className={`text-[15px] leading-relaxed mb-5 ${textMuted}`}>
-                                    Every topic in the roadmap opens an AI-powered notebook. Ask questions, get deep explanations, run code snippets in-browser, and see algorithm visualizations — all without leaving the page.
+                                    Every topic opens a 1-on-1 AI Tutor for Q&amp;A practice — ask questions, get examples, take a quick quiz, and keep notes — without dumping a full lecture on open.
                                 </p>
                                 <Link to="/register" className={`inline-flex items-center gap-2 text-sm font-semibold transition-all ${isDark ? 'text-indigo-400 hover:text-indigo-300' : 'text-indigo-600 hover:text-indigo-700'}`}>
                                     Try a topic <ArrowRight className="w-4 h-4" />

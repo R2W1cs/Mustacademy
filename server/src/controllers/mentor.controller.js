@@ -31,7 +31,7 @@ export const chatWithMentor = async (req, res) => {
             history = historyRes.rows.reverse();
 
             if (topicId) {
-                // Load official lesson markdown so Research Notebook / MASTERCLASS can teach from it
+                // Load official lesson markdown so the 1-on-1 AI Tutor can ground answers
                 const topicRes = await pool.query(
                     `SELECT title,
                             COALESCE(content_easy_markdown, content_markdown, '') AS easy,
@@ -50,9 +50,10 @@ export const chatWithMentor = async (req, res) => {
                             (easyLesson ? `ESSENTIAL TRACK:\n${easyLesson}\n\n` : '') +
                             (deepLesson ? `DEEP TRACK:\n${deepLesson}\n` : '') +
                             "--- END OFFICIAL LESSON CONTENT ---\n" +
-                            "\nYou are the Research Notebook professor for this exact lesson. " +
-                            "For MASTERCLASS/STORY: write a full teaching story covering every key idea in order (hook, simple idea, steps, analogy, worked example, mistakes, check questions). " +
-                            "For follow-ups: answer using the lesson first, clearly and warmly. Networking topics: no forced algo-viz/JS.\n";
+                            "\nYou are the 1-on-1 AI Tutor for this exact lesson. " +
+                            "Practice mode: answer questions clearly and warmly using the lesson first. Prefer concise explanations, examples, and short quizzes. " +
+                            "Do NOT dump a full lecture unless the student explicitly asks for a deep walkthrough. " +
+                            "Networking topics: no forced algo-viz/JS.\n";
                     }
 
                     const resourcesRes = await pool.query(
@@ -154,7 +155,7 @@ export const chatWithMentor = async (req, res) => {
             topic_detected: aiData?.topic_detected || detectedTopic || null,
         });
     } catch (err) {
-        // Prefer 200 soft failure so Research Notebook keeps the local lesson story without a scary tip
+        // Prefer 200 soft failure so the tutor UI can keep a friendly greeting without a scary tip
         console.error("Mentor Chat Error:", err);
         res.json({
             reply: '',
