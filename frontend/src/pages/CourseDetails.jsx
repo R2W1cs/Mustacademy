@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import api from "../api/axios";
 import { useTheme } from "../auth/ThemeContext";
 import { ChevronLeft, AlertTriangle } from "lucide-react";
+import KnowledgeExchange from "../components/KnowledgeExchange";
 
 const CourseDetails = () => {
   const { id } = useParams();
@@ -219,6 +220,8 @@ const CourseDetails = () => {
             )}
           </div>
         </div>
+
+        <KnowledgeExchange courseId={id} className="mt-24 px-2" />
       </div>
     </div>
   );

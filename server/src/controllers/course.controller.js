@@ -93,6 +93,110 @@ export const getCoursesBySemester = async (req, res) => {
   res.json(result.rows);
 };
 
+/** Course → career usefulness copy when course_career / DB copy is thin. */
+const COURSE_CAREER_FALLBACK = {
+  'CS 411': {
+    useful_for:
+      'Designing reliable packet delivery, diagnosing latency and congestion, and building services that speak TCP/IP, HTTP, DNS, and TLS correctly under real network conditions.',
+    necessity:
+      'Almost every production system is a distributed system. Without a clear model of the network stack, debugging failures, securing traffic, and sizing infrastructure becomes guesswork.',
+    careers: ['Software Engineer', 'Cybersecurity', 'Web Developer'],
+  },
+  'Computer Networks': {
+    useful_for:
+      'Designing reliable packet delivery, diagnosing latency and congestion, and building services that speak TCP/IP, HTTP, DNS, and TLS correctly under real network conditions.',
+    necessity:
+      'Almost every production system is a distributed system. Without a clear model of the network stack, debugging failures, securing traffic, and sizing infrastructure becomes guesswork.',
+    careers: ['Software Engineer', 'Cybersecurity', 'Web Developer'],
+  },
+  'Data structures': {
+    useful_for:
+      'Choosing and implementing the right structures and algorithms so software stays correct and fast as data and users grow.',
+    necessity:
+      'Interview loops and production systems both reward engineers who can reason about complexity, memory layout, and trade-offs instead of memorizing APIs.',
+    careers: ['Software Engineer', 'AI Engineer', 'Data Scientist'],
+  },
+  'Algorithms': {
+    useful_for:
+      'Reasoning about correctness and asymptotic cost when designing search, scheduling, graph, and optimization features.',
+    necessity:
+      'Performance cliffs and correctness bugs are expensive; algorithmic fluency is how strong engineers prevent both.',
+    careers: ['Software Engineer', 'AI Engineer', 'Data Scientist'],
+  },
+  'Operating systems': {
+    useful_for:
+      'Understanding processes, memory, concurrency, and I/O so you can build performant backends, systems tools, and reliable runtimes.',
+    necessity:
+      'High-level frameworks hide the machine until something breaks. OS literacy is what lets you profile, isolate, and fix those failures.',
+    careers: ['Software Engineer', 'Cybersecurity', 'AI Engineer'],
+  },
+  'databases': {
+    useful_for:
+      'Modeling data, writing sound queries, and designing storage that stays consistent as product requirements change.',
+    necessity:
+      'Most product features are persistence features. Weak data design becomes technical debt that blocks every team that touches the product.',
+    careers: ['Software Engineer', 'Data Scientist', 'Web Developer'],
+  },
+  'Artificial intelligence': {
+    useful_for:
+      'Building and evaluating learning systems, from classical ML pipelines to modern model-assisted products.',
+    necessity:
+      'AI features are now table stakes across products; engineers who understand the foundations ship safer, more measurable systems.',
+    careers: ['AI Engineer', 'Data Scientist', 'Software Engineer'],
+  },
+  'Web application': {
+    useful_for:
+      'Shipping full-stack web products: APIs, auth, UI state, and deployment patterns used across modern SaaS.',
+    necessity:
+      'The web remains the default delivery surface for software. Fluency here maps directly to shipping user-facing value.',
+    careers: ['Web Developer', 'Software Engineer'],
+  },
+  'Cloud computing': {
+    useful_for:
+      'Designing scalable cloud architectures, services, and ops workflows used in modern infrastructure roles.',
+    necessity:
+      'Production workloads live in the cloud. Teams expect engineers to reason about cost, reliability, and isolation at that layer.',
+    careers: ['Software Engineer', 'Cybersecurity'],
+  },
+  'software engineering': {
+    useful_for:
+      'Planning, collaborating, and delivering software with process, quality, and maintainability in mind.',
+    necessity:
+      'Individual coding skill does not scale a team. Engineering practice is what turns prototypes into durable products.',
+    careers: ['Software Engineer', 'Web Developer'],
+  },
+  'Human Computer Interaction': {
+    useful_for:
+      'Designing interfaces and interaction flows grounded in how people actually perceive, decide, and err.',
+    necessity:
+      'Products fail when users cannot complete tasks. HCI turns usability from opinion into a measurable design practice.',
+    careers: ['Web Developer', 'Software Engineer'],
+  },
+  'Cyber': {
+    useful_for:
+      'Threat modeling, secure design, and defensive operations that protect systems and data.',
+    necessity:
+      'Security is not an add-on; every networked system is an attack surface that careers in cyber and software must defend.',
+    careers: ['Cybersecurity', 'Software Engineer'],
+  },
+};
+
+const resolveCourseCareerFallback = (courseName = '', description = '') => {
+  const haystack = `${courseName} ${description || ''}`.toLowerCase();
+  for (const [key, value] of Object.entries(COURSE_CAREER_FALLBACK)) {
+    if (haystack.includes(key.toLowerCase())) return value;
+  }
+  const shortDesc = (description || '').replace(/^Credits:\s*\d+\s*$/i, '').trim();
+  return {
+    useful_for: shortDesc
+      ? `This course builds practical fluency in ${courseName}: ${shortDesc}`
+      : `This course builds durable foundations in ${courseName} that transfer into technical roles across the industry.`,
+    necessity:
+      'Focus here to close a core competency gap in your degree path—the concepts recur in interviews, internships, and production work.',
+    careers: ['Software Engineer'],
+  };
+};
+
 // Get single course
 export const getCourseById = async (req, res) => {
   const { id } = req.params;
@@ -117,7 +221,40 @@ export const getCourseById = async (req, res) => {
     return res.status(404).json({ message: 'Course not found' });
   }
 
-  res.json(result.rows[0]);
+  const course = result.rows[0];
+
+  let careers = [];
+  try {
+    const careerRes = await pool.query(
+      `
+      SELECT cp.id, cp.name
+      FROM course_career cc
+      JOIN career_paths cp ON cp.id = cc.career_id
+      WHERE cc.course_id = $1
+      ORDER BY cp.name ASC
+      `,
+      [id]
+    );
+    careers = careerRes.rows;
+  } catch (err) {
+    console.warn('[getCourseById] course_career join skipped:', err.message);
+  }
+
+  const fallback = resolveCourseCareerFallback(course.name, course.description);
+  const careerNames = careers.length > 0
+    ? careers.map((c) => c.name)
+    : fallback.careers;
+
+  res.json({
+    ...course,
+    careers,
+    career_usefulness: {
+      useful_for: fallback.useful_for,
+      necessity: fallback.necessity,
+      careers: careerNames,
+      source: careers.length > 0 ? 'course_career' : 'fallback',
+    },
+  });
 };
 
 

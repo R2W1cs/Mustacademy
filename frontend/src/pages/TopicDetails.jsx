@@ -173,18 +173,16 @@ const TopicDetails = () => {
                                 <ChevronRight size={12} className="opacity-30" />
                                 <button onClick={() => navigate(`/courses/${topic.course_id}`)} className={`transition-colors ${isLight ? 'hover:text-red-600' : 'hover:text-indigo-400'}`}>Course</button>
                                 <ChevronRight size={12} className="opacity-30" />
-                                <button onClick={() => navigate(`/courses/${topic.course_id}/roadmap`)} className={`transition-colors ${isLight ? 'hover:text-red-600' : 'hover:text-indigo-400'}`}>Lessons</button>
-                                <ChevronRight size={12} className="opacity-30" />
                                 <span className={isLight ? 'text-red-600/70' : 'text-indigo-400/60'}>{topic.title}</span>
                             </nav>
 
                             <div className="flex flex-wrap items-center gap-3">
                                 <button
                                     type="button"
-                                    onClick={() => navigate(`/courses/${topic.course_id}/roadmap`)}
+                                    onClick={() => navigate(`/courses/${topic.course_id}`)}
                                     className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${isLight ? 'bg-white border-gray-200 text-gray-700 hover:border-red-300 hover:text-red-600' : 'bg-white/5 border-white/10 text-slate-300 hover:border-indigo-400/40 hover:text-white'}`}
                                 >
-                                    <ArrowLeft size={14} /> Back to lessons
+                                    <ArrowLeft size={14} /> Back to course
                                 </button>
                             </div>
 
@@ -343,10 +341,10 @@ const TopicDetails = () => {
                                         <nav className={`pt-16 mt-8 border-t flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between ${isLight ? 'border-gray-200' : 'border-white/10'}`}>
                                             <button
                                                 type="button"
-                                                onClick={() => navigate(`/courses/${topic.course_id}/roadmap`)}
+                                                onClick={() => navigate(`/courses/${topic.course_id}`)}
                                                 className={`inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${isLight ? 'bg-white border-gray-200 text-gray-700 hover:border-red-300' : 'bg-white/5 border-white/10 text-slate-300 hover:border-indigo-400/40'}`}
                                             >
-                                                <ArrowLeft size={14} /> Back to lessons
+                                                <ArrowLeft size={14} /> Back to course
                                             </button>
                                             <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-end flex-1">
                                                 {topic.prev_topic_id ? (
@@ -377,10 +375,10 @@ const TopicDetails = () => {
                                                 ) : (
                                                     <button
                                                         type="button"
-                                                        onClick={() => navigate(`/courses/${topic.course_id}/roadmap`)}
+                                                        onClick={() => navigate(`/courses/${topic.course_id}`)}
                                                         className={`inline-flex items-center gap-2 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isLight ? 'bg-emerald-600 text-white' : 'bg-emerald-600 text-white'}`}
                                                     >
-                                                        Course complete · Back to lessons
+                                                        Course complete · Back to course
                                                     </button>
                                                 )}
                                             </div>
