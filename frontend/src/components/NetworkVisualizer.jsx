@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Play, RotateCcw, Network, Layers, Route, Server, Smartphone,
-    Globe, Search, Activity, ArrowRight, Wifi, Timer, Gauge, Shield
+    Globe, Search, Activity, ArrowRight, Wifi, Timer, Gauge, Shield, Lock, Radio
 } from 'lucide-react';
 import { useTheme } from '../auth/ThemeContext';
 
@@ -18,6 +18,13 @@ const META = {
     congestion: { title: 'Congestion Window', subtitle: 'AIMD: probe up, cut on loss', icon: Activity },
     http: { title: 'HTTP Request Pipeline', subtitle: 'Browser → DNS → TCP → HTTP → response', icon: Globe },
     nat: { title: 'NAT Translation', subtitle: 'Private addresses share one public IP', icon: Shield },
+    multiplex: { title: 'Port Multiplexing', subtitle: 'Many apps share one IP via port numbers', icon: Layers },
+    circuit: { title: 'Circuit vs Packet Switching', subtitle: 'Reserved path vs shared hops', icon: Route },
+    arp: { title: 'ARP Resolution', subtitle: 'IP address → MAC address on the LAN', icon: Search },
+    wifi: { title: 'Wi-Fi Access', subtitle: 'Sense the medium, then transmit', icon: Radio },
+    firewall: { title: 'Firewall Filter', subtitle: 'Allow or drop based on policy', icon: Shield },
+    vpn: { title: 'VPN Tunnel', subtitle: 'Encrypt and wrap traffic across the public net', icon: Lock },
+    smtp: { title: 'SMTP Mail Path', subtitle: 'Message hops from MUA → servers → inbox', icon: Server },
 };
 
 const DELAY_STEPS = [
@@ -50,6 +57,56 @@ const NAT_STEPS = [
     { side: 'WAN', text: 'Internet sees only the public IP:port' },
     { side: 'NAT', text: 'Reply to :40001 → translate back to 192.168.1.10:51515' },
     { side: 'LAN', text: 'Laptop receives the response — NAT was invisible' },
+];
+
+const MULTIPLEX_STEPS = [
+    { app: 'Browser', port: ':443', tip: 'HTTPS tab talking to a web server' },
+    { app: 'Chat app', port: ':5222', tip: 'Instant messages on another socket' },
+    { app: 'Game', port: ':27015', tip: 'UDP datagrams for live play' },
+    { app: 'OS demux', port: 'IP shared', tip: 'Same host IP — ports separate the conversations' },
+];
+
+const CIRCUIT_STEPS = [
+    { mode: 'Circuit', text: 'Reserve the whole path first (like an old phone call)' },
+    { mode: 'Circuit', text: 'Bandwidth sits idle if you pause talking' },
+    { mode: 'Packet', text: 'Slice data into addressed packets that share links' },
+    { mode: 'Packet', text: 'Many conversations multiplex — more efficient, variable delay' },
+];
+
+const ARP_STEPS = [
+    { actor: 'Host A', text: 'I know 192.168.1.50 IP — who has that MAC?' },
+    { actor: 'Broadcast', text: 'ARP request floods the LAN: "Who has 192.168.1.50?"' },
+    { actor: 'Host B', text: 'That\'s me — my MAC is aa:bb:cc:dd:ee:ff' },
+    { actor: 'Host A', text: 'Cache the mapping, then send the Ethernet frame' },
+];
+
+const WIFI_STEPS = [
+    { actor: 'Client', text: 'Listen — is the channel busy? (CSMA/CA)' },
+    { actor: 'Client', text: 'Wait a random backoff if someone else is talking' },
+    { actor: 'Client', text: 'Transmit a frame to the access point' },
+    { actor: 'AP', text: 'ACK if received — else client retries' },
+    { actor: 'AP', text: 'Forward onto the wired network / internet' },
+];
+
+const FIREWALL_STEPS = [
+    { verdict: 'ALLOW', text: 'Outbound HTTPS :443 from laptop → permitted' },
+    { verdict: 'DROP', text: 'Unsolicited inbound SSH :22 from internet → blocked' },
+    { verdict: 'ALLOW', text: 'Return traffic matching an existing flow → stateful permit' },
+    { verdict: 'DROP', text: 'Spoofed packet with bad checksum / banned IP → discard' },
+];
+
+const VPN_STEPS = [
+    { stage: 'App', text: 'Your app sends a normal packet to a private work IP' },
+    { stage: 'Tunnel', text: 'VPN client encrypts + wraps it for the VPN gateway' },
+    { stage: 'Internet', text: 'Public routers only see gateway-to-gateway traffic' },
+    { stage: 'Unwrap', text: 'Gateway decrypts and delivers onto the private network' },
+];
+
+const SMTP_STEPS = [
+    { hop: 'Mail app', text: 'You hit Send — message handed to your SMTP server' },
+    { hop: 'Your MX', text: 'Server looks up recipient domain MX via DNS' },
+    { hop: 'Their MX', text: 'SMTP relays the message to the destination server' },
+    { hop: 'Inbox', text: 'Recipient fetches with IMAP/POP — mail arrived' },
 ];
 
 const OSI_LAYERS = [
@@ -120,6 +177,13 @@ const NetworkVisualizer = ({ type = 'packet' }) => {
         if (mode === 'congestion') return CONGESTION_CWND.length - 1;
         if (mode === 'http') return HTTP_STEPS.length - 1;
         if (mode === 'nat') return NAT_STEPS.length - 1;
+        if (mode === 'multiplex') return MULTIPLEX_STEPS.length - 1;
+        if (mode === 'circuit') return CIRCUIT_STEPS.length - 1;
+        if (mode === 'arp') return ARP_STEPS.length - 1;
+        if (mode === 'wifi') return WIFI_STEPS.length - 1;
+        if (mode === 'firewall') return FIREWALL_STEPS.length - 1;
+        if (mode === 'vpn') return VPN_STEPS.length - 1;
+        if (mode === 'smtp') return SMTP_STEPS.length - 1;
         return 0;
     })();
 
@@ -546,6 +610,159 @@ const NetworkVisualizer = ({ type = 'packet' }) => {
                                     >
                                         <div className="text-[10px] font-black uppercase tracking-widest text-cyan-400 mb-1">{s.side}</div>
                                         <div className="text-sm font-medium font-mono leading-relaxed">{s.text}</div>
+                                    </motion.div>
+                                );
+                            })}
+                        </motion.div>
+                    )}
+
+                    {mode === 'multiplex' && (
+                        <motion.div key="multiplex" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-3">
+                            <p className={`text-center text-xs mb-2 ${muted}`}>One laptop IP · many conversations identified by ports</p>
+                            {MULTIPLEX_STEPS.map((s, i) => {
+                                const active = step === i;
+                                return (
+                                    <motion.div
+                                        key={s.app}
+                                        animate={{ opacity: step >= i ? 1 : 0.35, x: active ? 0 : -4 }}
+                                        className={`flex items-center gap-4 p-4 rounded-2xl border ${active ? 'border-cyan-400/50 bg-cyan-500/10' : card}`}
+                                    >
+                                        <div className={`px-3 py-1.5 rounded-lg font-mono text-xs font-black ${active ? 'bg-cyan-500 text-white' : 'bg-white/5'}`}>{s.port}</div>
+                                        <div>
+                                            <div className="text-[10px] font-black uppercase tracking-widest text-cyan-400">{s.app}</div>
+                                            <div className="text-sm font-medium">{s.tip}</div>
+                                        </div>
+                                    </motion.div>
+                                );
+                            })}
+                        </motion.div>
+                    )}
+
+                    {mode === 'circuit' && (
+                        <motion.div key="circuit" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-3">
+                            {CIRCUIT_STEPS.map((s, i) => {
+                                const active = step === i;
+                                const isCircuit = s.mode === 'Circuit';
+                                return (
+                                    <motion.div
+                                        key={`${s.mode}-${i}`}
+                                        animate={{ opacity: step >= i ? 1 : 0.35 }}
+                                        className={`p-4 rounded-2xl border ${active ? 'border-cyan-400/50 bg-cyan-500/10' : card}`}
+                                    >
+                                        <div className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isCircuit ? 'text-amber-400' : 'text-cyan-400'}`}>{s.mode} switching</div>
+                                        <div className="text-sm font-medium">{s.text}</div>
+                                    </motion.div>
+                                );
+                            })}
+                            <p className={`text-center text-xs ${muted}`}>The Internet chose packet switching — share links, accept variable delay.</p>
+                        </motion.div>
+                    )}
+
+                    {mode === 'arp' && (
+                        <motion.div key="arp" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-3">
+                            {ARP_STEPS.map((s, i) => {
+                                const active = step === i;
+                                return (
+                                    <motion.div
+                                        key={`${s.actor}-${i}`}
+                                        animate={{ opacity: step >= i ? 1 : 0.35 }}
+                                        className={`flex items-center gap-4 p-4 rounded-2xl border ${active ? 'border-cyan-400/50 bg-cyan-500/10' : card}`}
+                                    >
+                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${active ? 'bg-cyan-500 text-white' : 'bg-white/5'}`}>
+                                            <Search size={16} />
+                                        </div>
+                                        <div>
+                                            <div className="text-[10px] font-black uppercase tracking-widest text-cyan-400">{s.actor}</div>
+                                            <div className="text-sm font-medium">{s.text}</div>
+                                        </div>
+                                    </motion.div>
+                                );
+                            })}
+                        </motion.div>
+                    )}
+
+                    {mode === 'wifi' && (
+                        <motion.div key="wifi" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-3">
+                            {WIFI_STEPS.map((s, i) => {
+                                const active = step === i;
+                                return (
+                                    <motion.div
+                                        key={`${s.actor}-${i}`}
+                                        animate={{ opacity: step >= i ? 1 : 0.35 }}
+                                        className={`flex items-center gap-4 p-4 rounded-2xl border ${active ? 'border-cyan-400/50 bg-cyan-500/10' : card}`}
+                                    >
+                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${active ? 'bg-cyan-500 text-white' : 'bg-white/5'}`}>
+                                            <Radio size={16} />
+                                        </div>
+                                        <div>
+                                            <div className="text-[10px] font-black uppercase tracking-widest text-cyan-400">{s.actor}</div>
+                                            <div className="text-sm font-medium">{s.text}</div>
+                                        </div>
+                                    </motion.div>
+                                );
+                            })}
+                        </motion.div>
+                    )}
+
+                    {mode === 'firewall' && (
+                        <motion.div key="firewall" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-3">
+                            {FIREWALL_STEPS.map((s, i) => {
+                                const active = step === i;
+                                const allow = s.verdict === 'ALLOW';
+                                return (
+                                    <motion.div
+                                        key={`${s.verdict}-${i}`}
+                                        animate={{ opacity: step >= i ? 1 : 0.35 }}
+                                        className={`p-4 rounded-2xl border ${active ? 'border-cyan-400/50 bg-cyan-500/10' : card}`}
+                                    >
+                                        <div className={`text-[10px] font-black uppercase tracking-widest mb-1 ${allow ? 'text-emerald-400' : 'text-rose-400'}`}>{s.verdict}</div>
+                                        <div className="text-sm font-medium">{s.text}</div>
+                                    </motion.div>
+                                );
+                            })}
+                        </motion.div>
+                    )}
+
+                    {mode === 'vpn' && (
+                        <motion.div key="vpn" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-3">
+                            {VPN_STEPS.map((s, i) => {
+                                const active = step === i;
+                                return (
+                                    <motion.div
+                                        key={`${s.stage}-${i}`}
+                                        animate={{ opacity: step >= i ? 1 : 0.35 }}
+                                        className={`flex items-center gap-4 p-4 rounded-2xl border ${active ? 'border-cyan-400/50 bg-cyan-500/10' : card}`}
+                                    >
+                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${active ? 'bg-cyan-500 text-white' : 'bg-white/5'}`}>
+                                            <Lock size={16} />
+                                        </div>
+                                        <div>
+                                            <div className="text-[10px] font-black uppercase tracking-widest text-cyan-400">{s.stage}</div>
+                                            <div className="text-sm font-medium">{s.text}</div>
+                                        </div>
+                                    </motion.div>
+                                );
+                            })}
+                        </motion.div>
+                    )}
+
+                    {mode === 'smtp' && (
+                        <motion.div key="smtp" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-3">
+                            {SMTP_STEPS.map((s, i) => {
+                                const active = step === i;
+                                return (
+                                    <motion.div
+                                        key={`${s.hop}-${i}`}
+                                        animate={{ opacity: step >= i ? 1 : 0.35 }}
+                                        className={`flex items-center gap-4 p-4 rounded-2xl border ${active ? 'border-cyan-400/50 bg-cyan-500/10' : card}`}
+                                    >
+                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${active ? 'bg-cyan-500 text-white' : 'bg-white/5'}`}>
+                                            <Server size={16} />
+                                        </div>
+                                        <div>
+                                            <div className="text-[10px] font-black uppercase tracking-widest text-cyan-400">{s.hop}</div>
+                                            <div className="text-sm font-medium">{s.text}</div>
+                                        </div>
                                     </motion.div>
                                 );
                             })}

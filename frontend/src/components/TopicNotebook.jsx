@@ -214,8 +214,7 @@ function isConceptTopic(title = '') {
 function buildLocalLessonStory(topic = {}) {
     const title = topic.title || 'This lesson';
     const easy = topic.content_easy_markdown || topic.content_markdown || '';
-    const deep = topic.content_deep_markdown || '';
-    if (!easy && !deep) {
+    if (!easy) {
         return (
             `# ${title}\n\n` +
             `## Opening the research notebook\n` +
@@ -229,9 +228,8 @@ function buildLocalLessonStory(topic = {}) {
     }
     let story = `# ${title}\n\n`;
     story += `## Your guided story for this lesson\n`;
-    story += `Welcome. This Research Notebook walks the full story of **${title}** — from first intuition to deep mechanics. Read it like a chapter, then ask me anything.\n\n`;
-    if (easy) story += `---\n\n## Essential story\n\n${easy}\n\n`;
-    if (deep) story += `---\n\n## Go deeper\n\n${deep}\n\n`;
+    story += `Welcome. This Research Notebook walks the full story of **${title}**. Read it like a chapter, then ask me anything.\n\n`;
+    story += `---\n\n${easy}\n\n`;
     story += `---\n\n## What you can ask me next\n`;
     story += `- "Explain the hardest part again, slower."\n`;
     story += `- "Give me a new worked example."\n`;

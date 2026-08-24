@@ -4,8 +4,8 @@ import { useTheme } from "../auth/ThemeContext";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import {
-    ChevronRight, Sparkles, ShieldCheck, CheckCircle,
-    Layers, Clock, Headphones
+    ChevronRight, ChevronLeft, Sparkles, ShieldCheck, CheckCircle,
+    Layers, Clock, Headphones, BookOpen, ArrowLeft
 } from "lucide-react";
 
 import TopicContent from "../components/TopicContent";
@@ -38,7 +38,7 @@ const TopicDetails = () => {
     const [access, setAccess] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isQuizOpen, setIsQuizOpen] = useState(false);
-    const [viewMode, setViewMode] = useState('easy');
+    const [viewMode, setViewMode] = useState('lesson');
 
     // Scroll Progress - Default to entire page
     const { scrollYProgress } = useScroll();
@@ -171,10 +171,22 @@ const TopicDetails = () => {
                             <nav className={`flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.3em] ${isLight ? 'text-gray-400' : 'text-slate-500'}`}>
                                 <button onClick={() => navigate('/dashboard')} className={`transition-colors ${isLight ? 'hover:text-red-600' : 'hover:text-indigo-400'}`}>Neural Hub</button>
                                 <ChevronRight size={12} className="opacity-30" />
-                                <button onClick={() => navigate(`/courses/${topic.course_id}/roadmap`)} className={`transition-colors ${isLight ? 'hover:text-red-600' : 'hover:text-indigo-400'}`}>Roadmap</button>
+                                <button onClick={() => navigate(`/courses/${topic.course_id}`)} className={`transition-colors ${isLight ? 'hover:text-red-600' : 'hover:text-indigo-400'}`}>Course</button>
+                                <ChevronRight size={12} className="opacity-30" />
+                                <button onClick={() => navigate(`/courses/${topic.course_id}/roadmap`)} className={`transition-colors ${isLight ? 'hover:text-red-600' : 'hover:text-indigo-400'}`}>Lessons</button>
                                 <ChevronRight size={12} className="opacity-30" />
                                 <span className={isLight ? 'text-red-600/70' : 'text-indigo-400/60'}>{topic.title}</span>
                             </nav>
+
+                            <div className="flex flex-wrap items-center gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => navigate(`/courses/${topic.course_id}/roadmap`)}
+                                    className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${isLight ? 'bg-white border-gray-200 text-gray-700 hover:border-red-300 hover:text-red-600' : 'bg-white/5 border-white/10 text-slate-300 hover:border-indigo-400/40 hover:text-white'}`}
+                                >
+                                    <ArrowLeft size={14} /> Back to lessons
+                                </button>
+                            </div>
 
                             <h1 className={`text-5xl lg:text-7xl xl:text-8xl font-black tracking-tightest leading-[1] italic drop-shadow-2xl max-w-5xl ${isLight ? 'text-gray-900' : 'text-white'}`}>
                                 {topic.title}
@@ -207,16 +219,10 @@ const TopicDetails = () => {
                             <div className={`glass-morphism p-2 rounded-2xl flex items-center justify-between gap-4 shadow-2xl backdrop-blur-2xl ${isLight ? 'bg-white/80 border-gray-200' : 'bg-zinc-900/40 border-white/5'}`}>
                                 <div className="flex items-center gap-1">
                                     <button 
-                                        onClick={() => setViewMode('easy')}
-                                        className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'easy' ? (isLight ? 'bg-red-600 text-white shadow-lg' : 'bg-indigo-600 text-white shadow-lg') : (isLight ? 'text-gray-500 hover:text-gray-700' : 'text-slate-500 hover:text-slate-300')}`}
+                                        onClick={() => setViewMode('lesson')}
+                                        className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${viewMode === 'lesson' ? (isLight ? 'bg-red-600 text-white shadow-lg' : 'bg-indigo-600 text-white shadow-lg') : (isLight ? 'text-gray-500 hover:text-gray-700' : 'text-slate-500 hover:text-slate-300')}`}
                                     >
-                                        Essential Protocol
-                                    </button>
-                                    <button 
-                                        onClick={() => setViewMode('deep')}
-                                        className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'deep' ? (isLight ? 'bg-red-600 text-white shadow-lg' : 'bg-indigo-600 text-white shadow-lg') : (isLight ? 'text-gray-500 hover:text-gray-700' : 'text-slate-500 hover:text-slate-300')}`}
-                                    >
-                                        Deep Architecture
+                                        <BookOpen size={12} /> Lesson
                                     </button>
                                     <button 
                                         onClick={() => setViewMode('notebook')}
@@ -330,8 +336,55 @@ const TopicDetails = () => {
 
                                         {/* ACADEMIC MANUSCRIPT — NetworkVisualizer mounts inside TopicContent */}
                                         <section className={`prose max-w-none ${isLight ? 'prose-gray' : 'prose-invert'}`}>
-                                            <TopicContent topic={topic} mode={viewMode} />
+                                            <TopicContent topic={topic} mode="easy" />
                                         </section>
+
+                                        {/* Lesson navigation */}
+                                        <nav className={`pt-16 mt-8 border-t flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between ${isLight ? 'border-gray-200' : 'border-white/10'}`}>
+                                            <button
+                                                type="button"
+                                                onClick={() => navigate(`/courses/${topic.course_id}/roadmap`)}
+                                                className={`inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${isLight ? 'bg-white border-gray-200 text-gray-700 hover:border-red-300' : 'bg-white/5 border-white/10 text-slate-300 hover:border-indigo-400/40'}`}
+                                            >
+                                                <ArrowLeft size={14} /> Back to lessons
+                                            </button>
+                                            <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-end flex-1">
+                                                {topic.prev_topic_id ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => navigate(`/topics/${topic.prev_topic_id}`)}
+                                                        className={`inline-flex items-center gap-2 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all text-left ${isLight ? 'bg-white border-gray-200 text-gray-700 hover:border-red-300' : 'bg-white/5 border-white/10 text-slate-300 hover:border-indigo-400/40'}`}
+                                                    >
+                                                        <ChevronLeft size={14} />
+                                                        <span className="flex flex-col items-start gap-0.5 normal-case tracking-normal font-bold">
+                                                            <span className="text-[8px] uppercase tracking-widest opacity-60">Previous</span>
+                                                            <span className="text-xs line-clamp-1 max-w-[220px]">{topic.prev_topic_title || 'Previous lesson'}</span>
+                                                        </span>
+                                                    </button>
+                                                ) : <span />}
+                                                {topic.next_topic_id ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => navigate(`/topics/${topic.next_topic_id}`)}
+                                                        className={`inline-flex items-center gap-2 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all text-right ${isLight ? 'bg-red-600 text-white hover:bg-red-500' : 'bg-indigo-600 text-white hover:bg-indigo-500'}`}
+                                                    >
+                                                        <span className="flex flex-col items-end gap-0.5 normal-case tracking-normal font-bold">
+                                                            <span className="text-[8px] uppercase tracking-widest opacity-80">Next lesson</span>
+                                                            <span className="text-xs line-clamp-1 max-w-[220px]">{topic.next_topic_title || 'Continue'}</span>
+                                                        </span>
+                                                        <ChevronRight size={14} />
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => navigate(`/courses/${topic.course_id}/roadmap`)}
+                                                        className={`inline-flex items-center gap-2 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isLight ? 'bg-emerald-600 text-white' : 'bg-emerald-600 text-white'}`}
+                                                    >
+                                                        Course complete · Back to lessons
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </nav>
 
                                         {/* MASTERY ANTHEM (Footer Reinforcement) */}
                                         {topic.song_url && (

@@ -17,27 +17,12 @@ export const topics = [
     ],
     learning_objectives: [
       "Describe what CS 411 covers and how Units 1–8 fit together",
-      "Find interactive labs on the lesson page (Essential/Deep), not a separate tab",
       "Explain when to read Essential vs Deep content",
       "Name the skills that mark a networks 'hero' graduate",
+      "Use Play/Step on the lesson animations to verify each idea",
       "Adopt a debugging habit: ask which layer and which hop failed"
     ],
     content_easy_markdown: `# Welcome to Computer Networks — Your Zero-to-Hero Map
-
-## Where are the interactive labs & animations?
-**Right here on this lesson page** — look above this story for the panel titled **Interactive lab · Animation**.
-
-That animated **Packet Journey** (Laptop → Router → ISP → Server) is not a separate menu item. On every Networks lesson that has a matching lab, MustAcademy mounts it **inline under Essential / Deep** — same place, same page. Press **Play** or **Step**.
-
-| Unit theme | Labs you will see on those lessons |
-| --- | --- |
-| Foundations | Packet Journey, OSI & TCP/IP Stack |
-| Performance | Four Delays, Throughput Bottleneck, Congestion Window |
-| Application | DNS Lookup, HTTP Request Pipeline |
-| Transport | TCP Three-Way Handshake |
-| Data / IP | IP Address Anatomy, Routing Path, NAT |
-
-If you only read the text and skip Play, you miss half the course.
 
 ## How it started
 Computer networks used to be specialist territory: phone companies, research labs, and a handful of universities. Today every app you use — chat, maps, streaming, banking — is a network application. This course takes you from "Wi-Fi magically works" to "I can explain why it works, why it feels slow, and how to fix it."
@@ -61,7 +46,7 @@ A **hero** graduate of CS 411 can:
 2. Name the four delays and spot a bottleneck.
 3. Contrast UDP vs TCP and when each fits.
 4. Read an IP address with a prefix and say what needs a router.
-5. Use an on-page lab to verify an idea — not only memorize slides.
+5. Use the on-page animations to check an idea — not only memorize slides.
 
 ## Your zero-to-hero unit map
 1. **Foundations** — Internet, protocols, packets, edge vs core, OSI/TCP/IP, encapsulation.
@@ -74,14 +59,14 @@ A **hero** graduate of CS 411 can:
 8. **Security** — threats, crypto/TLS intuition, firewalls, VPNs, secure page-load capstone.
 
 ## Step-by-step: how to use each lesson
-1. Stay on **Essential Protocol** and scroll to the **Interactive lab** at the top — press Play once.
-2. Read the story sections (simple idea → steps → analogy → check yourself).
-3. Switch to **Deep Architecture** only when you want interview / systems depth.
-4. Use **Research Notebook** to ask follow-up questions about *this* lesson.
+1. Press **Play** / **Step** on the animations above until the motion matches the idea in your head.
+2. Read the story (simple idea → steps → analogy → check yourself).
+3. Switch to **Deep Architecture** when you want interview / systems depth.
+4. Use **Research Notebook** for follow-up questions about *this* lesson.
 5. When something breaks in real life, ask: *which layer?* *which hop?* *loss or delay?*
 
 ## Real analogy
-Learning networks is like learning a city transit system. Essential is the tourist map. Deep is the operations manual. The **lab animation** is the live train tracker — you watch a hop move instead of only reading the timetable.
+Learning networks is like learning a city transit system. Essential is the tourist map. Deep is the operations manual. The animations are the live train tracker — you watch a hop move instead of only reading the timetable.
 
 ## Worked example
 You click a video. Hero-level narration (you will earn every phrase later):
@@ -91,29 +76,26 @@ You click a video. Hero-level narration (you will earn every phrase later):
 - Delays and queues decide if it feels snappy (**Performance**).
 - HTTP (or a streaming protocol) fetches chunks (**Application**).
 
-Today you only need the map — and one Play on the Packet Journey above.
+Today you only need the map — and one full Play through the Packet Journey, OSI stack, and HTTP pipeline above.
 
 ## Common mistakes
-- Looking for labs in a separate "Labs" tab — they live **on the lesson page**.
+- Skipping Play and only skimming text — the motion is half the learning.
 - Jumping to Deep and drowning in acronyms before intuition sticks.
-- Treating animations as optional fluff — they are the practice gym.
 - Memorizing OSI layer names without knowing each layer's *job*.
 - Believing "the internet is down" is a diagnosis — it is a symptom.
+- Skipping Unit 1 because "everyone knows Wi-Fi" — vocabulary gaps haunt later exams.
 
 ## Check yourself
-1. Where do interactive labs appear in MustAcademy?
-   - Answer: Inline on the lesson page under Essential/Deep (Interactive lab · Animation), not a separate course tab.
-2. What is Essential vs Deep?
+1. What is Essential vs Deep?
    - Answer: Essential builds intuition first; Deep adds mechanisms, math, and interview depth.
+2. Name three units after Foundations.
+   - Answer: Performance, Application, Transport (then Data Plane, Control Plane, Link/Wireless, Security).
 3. What question should you ask first when debugging?
    - Answer: Which layer or hop failed — not "is the internet broken forever?"
 
 ## See it now
-Scroll up to **Packet Journey**, press **Play**, then **Step**. Say at each hop: "edge host or forwarding hop?" That motion is the heartbeat of the whole course.`,
-    content_deep_markdown: `# Course Design, Labs, and Hero Outcomes (Deep)
-
-## Why labs sit on the lesson page
-Passive reading underprepares you for traceroute interpretation and outage triage. Each matching CS 411 lesson mounts an interactive animation (Packet Journey, OSI stack, Delay, Throughput, Congestion, TCP handshake, DNS, HTTP pipeline, IP anatomy, Routing, NAT, …) **above the manuscript** so cause → effect stays tied to the same topic. There is no separate lab catalog to hunt for.
+Replay **Packet Journey** above. At each hop say: "edge host or forwarding hop?" That motion is the heartbeat of the whole course.`,
+    content_deep_markdown: `# Course Design and Hero Outcomes (Deep)
 
 ## Why zero-to-hero sequencing works
 Industry and academia both suffer from "assume the reader already knows packets." We front-load shared vocabulary (host, packet, protocol, edge, core, layer) before performance math and TCP state machines. Students who skip foundations often fail later on congestion control because they never internalized store-and-forward and queuing.
@@ -124,13 +106,16 @@ Industry and academia both suffer from "assume the reader already knows packets.
 
 Interview tip: when asked "Walk me through loading a URL," structure by stages (DNS → TCP/QUIC → TLS → HTTP → render) and name *where reliability and naming live*. That narrative is the course spine.
 
+## Lab pedagogy
+Each CS 411 lesson mounts one or more interactive animations above the manuscript. Change one mental knob, watch one effect. Passive reading alone underprepares you for traceroute interpretation and outage triage.
+
 ## Failure cases heroes notice early
 - Symptom: "site won't load." Separate DNS failure, TCP SYN drop, TLS cert error, and HTTP 502.
 - Symptom: "slow." Ask delay vs throughput vs loss, not only "bad Wi-Fi."
 - Symptom: "works on phone, not laptop." Think local edge config, not global internet collapse.
 
 ## What "done" looks like for Unit 1
-You can draw edge vs core, define a protocol, sketch encapsulation, contrast circuit vs packet switching, and run the Packet Journey lab without notes. Everything later hangs on that scaffolding.`,
+You can draw edge vs core, define a protocol, sketch encapsulation, and contrast circuit vs packet switching without notes. Everything later hangs on that scaffolding.`,
   }),
 
   lesson({
