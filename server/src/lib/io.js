@@ -7,7 +7,16 @@ import logger from "../utils/logger.js";
 import { ACCESS_COOKIE } from "../utils/authCookies.js";
 function getAllowedOrigins() {
     if (process.env.NODE_ENV === 'production') {
-        return process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : [];
+        const origins = [];
+        if (process.env.FRONTEND_URL) origins.push(process.env.FRONTEND_URL);
+        // Comma-separated extras (e.g. preview deploys)
+        if (process.env.FRONTEND_URLS) {
+            for (const o of process.env.FRONTEND_URLS.split(',')) {
+                const t = o.trim();
+                if (t && !origins.includes(t)) origins.push(t);
+            }
+        }
+        return origins;
     }
     const devOrigins = [
         'http://localhost:5173',
@@ -26,6 +35,9 @@ let gameManager;
 
 export const initIo = (server) => {
     io = new Server(server, {
+        // Default path so client/server stay compatible across staggered deploys.
+        // Access cookie uses path `/`, so it is sent to /socket.io.
+        path: '/socket.io',
         cors: {
             origin: getAllowedOrigins(),
             methods: ["GET", "POST", "OPTIONS"],
@@ -49,6 +61,8 @@ export const initIo = (server) => {
     };
 
     const tokenFromHandshake = (socket) => {
+        const fromAuth = socket.handshake?.auth?.token;
+        if (fromAuth) return fromAuth;
         const cookies = cookie.parse(socket.handshake.headers.cookie || '');
         return cookies[ACCESS_COOKIE] || null;
     };
@@ -68,6 +82,13 @@ export const initIo = (server) => {
 
         socket.on("authenticate", (data) => {
             const userName = (typeof data === 'object' ? data.userName : null) || "Scholar";
+            // Already bound from handshake cookie — just refresh name / ack.
+            if (socket.data.userId) {
+                socket.data.userName = userName || socket.data.userName;
+                socket.emit("authenticated", { userId: socket.data.userId, userName: socket.data.userName });
+                return;
+            }
+
             const token = (typeof data === 'object' ? data.token : null) || tokenFromHandshake(socket);
 
             if (!token) {

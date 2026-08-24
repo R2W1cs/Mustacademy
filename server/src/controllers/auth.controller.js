@@ -36,7 +36,7 @@ const issueAuthSession = async (user, res) => {
   const accessToken = signAccessToken(user);
   const refreshToken = await createRefreshToken(user.id);
   setAuthCookies(res, accessToken, refreshToken);
-  return sanitizeUser(user);
+  return { user: sanitizeUser(user), accessToken };
 };
 
 const isLocked = (user) =>
@@ -88,8 +88,8 @@ export const register = async (req, res) => {
     [user.id]
   );
 
-  const safeUser = await issueAuthSession(user, res);
-  res.status(201).json({ user: safeUser });
+  const session = await issueAuthSession(user, res);
+  res.status(201).json(session);
 };
 
 export const login = async (req, res) => {
@@ -124,8 +124,8 @@ export const login = async (req, res) => {
     await clearFailedLogins(user.id);
     await revokeAllUserRefreshTokens(user.id);
 
-    const safeUser = await issueAuthSession(user, res);
-    res.json({ user: safeUser });
+    const session = await issueAuthSession(user, res);
+    res.json(session);
   } catch (error) {
     console.error('[Auth] Login error:', error);
     res.status(500).json({ message: 'Server error. Please try again shortly.' });
@@ -155,8 +155,8 @@ export const refresh = async (req, res) => {
       return res.status(401).json({ message: 'Invalid refresh token' });
     }
 
-    const safeUser = await issueAuthSession(rows[0], res);
-    res.json({ user: safeUser });
+    const session = await issueAuthSession(rows[0], res);
+    res.json(session);
   } catch (error) {
     console.error('[Auth] Refresh error:', error);
     res.status(500).json({ message: 'Failed to refresh session' });
@@ -179,6 +179,24 @@ export const getSession = async (req, res) => {
     return res.status(401).json({ message: 'Invalid token' });
   }
   res.json({ user: rows[0] });
+};
+
+/** Short-lived JWT for Socket.IO (cookies often miss cross-origin WS handshakes). */
+export const getWsToken = async (req, res) => {
+  const { rows } = await pool.query(
+    'SELECT id, role, token_version FROM users WHERE id = $1',
+    [req.user.id]
+  );
+  if (!rows.length) {
+    return res.status(401).json({ message: 'Invalid token' });
+  }
+  const user = rows[0];
+  const token = jwt.sign(
+    { id: user.id, role: user.role, tv: user.token_version ?? 0 },
+    process.env.JWT_SECRET,
+    { expiresIn: '10m' }
+  );
+  res.json({ token, userName: req.user.name || undefined });
 };
 
 export const forgotPassword = async (req, res) => {

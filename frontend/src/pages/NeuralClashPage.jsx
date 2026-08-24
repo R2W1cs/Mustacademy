@@ -61,18 +61,20 @@ export default function NeuralClashPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-6">
-                    <div className={`p-6 rounded-[2rem] border ${cardClass}`}>
-                        <div className="flex items-center gap-2 mb-3">
-                            <BookOpen size={15} className="text-indigo-400" />
-                            <h3 className="text-[10px] font-black uppercase tracking-widest opacity-50">Quiz Course</h3>
+                    <div className={`p-6 rounded-[2rem] border ${isDark ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-indigo-50 border-indigo-200 shadow-sm'}`}>
+                        <div className="flex items-center gap-2 mb-2">
+                            <BookOpen size={16} className={isDark ? 'text-indigo-300' : 'text-indigo-600'} />
+                            <h3 className={`text-[11px] font-black uppercase tracking-widest ${isDark ? 'text-indigo-200' : 'text-indigo-800'}`}>
+                                This topic
+                            </h3>
                         </div>
-                        <p className={`text-xs mb-3 ${isDark ? 'text-white/40' : 'text-slate-500'}`}>
-                            Choose which course the arena quiz should cover before hosting.
+                        <p className={`text-xs mb-3 ${isDark ? 'text-indigo-200/70' : 'text-indigo-900/70'}`}>
+                            Pick the course the arena quiz will use when you host.
                         </p>
                         <select
                             value={selectedTopic}
                             onChange={(e) => setSelectedTopic(e.target.value)}
-                            className={`w-full rounded-xl px-4 py-3 text-sm font-bold outline-none border ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'}`}
+                            className={`w-full rounded-xl px-4 py-3.5 text-sm font-bold outline-none border ${isDark ? 'bg-[#0b1020] border-indigo-400/40 text-white' : 'bg-white border-indigo-300 text-slate-900'}`}
                         >
                             <option value="General CS">General CS</option>
                             {courses.map((c) => (
@@ -81,6 +83,11 @@ export default function NeuralClashPage() {
                                 </option>
                             ))}
                         </select>
+                        {courses.length === 0 && (
+                            <p className={`text-[11px] mt-2 ${isDark ? 'text-amber-300/80' : 'text-amber-700'}`}>
+                                Courses didn’t load — you can still host with General CS, or refresh after logging in again.
+                            </p>
+                        )}
                     </div>
 
                     <div className={`p-12 rounded-[3rem] border flex flex-col items-center text-center relative overflow-hidden ${cardClass}`}>

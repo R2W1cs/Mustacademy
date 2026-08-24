@@ -145,11 +145,14 @@ const Login = () => {
     try {
       const res = await api.post("/auth/login", { email, password });
       const user = res.data.user ?? {};
-      login({
-        id: user.id,
-        name: user.name || "Scholar",
-        role: user.role || "student",
-      });
+      login(
+        {
+          id: user.id,
+          name: user.name || "Scholar",
+          role: user.role || "student",
+        },
+        res.data.accessToken
+      );
       const role = user.role;
       navigate(role === "admin" ? "/admin" : role === "professor" ? "/admin" : "/dashboard");
     } catch (err) {

@@ -7,6 +7,9 @@ const INCEPTION_API_KEY = process.env.INCEPTION_API_KEY;
 const INCEPTION_BASE_URL = (process.env.INCEPTION_BASE_URL || 'https://api.inceptionlabs.ai/v1').replace(/\/$/, '');
 export const INCEPTION_MODEL = process.env.INCEPTION_MODEL || 'mercury-2';
 const INCEPTION_REASONING = process.env.INCEPTION_REASONING_EFFORT || 'low';
+const ORCAROUTER_API_KEY = process.env.ORCAROUTER_API_KEY;
+const ORCAROUTER_BASE_URL = (process.env.ORCAROUTER_BASE_URL || 'https://api.orcarouter.ai/v1').replace(/\/$/, '');
+export const ORCAROUTER_MODEL = process.env.ORCAROUTER_MODEL || 'deepseek/deepseek-v4-flash-free';
 const ALLOW_OLLAMA = process.env.ALLOW_OLLAMA === 'true' || process.env.NODE_ENV !== 'production';
 // Groq retired legacy public Llama IDs — remap even if Render still has GROQ_MODEL=llama-3.3-70b-versatile.
 const DEFAULT_GROQ_MODEL = 'openai/gpt-oss-120b';
@@ -35,7 +38,7 @@ export const resolveGroqModel = (requested, fallback = DEFAULT_GROQ_MODEL) => {
 
 export const GROQ_MODEL = resolveGroqModel(process.env.GROQ_MODEL, DEFAULT_GROQ_MODEL);
 export const GROQ_FAST_MODEL = resolveGroqModel(process.env.GROQ_FAST_MODEL, DEFAULT_GROQ_FAST_MODEL);
-/** Prefer inception | groq | auto (default: try Groq then Inception) */
+/** Prefer orca | inception | groq | auto (default: Groq → Orca → Inception) */
 const AI_PRIMARY = (process.env.AI_PRIMARY || 'auto').toLowerCase();
 
 import Groq from "groq-sdk";
@@ -44,7 +47,8 @@ export const groq = GROQ_API_KEY ? new Groq({ apiKey: GROQ_API_KEY, timeout: 200
 console.log(`[AI Setup] Ollama URL: ${OLLAMA_URL} (enabled=${ALLOW_OLLAMA})`);
 console.log(`[AI Setup] Groq Key present: ${!!GROQ_API_KEY}`);
 console.log(`[AI Setup] Groq models: primary=${GROQ_MODEL} fast=${GROQ_FAST_MODEL}`);
-console.log(`[AI Setup] Inception Key present: ${!!INCEPTION_API_KEY} model=${INCEPTION_MODEL} primary=${AI_PRIMARY}`);
+console.log(`[AI Setup] Inception Key present: ${!!INCEPTION_API_KEY} model=${INCEPTION_MODEL}`);
+console.log(`[AI Setup] Orca Router Key present: ${!!ORCAROUTER_API_KEY} model=${ORCAROUTER_MODEL} primary=${AI_PRIMARY}`);
 
 const MOCK_FALLBACKS = {
     mentor: [
@@ -230,6 +234,134 @@ export const callInception = async (prompt, expectJson = true, model = INCEPTION
     }
 };
 
+/** Orca Router (OpenAI-compatible) — https://api.orcarouter.ai/v1 */
+export const callOrca = async (prompt, expectJson = true, model = ORCAROUTER_MODEL, maxTokens = 2048) => {
+    if (!ORCAROUTER_API_KEY) throw new Error("ORCAROUTER_API_KEY missing from environment");
+
+    let messages = buildMessages(prompt);
+    if (expectJson) {
+        const hasSystem = messages.some((m) => m.role === 'system');
+        if (!hasSystem) {
+            messages = [
+                { role: 'system', content: 'You are a JSON API. Always respond with valid JSON only. No markdown.' },
+                ...messages,
+            ];
+        } else {
+            messages = messages.map((m) =>
+                m.role === 'system'
+                    ? { ...m, content: `${m.content}\n\nAlways respond with valid JSON only.` }
+                    : m
+            );
+        }
+    }
+
+    console.log(`[AI Orca] Calling ${model} (expectJson=${expectJson}, maxTokens=${maxTokens})...`);
+
+    // Flash models may spend tokens on reasoning — keep a floor so content is not empty.
+    const tokenBudget = Math.max(maxTokens, expectJson ? 1024 : 256);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 45000);
+
+    let response;
+    try {
+        response = await fetch(`${ORCAROUTER_BASE_URL}/chat/completions`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${ORCAROUTER_API_KEY}`,
+            },
+            body: JSON.stringify({
+                model,
+                messages,
+                temperature: 0.75,
+                max_tokens: tokenBudget,
+            }),
+            signal: controller.signal,
+        });
+    } finally {
+        clearTimeout(timeoutId);
+    }
+
+    if (!response.ok) {
+        const errText = await response.text().catch(() => '');
+        throw new Error(`Orca HTTP ${response.status}: ${errText.slice(0, 200)}`);
+    }
+
+    const data = await response.json();
+    const message = data.choices?.[0]?.message;
+    const aiText = message?.content || message?.reasoning_content;
+    if (!aiText) throw new Error("Orca returned empty response");
+
+    if (!expectJson) return aiText;
+
+    try {
+        return JSON.parse(aiText);
+    } catch (e) {
+        console.warn("[AI Orca] JSON Parse Failed, attempting Repair:", e.message);
+        return parseAiJson(aiText);
+    }
+};
+
+const streamOrca = async (prompt, model = ORCAROUTER_MODEL, maxTokens = 4096) => {
+    if (!ORCAROUTER_API_KEY) throw new Error("ORCAROUTER_API_KEY missing from environment");
+    const messages = buildMessages(prompt);
+
+    console.log(`[AI Orca] Streaming via ${model}...`);
+    const response = await fetch(`${ORCAROUTER_BASE_URL}/chat/completions`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${ORCAROUTER_API_KEY}`,
+        },
+        body: JSON.stringify({
+            model,
+            messages,
+            temperature: 0.75,
+            max_tokens: maxTokens,
+            stream: true,
+        }),
+    });
+
+    if (!response.ok) {
+        const errText = await response.text().catch(() => '');
+        throw new Error(`Orca stream HTTP ${response.status}: ${errText.slice(0, 200)}`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    return (async function* () {
+        let buffer = '';
+        try {
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, { stream: true });
+                const parts = buffer.split('\n');
+                buffer = parts.pop() || '';
+                for (const line of parts) {
+                    const trimmed = line.trim();
+                    if (!trimmed.startsWith('data:')) continue;
+                    const payload = trimmed.slice(5).trim();
+                    if (!payload || payload === '[DONE]') continue;
+                    try {
+                        const json = JSON.parse(payload);
+                        const content = json.choices?.[0]?.delta?.content;
+                        if (content) {
+                            yield { choices: [{ delta: { content } }] };
+                        }
+                    } catch {
+                        // ignore partial JSON lines
+                    }
+                }
+            }
+        } finally {
+            reader.releaseLock();
+        }
+    })();
+};
+
 const streamInception = async (prompt, model = INCEPTION_MODEL, maxTokens = 4096) => {
     if (!INCEPTION_API_KEY) throw new Error("INCEPTION_API_KEY missing from environment");
     const messages = buildMessages(prompt);
@@ -290,9 +422,13 @@ const streamInception = async (prompt, model = INCEPTION_MODEL, maxTokens = 4096
     })();
 };
 
+const providerOrder = (preferFirst, rest) => {
+    if (!preferFirst) return rest;
+    return [preferFirst, ...rest.filter((fn) => fn !== preferFirst)];
+};
+
 export const streamAI = async (prompt, model = GROQ_MODEL, maxTokens = 4096) => {
     const messages = buildMessages(prompt);
-    const preferInception = AI_PRIMARY === 'inception';
     const resolvedGroqModel = resolveGroqModel(model, GROQ_MODEL);
 
     const tryGroq = async () => {
@@ -308,14 +444,22 @@ export const streamAI = async (prompt, model = GROQ_MODEL, maxTokens = 4096) => 
         });
     };
 
+    const tryOrca = async () => {
+        if (!ORCAROUTER_API_KEY) return null;
+        return streamOrca(prompt, ORCAROUTER_MODEL, maxTokens);
+    };
+
     const tryInception = async () => {
         if (!INCEPTION_API_KEY) return null;
         return streamInception(prompt, INCEPTION_MODEL, maxTokens);
     };
 
-    const order = preferInception
-        ? [tryInception, tryGroq]
-        : [tryGroq, tryInception];
+    const prefer =
+        AI_PRIMARY === 'orca' ? tryOrca
+            : AI_PRIMARY === 'inception' ? tryInception
+                : AI_PRIMARY === 'groq' ? tryGroq
+                    : null;
+    const order = providerOrder(prefer, [tryGroq, tryOrca, tryInception]);
 
     for (const attempt of order) {
         try {
@@ -338,9 +482,10 @@ export const streamAI = async (prompt, model = GROQ_MODEL, maxTokens = 4096) => 
 
     console.warn("[AI Stream] Critical failure. Deploying Mock Stream.");
     const mockReply = getMockResponse('mentor');
-    const reason = (!GROQ_API_KEY && !INCEPTION_API_KEY)
-        ? 'Set GROQ_API_KEY or INCEPTION_API_KEY on the server (Render env). Redeploy after adding it.'
-        : `Cloud AI request failed. Check GROQ_MODEL / INCEPTION_API_KEY.`;
+    const hasCloudKey = !!(GROQ_API_KEY || INCEPTION_API_KEY || ORCAROUTER_API_KEY);
+    const reason = !hasCloudKey
+        ? 'Set GROQ_API_KEY, ORCAROUTER_API_KEY, or INCEPTION_API_KEY on the server (Render env). Redeploy after adding it.'
+        : 'Cloud AI request failed. Check provider keys / models.';
     return (async function* () {
         const words = `⚠️ [EMERGENCY PROTOCOL ACTIVE] ${reason} ${mockReply}`.split(' ');
         for (const word of words) {
@@ -414,11 +559,20 @@ export const streamOllama = async (prompt) => {
     })();
 };
 
-// Cloud providers: Groq + Inception Labs (Mercury). Optional local Ollama in non-production.
+// Cloud providers: Groq + Orca Router + Inception Labs. Optional local Ollama in non-production.
 
-// --- FAST AI WRAPPER (GROQ_FAST_MODEL — for quick-response features) ---
+// --- FAST AI WRAPPER (Orca flash / GROQ_FAST_MODEL — for quick-response features) ---
 // Use for: project eval, grading, career analysis, quiz, readiness check, goal submission
 export const callFastAI = async (prompt, expectJson = true, maxTokens = 512) => {
+    if (ORCAROUTER_API_KEY) {
+        try {
+            console.log(`[callFastAI] Attempting Orca flash (${ORCAROUTER_MODEL})...`);
+            const orcaRes = await callOrca(prompt, expectJson, ORCAROUTER_MODEL, maxTokens);
+            if (orcaRes) return orcaRes;
+        } catch (err) {
+            console.warn("[callFastAI] Orca fast failed, trying Groq:", err.message);
+        }
+    }
     if (process.env.GROQ_API_KEY) {
         try {
             console.log(`[callFastAI] Attempting fast Groq protocol (${GROQ_FAST_MODEL})...`);
@@ -432,15 +586,20 @@ export const callFastAI = async (prompt, expectJson = true, maxTokens = 512) => 
     return callAI(prompt, expectJson, maxTokens);
 };
 
-// --- PRIMARY AI WRAPPER (Groq / Inception; optional local Ollama in non-production) ---
+// --- PRIMARY AI WRAPPER (Groq / Orca / Inception; optional local Ollama in non-production) ---
 export const callAI = async (prompt, expectJson = true, maxTokens = 2048) => {
     let lastError = null;
-    const preferInception = AI_PRIMARY === 'inception';
 
     const tryGroq = async () => {
         if (!process.env.GROQ_API_KEY) return null;
         console.log(`[callAI] Attempting Groq protocol (${GROQ_MODEL})...`);
         return callGroq(prompt, expectJson, GROQ_MODEL, maxTokens);
+    };
+
+    const tryOrca = async () => {
+        if (!ORCAROUTER_API_KEY) return null;
+        console.log(`[callAI] Attempting Orca protocol (${ORCAROUTER_MODEL})...`);
+        return callOrca(prompt, expectJson, ORCAROUTER_MODEL, maxTokens);
     };
 
     const tryInception = async () => {
@@ -449,9 +608,12 @@ export const callAI = async (prompt, expectJson = true, maxTokens = 2048) => {
         return callInception(prompt, expectJson, INCEPTION_MODEL, maxTokens);
     };
 
-    const order = preferInception
-        ? [tryInception, tryGroq]
-        : [tryGroq, tryInception];
+    const prefer =
+        AI_PRIMARY === 'orca' ? tryOrca
+            : AI_PRIMARY === 'inception' ? tryInception
+                : AI_PRIMARY === 'groq' ? tryGroq
+                    : null;
+    const order = providerOrder(prefer, [tryGroq, tryOrca, tryInception]);
 
     for (const attempt of order) {
         try {
@@ -476,14 +638,15 @@ export const callAI = async (prompt, expectJson = true, maxTokens = 2048) => {
 
     console.warn("[callAI] Critical failure. Deploying Mock Protocol.");
     const mockReply = getMockResponse('mentor');
-    const prefix = (!GROQ_API_KEY && !INCEPTION_API_KEY)
-        ? "⚠️ [OFFLINE MODE — set GROQ_API_KEY or INCEPTION_API_KEY on Render] "
+    const hasCloudKey = !!(GROQ_API_KEY || INCEPTION_API_KEY || ORCAROUTER_API_KEY);
+    const prefix = !hasCloudKey
+        ? "⚠️ [OFFLINE MODE — set GROQ_API_KEY, ORCAROUTER_API_KEY, or INCEPTION_API_KEY on Render] "
         : `⚠️ [OFFLINE MODE — AI request failed${lastError ? `: ${lastError.slice(0, 120)}` : ''}] `;
     if (expectJson) {
         return {
             reply: prefix + mockReply,
             segments: [
-                { speaker: "host", text: "Neural link unavailable. Set INCEPTION_API_KEY or GROQ_API_KEY, then redeploy." },
+                { speaker: "host", text: "Neural link unavailable. Set ORCAROUTER_API_KEY, GROQ_API_KEY, or INCEPTION_API_KEY, then redeploy." },
                 { speaker: "expert", text: mockReply }
             ],
             title: "Neural Link Interrupted",
