@@ -136,6 +136,7 @@ export const getCareerRoadmap = async (req, res) => {
 };
 
 export const generateFullRoadmap = async (req, res) => {
+    const userId = req.user.id;
     const { career } = req.body;
     if (!career?.trim()) {
         return res.status(400).json({ message: 'career field is required' });
@@ -151,6 +152,19 @@ export const generateFullRoadmap = async (req, res) => {
                 message: 'AI returned an incomplete roadmap. Please retry in a moment.',
             });
         }
+
+        // Normalize career label for persistence / reload matching
+        if (!data.career) data.career = careerText;
+
+        await pool.query(`
+            INSERT INTO career_roadmaps (user_id, target_job, architecture_json, roadmap_steps_json, full_roadmap_json, career_key)
+            VALUES ($1, $2, '{}'::jsonb, '[]'::jsonb, $3::jsonb, $4)
+            ON CONFLICT (user_id) DO UPDATE SET
+                full_roadmap_json = EXCLUDED.full_roadmap_json,
+                career_key = EXCLUDED.career_key,
+                updated_at = CURRENT_TIMESTAMP
+        `, [userId, careerText, JSON.stringify(data), careerText.toLowerCase()]);
+
         res.json(data);
     } catch (err) {
         console.error('[Career] Full roadmap generation error:', err.message);

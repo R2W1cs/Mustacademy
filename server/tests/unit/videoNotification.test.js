@@ -15,11 +15,16 @@ import { notifyColleaguesOfNewVideo } from '../../src/services/videoNotification
 describe('videoNotification.service', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('batch-inserts notifications for all colleagues', async () => {
-    pool.query.mockResolvedValueOnce({
-      rows: [{ user_id: 2 }, { user_id: 3 }],
-      rowCount: 2,
-    });
+  it('notifies colleagues and the uploader', async () => {
+    pool.query
+      .mockResolvedValueOnce({
+        rows: [{ user_id: 2 }, { user_id: 3 }],
+        rowCount: 2,
+      })
+      .mockResolvedValueOnce({
+        rows: [{ user_id: 1 }],
+        rowCount: 1,
+      });
 
     const count = await notifyColleaguesOfNewVideo({
       uploaderId: 1,
@@ -28,8 +33,17 @@ describe('videoNotification.service', () => {
       videoId: 99,
     });
 
-    expect(count).toBe(2);
-    expect(pool.query).toHaveBeenCalledTimes(1);
-    expect(emitToUser).toHaveBeenCalledTimes(2);
+    expect(count).toBe(3);
+    expect(pool.query).toHaveBeenCalledTimes(2);
+    expect(emitToUser).toHaveBeenCalledTimes(3);
+    expect(emitToUser).toHaveBeenCalledWith(
+      1,
+      'notification_received',
+      expect.objectContaining({
+        type: 'NEW_VIDEO',
+        message: expect.stringContaining('uploaded successfully'),
+        related_id: 99,
+      })
+    );
   });
 });

@@ -1,12 +1,15 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getMyProfile, updateProfile } from "../api/profile";
+import api from "../api/axios";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../auth/ThemeContext";
 import {
-    User, Briefcase, BookOpen, Zap, ChevronDown,
+    User, Briefcase, BookOpen, Zap, ChevronDown, Target, Activity,
     CheckCircle, AlertCircle, Camera, ArrowLeft, Sparkles, UserCircle2
 } from "lucide-react";
+
+const DEFAULT_WEEK_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 // ─── Field wrapper ───────────────────────────────────────────────────────────
 const Field = ({ label, icon: Icon, children, isDark }) => (
@@ -100,6 +103,8 @@ export default function ProfileSetup() {
     const [saved, setSaved] = useState(false);
     const [error, setError] = useState("");
     const [activeStatus, setActiveStatus] = useState("online");
+    const [weekDays, setWeekDays] = useState(DEFAULT_WEEK_DAYS);
+    const [weeklyActivity, setWeeklyActivity] = useState([0, 0, 0, 0, 0, 0, 0]);
 
     useEffect(() => {
         getMyProfile()
@@ -115,7 +120,38 @@ export default function ProfileSetup() {
                 }
             })
             .catch(() => { });
+
+        api.get("/dashboard/stats")
+            .then((res) => {
+                const days = res.data?.weekDays;
+                const activity = res.data?.weeklyActivity;
+                setWeekDays(Array.isArray(days) && days.length ? days : DEFAULT_WEEK_DAYS);
+                setWeeklyActivity(
+                    Array.isArray(activity) && activity.length
+                        ? activity.map((n) => Number(n) || 0)
+                        : [0, 0, 0, 0, 0, 0, 0]
+                );
+            })
+            .catch(() => {
+                setWeekDays(DEFAULT_WEEK_DAYS);
+                setWeeklyActivity([0, 0, 0, 0, 0, 0, 0]);
+            });
     }, []);
+
+    const weekBars = useMemo(() => {
+        const max = Math.max(...weeklyActivity, 0);
+        return weekDays.map((day, i) => ({
+            day: String(day).slice(0, 3),
+            pts: weeklyActivity[i] || 0,
+            height: max > 0 ? Math.max(8, Math.round(((weeklyActivity[i] || 0) / max) * 100)) : 8,
+        }));
+    }, [weekDays, weeklyActivity]);
+
+    const weekTotal = useMemo(
+        () => weeklyActivity.reduce((sum, n) => sum + (Number(n) || 0), 0),
+        [weeklyActivity]
+    );
+    const hasWeekActivity = weekTotal > 0;
 
     const set = (key, val) => setProfile(p => ({ ...p, [key]: val }));
 
@@ -279,30 +315,112 @@ export default function ProfileSetup() {
                             </div>
                         </motion.div>
 
-                        {/* Career preview card */}
+                        {/* Career preview — light surface to match Academic Parameters */}
                         {profile.dream_job && (
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
-                                className={`rounded-3xl border p-8 flex flex-col justify-center items-center text-center relative overflow-hidden ${isDark ? "bg-[#0f1729]/80 border-indigo-500/20 shadow-lg" : "bg-indigo-600 border-indigo-700 shadow-xl"}`}
+                                className={`rounded-3xl border p-8 relative overflow-hidden group transition-colors duration-500 ${isDark
+                                    ? "bg-white/5 border-white/10 hover:border-indigo-500/30 backdrop-blur-xl"
+                                    : "bg-white/80 border-indigo-100 hover:border-indigo-300 shadow-xl shadow-indigo-500/5 backdrop-blur-xl"
+                                    }`}
                             >
-                                <div className="absolute top-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-400 to-transparent opacity-50" />
-                                <p className={`text-[10px] font-black uppercase tracking-[0.3em] mb-4 ${isDark ? "text-indigo-400" : "text-indigo-200"}`}>
-                                    Target Architecture
-                                </p>
-                                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mb-4 ${isDark ? 'bg-[#0a0e1a] border border-white/5' : 'bg-white/10 border border-white/20'}`}>
-                                    {selectedCareer?.emoji}
+                                <div className={`absolute top-0 right-0 w-48 h-48 rounded-full opacity-0 group-hover:opacity-10 transition-opacity duration-700 blur-[60px] pointer-events-none ${isDark ? "bg-indigo-500" : "bg-indigo-600"}`} />
+
+                                <div className="flex items-center gap-4 relative z-10 mb-5">
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center border shrink-0 ${isDark ? "bg-[#0a0e1a] border-white/10 text-indigo-400 shadow-lg" : "bg-white border-indigo-100 text-indigo-600 shadow-md"}`}>
+                                        <Target size={18} />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className={`text-[10px] font-black uppercase tracking-[0.3em] ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>
+                                            Target Architecture
+                                        </p>
+                                        <p className={`text-[10px] font-bold uppercase tracking-widest mt-1 ${isDark ? "text-white/40" : "text-slate-500"}`}>
+                                            Career destination
+                                        </p>
+                                    </div>
                                 </div>
-                                <p className={`text-xl font-black tracking-tight ${isDark ? "text-white" : "text-white"}`}>
-                                    {profile.dream_job}
-                                </p>
-                                {profile.target_company && (
-                                    <p className={`text-[11px] font-bold uppercase tracking-widest mt-3 px-3 py-1 rounded bg-black/20 ${isDark ? "text-white/60" : "text-indigo-100"}`}>
-                                        @ {profile.target_company}
-                                    </p>
-                                )}
+
+                                <div className={`border-t mb-5 relative z-10 ${isDark ? "border-white/5" : "border-indigo-50"}`} />
+
+                                <div className="flex items-center gap-4 relative z-10">
+                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0 border ${isDark ? "bg-[#0a0e1a] border-white/10" : "bg-slate-50 border-slate-100"}`}>
+                                        {selectedCareer?.emoji || "🎯"}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className={`text-lg font-black tracking-tight truncate ${isDark ? "text-white" : "text-slate-900"}`}>
+                                            {profile.dream_job}
+                                        </p>
+                                        {profile.target_company && (
+                                            <p className={`text-[11px] font-bold uppercase tracking-widest mt-1 ${isDark ? "text-white/50" : "text-slate-500"}`}>
+                                                @ {profile.target_company}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
                             </motion.div>
                         )}
+
+                        {/* Weekly activity — replaces promotional AI Mentor-style filler */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 12 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.1 }}
+                            className={`rounded-3xl border p-8 relative overflow-hidden group transition-colors duration-500 ${isDark
+                                ? "bg-white/5 border-white/10 hover:border-indigo-500/30 backdrop-blur-xl"
+                                : "bg-white/80 border-indigo-100 hover:border-indigo-300 shadow-xl shadow-indigo-500/5 backdrop-blur-xl"
+                                }`}
+                        >
+                            <div className="flex items-center gap-4 relative z-10 mb-5">
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center border shrink-0 ${isDark ? "bg-[#0a0e1a] border-white/10 text-indigo-400 shadow-lg" : "bg-white border-indigo-100 text-indigo-600 shadow-md"}`}>
+                                    <Activity size={18} />
+                                </div>
+                                <div>
+                                    <h2 className={`text-xl font-black tracking-tight ${isDark ? "text-white" : "text-slate-900"}`}>Weekly Activity</h2>
+                                    <p className={`text-[10px] font-bold uppercase tracking-widest mt-1 ${isDark ? "text-white/40" : "text-slate-500"}`}>
+                                        Study pulse · Mon–Sun
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className={`border-t mb-5 relative z-10 ${isDark ? "border-white/5" : "border-indigo-50"}`} />
+
+                            {hasWeekActivity ? (
+                                <div className="relative z-10 flex items-end justify-between gap-1.5 h-28 px-0.5">
+                                    {weekBars.map((bar, i) => (
+                                        <div key={`${bar.day}-${i}`} className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
+                                            <div
+                                                className={`w-full max-w-[28px] rounded-t-md transition-all ${bar.pts > 0
+                                                    ? (isDark ? "bg-indigo-400/80" : "bg-indigo-500")
+                                                    : (isDark ? "bg-white/10" : "bg-slate-100")
+                                                    }`}
+                                                style={{ height: `${bar.height}%` }}
+                                                title={`${bar.pts} pts`}
+                                            />
+                                            <span className={`text-[9px] font-bold uppercase tracking-wider ${isDark ? "text-white/35" : "text-slate-400"}`}>
+                                                {bar.day}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className={`relative z-10 h-28 flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed ${isDark ? "border-white/10" : "border-slate-200"}`}>
+                                    <Activity size={22} className={isDark ? "text-white/20" : "text-slate-300"} />
+                                    <p className={`text-[10px] font-bold uppercase tracking-widest text-center px-4 ${isDark ? "text-white/30" : "text-slate-400"}`}>
+                                        No activity this week yet
+                                    </p>
+                                </div>
+                            )}
+
+                            <div className={`relative z-10 mt-5 pt-4 border-t flex items-center justify-between ${isDark ? "border-white/5" : "border-indigo-50"}`}>
+                                <span className={`text-[10px] font-bold uppercase tracking-widest ${isDark ? "text-white/40" : "text-slate-500"}`}>
+                                    Total this week
+                                </span>
+                                <span className={`text-sm font-black ${isDark ? "text-white" : "text-slate-900"}`}>
+                                    {weekTotal} pts
+                                </span>
+                            </div>
+                        </motion.div>
                     </div>
 
                     {/* ── RIGHT PANEL: Settings ── */}

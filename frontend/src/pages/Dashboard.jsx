@@ -17,7 +17,6 @@ import { useSocket } from "../hooks/useSocket";
 
 /* ─── Lazy modals ─────────────────────────────────────────────────────────── */
 const LeaderboardModal     = lazy(() => import("../components/LeaderboardModal"));
-const AiMentorModal        = lazy(() => import("../components/AiMentorModal"));
 const QuizModal            = lazy(() => import("../components/QuizModal"));
 const InterviewPrepModal   = lazy(() => import("../components/InterviewPrepModal"));
 const MultiplayerQuizModal = lazy(() => import("../components/MultiplayerQuizModal"));
@@ -112,7 +111,6 @@ export default function Dashboard() {
     const [skillTab,      setSkillTab]      = useState('general');
 
     // Modals
-    const [showMentor,      setShowMentor]      = useState(false);
     const [showQuiz,        setShowQuiz]        = useState(false);
     const [showFeedback,    setShowFeedback]    = useState(false);
     const [showInterview,   setShowInterview]   = useState(false);
@@ -674,21 +672,26 @@ export default function Dashboard() {
                             </div>
                         </div>
 
-                        {/* AI Mentor */}
-                        <div onClick={() => setShowMentor(true)}
+                        {/* Study Streak — replaces AI Mentor / Dr. Nova CTA */}
+                        <div onClick={() => navigate('/library')}
                              className={`group ${card} rounded-2xl p-5 cursor-pointer hover:-translate-y-0.5 transition-all relative overflow-hidden`}>
                             <div className="absolute -top-4 -right-4 w-24 h-24 rounded-full opacity-5 group-hover:opacity-10 transition-opacity"
                                  style={{ background: '#10b981' }} />
                             <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3 bg-emerald-500/10 border border-emerald-500/20">
-                                <Brain size={20} className="text-emerald-400" />
+                                <Flame size={20} className="text-emerald-400" />
                             </div>
-                            <h3 className={`font-black text-sm mb-1 ${head}`}>AI Mentor</h3>
-                            <p className={`text-[11px] ${muted}`}>Get a personalized learning blueprint from Dr. Nova</p>
-                            <div className={`mt-2 flex items-center gap-1.5 text-[10px] px-2.5 py-1 rounded-lg w-fit ${isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>
-                                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" /> Online
+                            <h3 className={`font-black text-sm mb-1 ${head}`}>Study Streak</h3>
+                            <div className="flex items-end gap-2 mb-2">
+                                <span className={`text-3xl font-black tracking-tighter ${head}`}>{streak}</span>
+                                <span className={`text-[11px] font-semibold mb-1 ${muted}`}>day{streak === 1 ? '' : 's'}</span>
                             </div>
+                            <p className={`text-[11px] ${muted}`}>
+                                {streak > 0
+                                    ? `${completedT} topics done · keep the chain alive`
+                                    : 'Start a topic today to begin your streak'}
+                            </p>
                             <div className="mt-4 flex items-center gap-1 text-[11px] font-bold text-emerald-400 group-hover:gap-2 transition-all">
-                                Ask Dr. Nova <ArrowRight size={12} />
+                                Continue learning <ArrowRight size={12} />
                             </div>
                         </div>
                     </div>
@@ -697,7 +700,6 @@ export default function Dashboard() {
 
             {/* ── MODALS ──────────────────────────────────────────────────── */}
             <AnimatePresence>
-                {showMentor && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"><Suspense fallback={null}><AiMentorModal onClose={() => setShowMentor(false)} /></Suspense></div>}
                 {showQuiz && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"><Suspense fallback={null}><QuizModal isOpen={true} onClose={() => setShowQuiz(false)} /></Suspense></div>}
                 {showFeedback && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"><Suspense fallback={null}><ScholarlyFeedbackModal onClose={() => setShowFeedback(false)} /></Suspense></div>}
                 {showInterview && <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 backdrop-blur-md p-4"><Suspense fallback={null}><InterviewPrepModal onClose={() => setShowInterview(false)} /></Suspense></div>}

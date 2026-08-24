@@ -1,9 +1,11 @@
 import React, { useState, useEffect, Suspense, lazy } from "react";
 import { useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import toast from "react-hot-toast";
 import Sidebar from "../components/Sidebar";
 import AtmosphericAura from "../components/AtmosphericAura";
 import { usePlan } from "../auth/PlanContext";
+import { useSocket } from "../hooks/useSocket";
 
 const GlobalAIPilot = lazy(() => import("../components/GlobalAIPilot"));
 const DailyPlanModal = lazy(() => import("../components/DailyPlanModal"));
@@ -18,6 +20,7 @@ const MainLayout = ({ children }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const location = useLocation();
+  const socket = useSocket();
 
   // Close mobile nav on route change
   useEffect(() => {
@@ -30,6 +33,18 @@ const MainLayout = ({ children }) => {
     window.addEventListener('open-mobile-nav', handler);
     return () => window.removeEventListener('open-mobile-nav', handler);
   }, []);
+
+  // Global NEW_VIDEO toasts (covers MainLayout routes; Navbar is unused here)
+  useEffect(() => {
+    if (!socket) return;
+    const onNotification = (notif) => {
+      if (notif?.type === "NEW_VIDEO" && notif?.message) {
+        toast.success(notif.message, { duration: 4500 });
+      }
+    };
+    socket.on("notification_received", onNotification);
+    return () => socket.off("notification_received", onNotification);
+  }, [socket]);
 
   useEffect(() => {
     // Load sidebar state

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import api from "../api/axios";
 import { useTheme } from "../auth/ThemeContext";
@@ -9,6 +9,12 @@ const apiMediaBase = (import.meta.env.VITE_API_URL || "http://localhost:5000/api
   .replace("/api", "")
   .replace(/\/$/, "");
 const resolveVideoSrc = (url) => (url?.startsWith("http") ? url : `${apiMediaBase}${url}`);
+
+const titleFromFilename = (name) => {
+  if (!name) return "Peer transmission";
+  const base = name.replace(/\.[^/.]+$/, "").replace(/[_-]+/g, " ").trim();
+  return base || "Peer transmission";
+};
 
 const VideoCard = ({ video, onLike, onFeedback, isDark }) => (
   <motion.div
@@ -72,119 +78,16 @@ const VideoCard = ({ video, onLike, onFeedback, isDark }) => (
   </motion.div>
 );
 
-const UploadModal = ({ isOpen, onClose, courseId, onUploadSuccess }) => {
-  const [title, setTitle] = useState("");
-  const [file, setFile] = useState(null);
-  const [uploading, setUploading] = useState(false);
-
-  if (!isOpen) return null;
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!file) {
-      toast.error("Please select a video file.");
-      return;
-    }
-
-    setUploading(true);
-
-    const formData = new FormData();
-    formData.append("courseId", courseId);
-    formData.append("title", title);
-    formData.append("videoFile", file);
-    formData.append("description", "Uploaded from Scholar's Device");
-
-    try {
-      await api.post("/videos/upload", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      onUploadSuccess();
-      onClose();
-      setTitle("");
-      setFile(null);
-    } catch (err) {
-      console.error("Upload Error Details:", err);
-      const errorMsg = err.response?.data?.message || "Transmission failed.";
-      toast.error(`DATA UPLINK FAILED: ${errorMsg}`);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        className="bg-[#0f1729] border border-white/10 rounded-2xl p-8 max-w-md w-full relative"
-      >
-        <button onClick={onClose} className="absolute top-4 right-4 text-white/30 hover:text-white">
-          ✕
-        </button>
-        <h3 className="text-xl font-black text-white mb-1 uppercase tracking-tight">Upload Transmission</h3>
-        <p className="text-xs text-white/40 mb-6 font-bold uppercase tracking-widest">
-          Share knowledge. Earn +10 ASC. MP4/MOV Supported.
-        </p>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="text-[10px] font-black text-white/40 uppercase tracking-widest block mb-2 px-1">
-              Designation Title
-            </label>
-            <input
-              required
-              className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white text-sm focus:border-[#FFD700] outline-none transition-colors font-black"
-              placeholder="e.g., Recursion Explained Simply"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="text-[10px] font-black text-white/40 uppercase tracking-widest block mb-2 px-1">
-              Static Asset File
-            </label>
-            <div
-              onClick={() => document.getElementById(`video-input-${courseId}`)?.click()}
-              className="w-full bg-white/5 border border-dashed border-white/10 rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-white/10 transition-all group"
-            >
-              <input
-                id={`video-input-${courseId}`}
-                type="file"
-                accept="video/*"
-                required
-                className="hidden"
-                onChange={(e) => setFile(e.target.files[0])}
-              />
-              <div className="w-12 h-12 bg-indigo-500/10 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform text-white">
-                📤
-              </div>
-              <p className="text-[10px] font-black text-white uppercase tracking-widest">
-                {file ? file.name : "Select Video Transmission"}
-              </p>
-            </div>
-          </div>
-          <button
-            disabled={uploading}
-            type="submit"
-            className="w-full bg-[#FFD700] hover:bg-[#FDB931] text-black font-black py-4 rounded-xl transition-transform active:scale-95 disabled:opacity-50 uppercase tracking-[0.2em] text-[10px] shadow-xl"
-          >
-            {uploading ? "Transmitting Data..." : "Upload & Earn ASC"}
-          </button>
-        </form>
-      </motion.div>
-    </div>
-  );
-};
-
 /**
  * Peer video vault for a course. Mount on CourseDetails (every course page).
  */
 const KnowledgeExchange = ({ courseId, className = "" }) => {
   const { theme } = useTheme();
   const isDark = theme === "dark";
+  const fileInputRef = useRef(null);
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showUpload, setShowUpload] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState(null);
 
@@ -204,6 +107,45 @@ const KnowledgeExchange = ({ courseId, className = "" }) => {
     setLoading(true);
     loadVideos();
   }, [courseId]);
+
+  const openFilePicker = () => {
+    if (uploading) return;
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelected = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    if (!file.type?.startsWith("video/")) {
+      toast.error("Please select a video file.");
+      return;
+    }
+
+    setUploading(true);
+    const toastId = toast.loading("Uploading transmission...");
+
+    const formData = new FormData();
+    formData.append("courseId", courseId);
+    formData.append("title", titleFromFilename(file.name));
+    formData.append("videoFile", file);
+    formData.append("description", "Uploaded from Scholar's Device");
+
+    try {
+      await api.post("/videos/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      await loadVideos();
+      toast.success("Transmission uploaded. +10 ASC awarded.", { id: toastId });
+    } catch (err) {
+      console.error("Upload Error Details:", err);
+      const errorMsg = err.response?.data?.message || "Transmission failed.";
+      toast.error(`DATA UPLINK FAILED: ${errorMsg}`, { id: toastId });
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleVideoUpdate = (updatedVideoData) => {
     if (updatedVideoData._deleted) {
@@ -233,6 +175,14 @@ const KnowledgeExchange = ({ courseId, className = "" }) => {
       viewport={{ once: true }}
       className={`relative ${className}`}
     >
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="video/*"
+        className="hidden"
+        onChange={handleFileSelected}
+      />
+
       <div
         className={`flex flex-col md:flex-row justify-between items-end mb-6 border-b pb-4 ${isDark ? "border-white/5" : "border-indigo-100"}`}
       >
@@ -245,10 +195,11 @@ const KnowledgeExchange = ({ courseId, className = "" }) => {
           </p>
         </div>
         <button
-          onClick={() => setShowUpload(true)}
-          className="px-6 py-2 bg-nebula text-white text-xs font-black uppercase tracking-widest rounded-lg shadow-lg hover:scale-105 transition-all mt-4 md:mt-0"
+          onClick={openFilePicker}
+          disabled={uploading}
+          className="px-6 py-2 bg-nebula text-white text-xs font-black uppercase tracking-widest rounded-lg shadow-lg hover:scale-105 transition-all mt-4 md:mt-0 disabled:opacity-50 disabled:hover:scale-100"
         >
-          + Upload Transmission
+          {uploading ? "Uploading..." : "+ Upload Transmission"}
         </button>
       </div>
 
@@ -294,10 +245,11 @@ const KnowledgeExchange = ({ courseId, className = "" }) => {
             Be the first to establish a knowledge uplink for this sector.
           </p>
           <button
-            onClick={() => setShowUpload(true)}
-            className="text-cyan-400 border-b border-cyan-400 text-xs font-bold uppercase tracking-widest pb-1 hover:text-white hover:border-white transition-colors"
+            onClick={openFilePicker}
+            disabled={uploading}
+            className="text-cyan-400 border-b border-cyan-400 text-xs font-bold uppercase tracking-widest pb-1 hover:text-white hover:border-white transition-colors disabled:opacity-50"
           >
-            Initialize First Upload
+            {uploading ? "Uploading..." : "Initialize First Upload"}
           </button>
         </div>
       )}
@@ -315,13 +267,6 @@ const KnowledgeExchange = ({ courseId, className = "" }) => {
           />
         </div>
       )}
-
-      <UploadModal
-        isOpen={showUpload}
-        onClose={() => setShowUpload(false)}
-        courseId={courseId}
-        onUploadSuccess={loadVideos}
-      />
     </motion.section>
   );
 };

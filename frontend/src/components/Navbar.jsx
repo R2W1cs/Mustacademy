@@ -7,6 +7,7 @@ import { getMyContributions } from "../api/contributions";
 import { useTheme } from "../auth/ThemeContext";
 import { useAuth } from "../auth/AuthContext";
 import { Sun, Moon, Bell, MessageSquare, ThumbsUp, Search, Menu } from "lucide-react";
+import toast from "react-hot-toast";
 import api from "../api/axios";
 
 const Navbar = () => {
@@ -68,8 +69,9 @@ const Navbar = () => {
         socket.on("notification_received", (newNotif) => {
             console.log("[SOCKET] New transmission detected:", newNotif);
             setNotifications(prev => [newNotif, ...prev]);
-
-            // Optional: Play a subtle notification sound or show a toast
+            if (newNotif?.type === "NEW_VIDEO" && newNotif?.message) {
+                toast.success(newNotif.message, { duration: 4500 });
+            }
         });
 
         return () => {

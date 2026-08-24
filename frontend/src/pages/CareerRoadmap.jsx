@@ -10,8 +10,20 @@ import {
     PlayCircle, Target, Package
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { generateFullRoadmap } from "../api/career";
+import { generateFullRoadmap, getCareerRoadmap } from "../api/career";
 import { useTheme } from "../auth/ThemeContext";
+
+const careersMatch = (a, b) =>
+    String(a || "").trim().toLowerCase() === String(b || "").trim().toLowerCase();
+
+const extractSavedFullRoadmap = (row) => {
+    const full = row?.full_roadmap_json;
+    if (!full) return null;
+    const parsed = typeof full === "string" ? (() => { try { return JSON.parse(full); } catch { return null; } })() : full;
+    if (!parsed?.years?.length) return null;
+    if (!parsed.career && row.career_key) parsed.career = row.target_job || row.career_key;
+    return parsed;
+};
 
 const CAREERS = [
     { id:"fullstack",  title:"Full-Stack Developer",      Icon:Layers,    color:"blue",   demand:"Very High", salary:"$75k-$160k",  tags:["React","Node.js","SQL"]  },
@@ -628,9 +640,9 @@ const RoadmapView = ({ roadmap, onBack, onRegenerate }) => {
                     })}
                 </nav>
 
-                <div ref={contentRef} className="flex-1 overflow-y-auto px-6 py-8 md:px-10 md:py-10 lg:px-16 lg:py-12">
+                <div ref={contentRef} className="flex-1 overflow-y-auto px-5 py-7 md:px-8 md:py-9 lg:px-12 lg:py-10">
                     <AnimatePresence mode="wait">
-                        <motion.div key={activeId} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }} className="max-w-3xl">
+                        <motion.div key={activeId} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }} className="w-full max-w-6xl">
                             {activeId === "overview" && <OverviewSection roadmap={roadmap} onNavigate={go} isDark={isDark} />}
                             {currentPhase && <PhaseDetail phase={currentPhase} yearColor={YEAR_META[currentYearIdx]?.color || "blue"} isDark={isDark} />}
                             {activeId.startsWith("year-") && !currentPhase && (() => {
@@ -681,9 +693,34 @@ const RoadmapView = ({ roadmap, onBack, onRegenerate }) => {
 };
 
 const CareerRoadmap = () => {
-    const [view, setView] = useState("selector");
+    const [view, setView] = useState("boot");
     const [roadmap, setRoadmap] = useState(null);
+    const [savedMeta, setSavedMeta] = useState(null); // { careerKey, careerTitle }
     const [loadingStep, setLoadingStep] = useState(0);
+
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                const res = await getCareerRoadmap();
+                if (cancelled) return;
+                const saved = extractSavedFullRoadmap(res.data);
+                if (saved) {
+                    setRoadmap(saved);
+                    setSavedMeta({
+                        careerKey: res.data.career_key || saved.career,
+                        careerTitle: saved.career || res.data.target_job,
+                    });
+                    setView("roadmap");
+                    return;
+                }
+            } catch {
+                /* 404 / no saved plan — show selector */
+            }
+            if (!cancelled) setView("selector");
+        })();
+        return () => { cancelled = true; };
+    }, []);
 
     useEffect(() => {
         if (view !== "loading") return;
@@ -692,15 +729,42 @@ const CareerRoadmap = () => {
         return () => clearInterval(iv);
     }, [view]);
 
-    const generate = async (career) => {
+    const generate = async (career, { force = false } = {}) => {
+        const careerLabel = String(career || "").trim();
+        const matchesSaved =
+            careersMatch(roadmap?.career, careerLabel) ||
+            careersMatch(savedMeta?.careerKey, careerLabel) ||
+            careersMatch(savedMeta?.careerTitle, careerLabel);
+
+        if (!force && matchesSaved && roadmap?.years?.length) {
+            setView("roadmap");
+            return;
+        }
+        // Same career saved but roadmap not in memory — reload from API
+        if (!force && matchesSaved) {
+            try {
+                const res = await getCareerRoadmap();
+                const saved = extractSavedFullRoadmap(res.data);
+                if (saved) {
+                    setRoadmap(saved);
+                    setView("roadmap");
+                    return;
+                }
+            } catch { /* fall through to generate */ }
+        }
+
         setView("loading");
         setLoadingStep(0);
         try {
-            const res = await generateFullRoadmap(career);
+            const res = await generateFullRoadmap(careerLabel);
             if (!res.data?.years?.length) {
                 throw new Error("incomplete_roadmap");
             }
             setRoadmap(res.data);
+            setSavedMeta({
+                careerKey: careerLabel.toLowerCase(),
+                careerTitle: res.data.career || careerLabel,
+            });
             setView("roadmap");
         } catch (err) {
             const status = err.response?.status;
@@ -715,13 +779,28 @@ const CareerRoadmap = () => {
             } else {
                 toast.error("Failed to generate roadmap. Please retry.");
             }
-            setView("selector");
+            setView(roadmap?.years?.length ? "roadmap" : "selector");
         }
     };
 
-    if (view === "selector") return <SelectorView onSelect={generate} />;
+    if (view === "boot") {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-[#070b14] text-white/50 text-xs font-bold uppercase tracking-widest">
+                Loading saved roadmap...
+            </div>
+        );
+    }
+    if (view === "selector") return <SelectorView onSelect={(c) => generate(c, { force: false })} />;
     if (view === "loading")  return <LoadingView step={loadingStep} />;
-    if (view === "roadmap" && roadmap) return <RoadmapView roadmap={roadmap} onBack={() => setView("selector")} onRegenerate={() => generate(roadmap.career)} />;
+    if (view === "roadmap" && roadmap) {
+        return (
+            <RoadmapView
+                roadmap={roadmap}
+                onBack={() => setView("selector")}
+                onRegenerate={() => generate(roadmap.career || savedMeta?.careerTitle, { force: true })}
+            />
+        );
+    }
     return null;
 };
 
