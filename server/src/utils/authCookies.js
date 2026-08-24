@@ -12,7 +12,9 @@ export function accessCookieOptions() {
     secure: isProd(),
     sameSite: isProd() ? 'none' : 'lax',
     maxAge: ACCESS_MS,
-    path: '/api',
+    // Must be `/` so Socket.IO (path `/socket.io`) receives the cookie.
+    // Path `/api` only covers REST and caused "No token provided" on arena sockets.
+    path: '/',
   };
 }
 
@@ -32,6 +34,8 @@ export function setAuthCookies(res, accessToken, refreshToken) {
 }
 
 export function clearAuthCookies(res) {
+  // Clear both current and legacy paths so old `/api` cookies do not linger.
+  res.clearCookie(ACCESS_COOKIE, { path: '/' });
   res.clearCookie(ACCESS_COOKIE, { path: '/api' });
   res.clearCookie(REFRESH_COOKIE, { path: '/api/auth' });
 }

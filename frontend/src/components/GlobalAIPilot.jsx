@@ -575,8 +575,15 @@ function GlobalAIPilot() {
                                         History
                                     </button>
                                 </div>
-                                <button onClick={() => setIsOpen(false)} className={`p-2 rounded-xl transition-all ${isDark ? 'hover:bg-white/5 text-slate-400 hover:text-white' : 'hover:bg-slate-200 text-slate-700 hover:text-slate-900'}`} aria-label="Close AI Pilot">
-                                    <X size={16} strokeWidth={2.5} />
+                                <button
+                                    onClick={() => setIsOpen(false)}
+                                    className={`p-2.5 rounded-xl transition-all border ${isDark
+                                        ? 'hover:bg-white/10 text-slate-200 border-white/10 hover:text-white'
+                                        : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200 shadow-sm'}`}
+                                    aria-label="Close AI Pilot"
+                                    title="Close"
+                                >
+                                    <X size={18} strokeWidth={2.75} />
                                 </button>
                             </div>
                         </div>
@@ -744,14 +751,14 @@ function GlobalAIPilot() {
                                             onClick={toggleListening}
                                             className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all ${isListening 
                                                 ? (isDark ? 'bg-red-500/20 text-red-400 animate-pulse' : 'bg-red-100 text-red-600 animate-pulse')
-                                                : (isDark ? 'hover:bg-white/5 text-slate-500' : 'hover:bg-slate-200 text-slate-400')
+                                                : (isDark ? 'hover:bg-white/5 text-slate-400' : 'hover:bg-slate-200 text-slate-600')
                                             }`}
                                         >
                                             {isListening ? <Mic size={14} /> : <MicOff size={14} />}
                                         </button>
                                         <textarea ref={inputRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKey}
                                             rows={1} placeholder={isListening ? "Listening..." : "Ask Dr. Nova anything..."} disabled={loading}
-                                            className={`flex-1 bg-transparent resize-none outline-none text-[11px] font-medium placeholder:opacity-40 max-h-20 leading-relaxed py-1 ${isDark ? 'text-white placeholder:text-slate-500' : 'text-slate-900 placeholder:text-slate-400'}`}
+                                            className={`flex-1 bg-transparent resize-none outline-none text-[11px] font-medium max-h-20 leading-relaxed py-1 ${isDark ? 'text-white placeholder:text-slate-400' : 'text-slate-900 placeholder:text-slate-600'}`}
                                             style={{ scrollbarWidth: 'none' }} />
                                         <button onClick={() => sendMessage()} disabled={loading || !input.trim()}
                                             className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all disabled:opacity-30 disabled:grayscale active:scale-90 shadow-lg ${isDark ? 'bg-indigo-600 shadow-indigo-600/20 hover:bg-indigo-500' : 'bg-red-600 shadow-red-600/20 hover:bg-red-700'}`}>
@@ -811,17 +818,20 @@ function GlobalAIPilot() {
             <motion.button
                 whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.92 }}
                 onClick={() => isOpen ? setIsOpen(false) : handleOpen()}
-                className={`relative w-14 h-14 rounded-2xl flex items-center justify-center shadow-2xl transition-all duration-200 shrink-0 ${isOpen
-                    ? (isDark ? 'bg-slate-700 shadow-slate-900/40' : 'bg-slate-800 shadow-slate-400/30')
+                className={`relative w-14 h-14 rounded-2xl flex items-center justify-center shadow-2xl transition-all duration-200 shrink-0 ring-offset-2 ${isOpen
+                    ? (isDark
+                        ? 'bg-slate-100 text-slate-900 shadow-slate-900/40 ring-2 ring-white/40'
+                        : 'bg-rose-600 text-white shadow-rose-400/50 ring-4 ring-rose-200')
                     : (isDark
                         ? 'bg-gradient-to-br from-indigo-500 via-violet-600 to-fuchsia-600 shadow-indigo-600/45 hover:shadow-indigo-500/60'
                         : 'bg-gradient-to-br from-rose-500 via-red-600 to-orange-500 shadow-rose-500/45 hover:shadow-rose-500/60')
                     }`}
+                aria-label={isOpen ? 'Close Dr. Nova' : 'Open Dr. Nova'}
             >
                 <AnimatePresence mode="wait">
                     {isOpen ? (
                         <motion.div key="x" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.15 }}>
-                            <X size={20} className="text-white" />
+                            <X size={22} strokeWidth={3} className={isDark ? 'text-slate-900' : 'text-white'} />
                         </motion.div>
                     ) : (
                         <motion.div key="bot" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.15 }}>

@@ -11,6 +11,7 @@ export const useSocket = () => {
 
     if (!socketInstance) {
         socketInstance = io(SOCKET_URL, {
+            path: '/api/socket.io',
             autoConnect: true,
             reconnection: true,
             withCredentials: true,

@@ -416,12 +416,19 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
                                             <p className="text-[9px] font-black uppercase tracking-widest mb-2" style={{ color: ui.muted }}>Topic</p>
                                             {isHost ? (
                                                 <>
+                                                    <label className="block text-[9px] font-bold uppercase tracking-wider mb-1.5" style={{ color: isDark ? '#a5b4fc' : '#4f46e5' }}>
+                                                        This topic (quiz subject)
+                                                    </label>
                                                     <select value={topic_} onChange={e => changeTopic(e.target.value)}
-                                                        className="w-full rounded-xl px-3 py-2 text-[11px] font-bold text-indigo-300 outline-none"
-                                                        style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.25)' }}>
-                                                        <option value="General CS">General CS</option>
+                                                        className="w-full rounded-xl px-3 py-2.5 text-[11px] font-bold outline-none"
+                                                        style={{
+                                                            background: isDark ? 'rgba(99,102,241,0.15)' : '#eef2ff',
+                                                            border: `1px solid ${isDark ? 'rgba(99,102,241,0.35)' : '#a5b4fc'}`,
+                                                            color: isDark ? '#c7d2fe' : '#1e1b4b',
+                                                        }}>
+                                                        <option value="General CS" style={{ color: '#0f172a' }}>General CS</option>
                                                         {courses.map(c => (
-                                                            <option key={c.id} value={c.name}>
+                                                            <option key={c.id} value={c.name} style={{ color: '#0f172a' }}>
                                                                 {c.name} (Y{c.year_number ?? c.yearNumber ?? '?'}S{c.semester_number ?? c.semesterNumber ?? '?'})
                                                             </option>
                                                         ))}
@@ -431,7 +438,12 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
                                                     )}
                                                 </>
                                             ) : (
-                                                <div className="px-3 py-2 rounded-xl text-[11px] font-bold text-indigo-300 text-center" style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)' }}>{topic_}</div>
+                                                <div className="px-3 py-2.5 rounded-xl text-[11px] font-bold text-center"
+                                                    style={{
+                                                        background: isDark ? 'rgba(99,102,241,0.15)' : '#eef2ff',
+                                                        border: `1px solid ${isDark ? 'rgba(99,102,241,0.3)' : '#a5b4fc'}`,
+                                                        color: isDark ? '#c7d2fe' : '#312e81',
+                                                    }}>{topic_}</div>
                                             )}
                                         </div>
 

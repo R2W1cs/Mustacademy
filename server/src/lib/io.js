@@ -26,6 +26,8 @@ let gameManager;
 
 export const initIo = (server) => {
     io = new Server(server, {
+        // Under `/api` so the access cookie (historically path=/api) is also sent.
+        path: '/api/socket.io',
         cors: {
             origin: getAllowedOrigins(),
             methods: ["GET", "POST", "OPTIONS"],
@@ -68,6 +70,13 @@ export const initIo = (server) => {
 
         socket.on("authenticate", (data) => {
             const userName = (typeof data === 'object' ? data.userName : null) || "Scholar";
+            // Already bound from handshake cookie — just refresh name / ack.
+            if (socket.data.userId) {
+                socket.data.userName = userName || socket.data.userName;
+                socket.emit("authenticated", { userId: socket.data.userId, userName: socket.data.userName });
+                return;
+            }
+
             const token = (typeof data === 'object' ? data.token : null) || tokenFromHandshake(socket);
 
             if (!token) {

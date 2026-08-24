@@ -46,6 +46,7 @@ const Navbar = () => {
 
         // Socket.io initialization
         const socket = io(import.meta.env.VITE_API_URL?.replace('/api', '') || "http://localhost:5000", {
+            path: '/api/socket.io',
             withCredentials: true,
         });
 
