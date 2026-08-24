@@ -8,6 +8,13 @@ export default defineConfig({
   build: {
     cssMinify: 'esbuild',
     outDir: 'dist',
-    assetsDir: 'assets'
-  }
+    assetsDir: 'assets',
+    // markdown-to-jsx uses eval for optional HTML/JS features; safe here (trusted lesson content).
+    rollupOptions: {
+      onwarn(warning, warn) {
+        if (warning.code === 'EVAL' && warning.id?.includes('markdown-to-jsx')) return;
+        warn(warning);
+      },
+    },
+  },
 })

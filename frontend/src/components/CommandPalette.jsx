@@ -93,11 +93,11 @@ const CommandPalette = () => {
                         initial={{ opacity: 0, scale: 0.9, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                        className="relative w-full max-w-2xl glass-morphism-strong rounded-3xl shadow-2xl overflow-hidden border border-white/10"
+                        className={`relative w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden border ${isDark ? 'glass-morphism-strong border-white/10' : 'bg-white border-slate-200'}`}
                     >
                         {/* Search Bar */}
-                        <div className="flex items-center px-6 py-4 border-b border-white/5 space-x-4 bg-white/5">
-                            <Search className="text-slate-400" size={20} />
+                        <div className={`flex items-center px-6 py-4 border-b space-x-4 ${isDark ? 'border-white/5 bg-white/5' : 'border-slate-100 bg-slate-50'}`}>
+                            <Search className={isDark ? 'text-slate-400' : 'text-slate-500'} size={20} />
                             <input
                                 ref={inputRef}
                                 type="text"
@@ -105,7 +105,7 @@ const CommandPalette = () => {
                                 value={query}
                                 onChange={(e) => setQuery(e.target.value)}
                                 onKeyDown={onKeyDown}
-                                className="flex-1 bg-transparent border-none outline-none text-white text-lg placeholder:text-slate-500 font-medium h-10"
+                                className={`flex-1 bg-transparent border-none outline-none text-lg placeholder:text-slate-500 font-medium h-10 ${isDark ? 'text-white' : 'text-slate-900'}`}
                             />
                             <div className="flex items-center space-x-1.5 px-2 py-1 bg-white/5 border border-white/10 rounded-lg">
                                 <Command size={10} className="text-slate-500" />
@@ -124,18 +124,18 @@ const CommandPalette = () => {
                                             onMouseEnter={() => setSelectedIndex(index)}
                                             className={`
                                                 flex items-center justify-between px-4 py-3 rounded-2xl cursor-pointer transition-all duration-200
-                                                ${index === selectedIndex ? 'bg-indigo-500/20 ring-1 ring-inset ring-indigo-500/30' : 'hover:bg-white/5'}
+                                                ${index === selectedIndex ? 'bg-indigo-500/20 ring-1 ring-inset ring-indigo-500/30' : (isDark ? 'hover:bg-white/5' : 'hover:bg-slate-50')}
                                             `}
                                         >
                                             <div className="flex items-center space-x-4">
                                                 <div className={`
                                                     p-2.5 rounded-xl flex items-center justify-center transition-colors
-                                                    ${index === selectedIndex ? 'bg-indigo-500 text-white shadow-lg' : 'bg-white/5 text-slate-400'}
+                                                    ${index === selectedIndex ? 'bg-indigo-500 text-white shadow-lg' : (isDark ? 'bg-white/5 text-slate-400' : 'bg-slate-100 text-slate-500')}
                                                 `}>
                                                     <action.icon size={18} />
                                                 </div>
                                                 <div>
-                                                    <p className={`text-sm font-bold uppercase tracking-wider ${index === selectedIndex ? 'text-white' : 'text-slate-300'}`}>{action.title}</p>
+                                                    <p className={`text-sm font-bold uppercase tracking-wider ${index === selectedIndex ? (isDark ? 'text-white' : 'text-indigo-700') : (isDark ? 'text-slate-300' : 'text-slate-700')}`}>{action.title}</p>
                                                     <p className="text-[10px] text-slate-500 font-medium tracking-tight">{action.category}</p>
                                                 </div>
                                             </div>

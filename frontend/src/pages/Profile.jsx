@@ -221,7 +221,7 @@ const Profile = () => {
               </div>
 
               <div className="flex-1 text-center md:text-left pt-2">
-                <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight mb-4">{profile.name}</h2>
+                <h2 className={`text-4xl md:text-5xl font-black tracking-tight mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>{profile.name}</h2>
 
                 <div className="flex flex-wrap justify-center md:justify-start gap-3 mb-6">
                   <div className={`px-4 py-1.5 rounded border ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
@@ -379,8 +379,8 @@ const Profile = () => {
 
           {/* 4. RECENT TRANSMISSIONS (Data Feed) */}
           <BentoCard className="md:col-span-3 lg:col-span-4 row-span-2" delay={0.3}>
-            <div className="sticky top-0 bg-[#0f1729]/95 backdrop-blur-md z-10 pb-4 mb-2 border-b border-white/5 flex justify-between items-center">
-              <h3 className="text-xs font-bold text-white/60 uppercase tracking-[0.2em]">Transmission Log</h3>
+            <div className={`sticky top-0 backdrop-blur-md z-10 pb-4 mb-2 border-b flex justify-between items-center ${isDark ? 'bg-[#0f1729]/95 border-white/5' : 'bg-white/95 border-slate-200'}`}>
+              <h3 className={`text-xs font-bold uppercase tracking-[0.2em] ${isDark ? 'text-white/60' : 'text-slate-600'}`}>Transmission Log</h3>
               <span className="text-[10px] font-mono text-white/30">{recentHistory.length} ENTRIES</span>
             </div>
             <div className="space-y-1">

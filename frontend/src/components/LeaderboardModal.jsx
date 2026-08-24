@@ -38,7 +38,7 @@ export default function LeaderboardModal({ onClose, isDark }) {
 
             <button
                 onClick={onClose}
-                className={`absolute top-6 right-6 p-2 rounded-full transition-colors ${isDark ? 'hover:bg-white/10 text-gray-400' : 'hover:bg-slate-100 text-slate-400'}`}
+                className={`absolute top-6 right-6 p-2 rounded-full transition-colors ${isDark ? 'hover:bg-white/10 text-gray-400' : 'hover:bg-slate-200 text-slate-700'}`}
             >
                 <X size={20} />
             </button>

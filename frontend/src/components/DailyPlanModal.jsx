@@ -128,7 +128,7 @@ export default function DailyPlanModal({ onClose, onPlanGenerated }) {
                 </div>
                 <button
                     onClick={onClose}
-                    className={`p-2 rounded-full transition ${isDark ? "hover:bg-white/10 text-white/50 hover:text-white" : "hover:bg-slate-200 text-slate-400 hover:text-slate-700"}`}
+                    className={`p-2 rounded-full transition ${isDark ? "hover:bg-white/10 text-white/50 hover:text-white" : "hover:bg-slate-200 text-slate-700 hover:text-slate-900"}`}
                 >
                     <X size={20} />
                 </button>

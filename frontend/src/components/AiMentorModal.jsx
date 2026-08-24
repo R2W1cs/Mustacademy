@@ -91,7 +91,7 @@ const AiMentorModal = ({ isOpen, onClose, context }) => {
                         </p>
                     </div>
                 </div>
-                <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors p-2 hover:bg-gray-50 rounded-lg">
+                <button onClick={onClose} className="text-slate-600 hover:text-slate-900 transition-colors p-2 hover:bg-slate-100 rounded-lg" aria-label="Close">
                     ✕
                 </button>
             </div>

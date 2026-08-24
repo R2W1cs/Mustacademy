@@ -442,7 +442,7 @@ function GlobalAIPilot() {
                                     {formatTime(timeLeft)}
                                 </span>
                             </div>
-                            <ChevronRight size={12} className={`transition-transform shrink-0 ${missionExpanded ? 'rotate-90' : ''} ${isDark ? 'text-slate-500' : 'text-slate-300'}`} />
+                            <ChevronRight size={12} className={`transition-transform shrink-0 ${missionExpanded ? 'rotate-90' : ''} ${isDark ? 'text-slate-500' : 'text-slate-600'}`} />
                         </div>
 
                         {/* Expanded details */}
@@ -472,7 +472,7 @@ function GlobalAIPilot() {
                                                 return (
                                                     <div key={i} className="space-y-1">
                                                         <div className={`flex items-center gap-2 py-1.5 px-2 rounded-lg text-[10px] transition-all ${active ? (isDark ? 'bg-indigo-500/10 text-indigo-300 font-black' : 'bg-red-50 text-red-700 font-black')
-                                                            : done ? (isDark ? 'text-slate-600 line-through' : 'text-slate-300 line-through')
+                                                            : done ? (isDark ? 'text-slate-600 line-through' : 'text-slate-400 line-through')
                                                                 : (isDark ? 'text-slate-500' : 'text-slate-400')
                                                             }`}>
                                                             <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${done ? 'bg-emerald-500' : active ? (isDark ? 'bg-indigo-500 shadow-lg' : 'bg-red-500 shadow-lg') : (isDark ? 'bg-slate-700' : 'bg-slate-200')}`} />
@@ -534,7 +534,7 @@ function GlobalAIPilot() {
                                     >
                                         <Sparkles size={18} className={isDark ? "text-indigo-400" : "text-red-500"} />
                                     </motion.div>
-                                    <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-[#070b14] animate-pulse" />
+                                    <span className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 animate-pulse ${isDark ? 'border-[#070b14]' : 'border-white'}`} />
                                 </div>
                                 <div>
                                     <h3 className={`text-xs font-black uppercase tracking-widest ${isDark ? 'text-white' : 'text-slate-900'}`}>Dr. Nova</h3>
@@ -558,25 +558,25 @@ function GlobalAIPilot() {
                                     <div className={`w-px h-3 self-center mx-1 ${isDark ? 'bg-white/10' : 'bg-slate-200'}`} />
                                     <button
                                         onClick={() => setActiveTab('plan')}
-                                        className={`px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'plan' ? (isDark ? 'bg-indigo-600 text-white shadow-lg' : 'bg-red-600 text-white shadow-sm') : (isDark ? 'text-slate-500' : 'text-slate-400')}`}
+                                        className={`px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'plan' ? (isDark ? 'bg-indigo-600 text-white shadow-lg' : 'bg-red-600 text-white shadow-sm') : (isDark ? 'text-slate-500' : 'text-slate-600')}`}
                                     >
                                         Plan
                                     </button>
                                     <button
                                         onClick={() => setActiveTab('chat')}
-                                        className={`px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'chat' ? (isDark ? 'bg-indigo-600 text-white shadow-lg' : 'bg-red-600 text-white shadow-sm') : (isDark ? 'text-slate-500' : 'text-slate-400')}`}
+                                        className={`px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'chat' ? (isDark ? 'bg-indigo-600 text-white shadow-lg' : 'bg-red-600 text-white shadow-sm') : (isDark ? 'text-slate-500' : 'text-slate-600')}`}
                                     >
                                         Chat
                                     </button>
                                     <button
                                         onClick={() => setActiveTab('history')}
-                                        className={`px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'history' ? (isDark ? 'bg-indigo-600 text-white shadow-lg' : 'bg-red-600 text-white shadow-sm') : (isDark ? 'text-slate-500' : 'text-slate-400')}`}
+                                        className={`px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'history' ? (isDark ? 'bg-indigo-600 text-white shadow-lg' : 'bg-red-600 text-white shadow-sm') : (isDark ? 'text-slate-500' : 'text-slate-600')}`}
                                     >
                                         History
                                     </button>
                                 </div>
-                                <button onClick={() => setIsOpen(false)} className={`p-2 rounded-xl transition-all ${isDark ? 'hover:bg-white/5 text-slate-400 hover:text-white' : 'hover:bg-slate-100 text-slate-400 hover:text-slate-700'}`}>
-                                    <ChevronDown size={16} />
+                                <button onClick={() => setIsOpen(false)} className={`p-2 rounded-xl transition-all ${isDark ? 'hover:bg-white/5 text-slate-400 hover:text-white' : 'hover:bg-slate-200 text-slate-700 hover:text-slate-900'}`} aria-label="Close AI Pilot">
+                                    <X size={16} strokeWidth={2.5} />
                                 </button>
                             </div>
                         </div>
