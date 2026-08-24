@@ -295,7 +295,7 @@ export default function LandingPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 text-left">
                         {[
                             { icon: GitBranch, title: "Structured Roadmaps", desc: "Curated learning paths built by industry experts", color: "from-[#6366f1] to-[#8b5cf6]" },
-                            { icon: Brain, title: "Deep Explanations", desc: "Toggle between normal and deep-dive mode per topic", color: "from-[#8b5cf6] to-[#a855f7]" },
+                            { icon: Brain, title: "Interactive Lessons", desc: "Labs, animations, and Research Notebook on every topic", color: "from-[#8b5cf6] to-[#a855f7]" },
                             { icon: Sparkles, title: "AI Assistant", desc: "Instant personalized guidance available 24/7", color: "from-[#ec4899] to-[#f43f5e]" },
                             { icon: Trophy, title: "Interview Prep", desc: "Real-world coding challenges and mock interviews", color: "from-[#10b981] to-[#14b8a6]" },
                             { icon: Zap, title: "Project Corner", desc: "Start implementing your ideas with our guidance and support", color: "from-[#f59e0b] to-[#eab308]" },
