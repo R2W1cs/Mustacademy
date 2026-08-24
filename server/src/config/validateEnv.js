@@ -10,7 +10,8 @@ const REQUIRED = [
 ];
 
 const RECOMMENDED = [
-  { key: 'GROQ_API_KEY', hint: 'Groq API key — required for Dr Nova, Boardroom, and AI features' },
+  { key: 'GROQ_API_KEY', hint: 'Groq API key — Dr Nova / Boardroom (or use ORCAROUTER_API_KEY)' },
+  { key: 'ORCAROUTER_API_KEY', hint: 'Orca Router key — OpenAI-compatible fallback (deepseek flash-free)' },
   { key: 'FRONTEND_URL', hint: 'Frontend origin for CORS (e.g. https://mustacademy.vercel.app)' },
   { key: 'SERPAPI_KEY', hint: 'SerpAPI key — Market Pulse live sync will fail without it' },
 ];

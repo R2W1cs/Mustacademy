@@ -1,4 +1,4 @@
-import { callOllama } from "../utils/aiClient.js";
+import { callFastAI } from "../utils/aiClient.js";
 import pool from "../config/db.js";
 
 const K_FACTOR = 32;
@@ -409,7 +409,7 @@ class MultiplayerGameManager {
         }`;
 
         try {
-            const data = await callOllama(prompt);
+            const data = await callFastAI(prompt, true, 2048);
             if (Array.isArray(data?.questions) && data.questions.length > 0) {
                 return data;
             }

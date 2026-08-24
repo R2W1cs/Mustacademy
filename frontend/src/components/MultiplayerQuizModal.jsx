@@ -415,20 +415,21 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
                                         <div className="p-4 rounded-2xl" style={{ background: ui.card, border: `1px solid ${ui.cardBorder}` }}>
                                             <p className="text-[9px] font-black uppercase tracking-widest mb-2" style={{ color: ui.muted }}>Topic</p>
                                             {isHost ? (
-                                                <select value={topic_} onChange={e => changeTopic(e.target.value)}
-                                                    className="w-full rounded-xl px-3 py-2 text-[11px] font-bold text-indigo-300 outline-none"
-                                                    style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.25)' }}>
-                                                    <option value="General CS">General CS</option>
-                                                    {courses.map(c => (
-                                                        <option key={c.id} value={c.name}>
-                                                            {c.name} (Y{c.year_number ?? c.yearNumber ?? '?'}S{c.semester_number ?? c.semesterNumber ?? '?'})
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                                {courses.length === 0 && (
-                                                    <p className="text-[9px] mt-2" style={{ color: ui.muted }}>No courses loaded — using General CS</p>
-                                                )}
-                                            </>
+                                                <>
+                                                    <select value={topic_} onChange={e => changeTopic(e.target.value)}
+                                                        className="w-full rounded-xl px-3 py-2 text-[11px] font-bold text-indigo-300 outline-none"
+                                                        style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.25)' }}>
+                                                        <option value="General CS">General CS</option>
+                                                        {courses.map(c => (
+                                                            <option key={c.id} value={c.name}>
+                                                                {c.name} (Y{c.year_number ?? c.yearNumber ?? '?'}S{c.semester_number ?? c.semesterNumber ?? '?'})
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                    {courses.length === 0 && (
+                                                        <p className="text-[9px] mt-2" style={{ color: ui.muted }}>No courses loaded — using General CS</p>
+                                                    )}
+                                                </>
                                             ) : (
                                                 <div className="px-3 py-2 rounded-xl text-[11px] font-bold text-indigo-300 text-center" style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)' }}>{topic_}</div>
                                             )}
