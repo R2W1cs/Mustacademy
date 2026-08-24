@@ -143,11 +143,14 @@ const Register = () => {
     try {
       const res = await api.post("/auth/register", { name, email, password });
       const user = res.data.user ?? {};
-      login({
-        id: user.id,
-        name: user.name || name,
-        role: user.role || "student",
-      });
+      login(
+        {
+          id: user.id,
+          name: user.name || name,
+          role: user.role || "student",
+        },
+        res.data.accessToken
+      );
       setSuccess(true);
       setTimeout(() => navigate("/dashboard"), 1500);
     } catch (err) {

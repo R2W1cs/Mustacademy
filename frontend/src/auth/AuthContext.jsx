@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import api from "../api/axios";
+import { clearSocketToken, setSocketToken } from "../utils/socketAuth";
 
 const AuthContext = createContext(null);
 
@@ -14,6 +15,7 @@ const clearUserStorage = () => {
   localStorage.removeItem("userId");
   localStorage.removeItem("userName");
   localStorage.removeItem("role");
+  clearSocketToken();
 };
 
 export const AuthProvider = ({ children }) => {
@@ -33,8 +35,9 @@ export const AuthProvider = ({ children }) => {
       .finally(() => setBootstrapped(true));
   }, []);
 
-  const login = (userData) => {
+  const login = (userData, accessToken) => {
     persistUser(userData);
+    if (accessToken) setSocketToken(accessToken);
     setUser(userData);
   };
 

@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { io } from "socket.io-client";
 import api from "../api/axios";
+import { getSocketToken, setSocketToken } from "../utils/socketAuth";
 
 const isProduction =
   typeof window !== "undefined" &&
@@ -18,19 +19,36 @@ let socketInstance = null;
 let authInFlight = null;
 let isSocketAuthed = false;
 
-async function fetchWsToken() {
+async function resolveAuthToken() {
+  const cached = getSocketToken();
+  if (cached) return cached;
+
   try {
     const { data } = await api.get("/auth/ws-token");
-    return data?.token || null;
-  } catch {
-    try {
-      await api.post("/auth/refresh", null, { _skipRefresh: true });
-      const { data } = await api.get("/auth/ws-token");
-      return data?.token || null;
-    } catch {
-      return null;
+    if (data?.token) {
+      setSocketToken(data.token);
+      return data.token;
     }
+  } catch {
+    /* ws-token may 404 until backend is deployed */
   }
+
+  try {
+    const { data } = await api.post("/auth/refresh", null, { _skipRefresh: true });
+    if (data?.accessToken) {
+      setSocketToken(data.accessToken);
+      return data.accessToken;
+    }
+    const ws = await api.get("/auth/ws-token");
+    if (ws.data?.token) {
+      setSocketToken(ws.data.token);
+      return ws.data.token;
+    }
+  } catch {
+    /* fall through — cookie handshake may still work after cookie path fix */
+  }
+
+  return getSocketToken();
 }
 
 function waitForConnect(socket, ms = 10000) {
@@ -90,7 +108,10 @@ export async function authenticateSocket(socket = socketInstance, { force = fals
     if (!force && isSocketAuthed) return true;
 
     const userName = localStorage.getItem("userName") || "Scholar";
-    const token = await fetchWsToken();
+    const token = await resolveAuthToken();
+
+    // Already bound via cookie handshake on connect.
+    if (!force && isSocketAuthed) return true;
 
     return new Promise((resolve) => {
       let settled = false;
@@ -110,7 +131,12 @@ export async function authenticateSocket(socket = socketInstance, { force = fals
 
       socket.once("authenticated", onOk);
       socket.once("auth_error", onErr);
-      socket.emit("authenticate", token ? { userName, token } : { userName });
+      // Never emit authenticate without a token — that yields "No token provided".
+      if (!token) {
+        finish(false);
+        return;
+      }
+      socket.emit("authenticate", { userName, token });
     });
   })().finally(() => {
     authInFlight = null;
@@ -138,6 +164,9 @@ export const useSocket = () => {
       reconnection: true,
       withCredentials: true,
       transports: ["websocket", "polling"],
+      auth: (cb) => {
+        cb({ token: getSocketToken() || undefined });
+      },
     });
 
     socketInstance.on("disconnect", () => {

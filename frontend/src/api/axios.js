@@ -1,4 +1,5 @@
 import axios from "axios";
+import { clearSocketToken, setSocketToken } from "../utils/socketAuth";
 
 const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
 const baseURL = import.meta.env.VITE_API_URL || (isProduction ? "https://mustacademy-backend.onrender.com/api" : "http://localhost:5000/api");
@@ -12,7 +13,13 @@ const api = axios.create({
 });
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const token = response?.data?.accessToken;
+    if (token && typeof response?.config?.url === "string" && response.config.url.includes("/auth/")) {
+      setSocketToken(token);
+    }
+    return response;
+  },
   async (error) => {
     const original = error.config;
 
@@ -27,12 +34,14 @@ api.interceptors.response.use(
     if (error.response.status === 401 && !original._retry && !isAuthRoute) {
       original._retry = true;
       try {
-        await api.post("/auth/refresh", null, { _skipRefresh: true });
+        const { data } = await api.post("/auth/refresh", null, { _skipRefresh: true });
+        if (data?.accessToken) setSocketToken(data.accessToken);
         return api(original);
       } catch (refreshError) {
         localStorage.removeItem("userId");
         localStorage.removeItem("userName");
         localStorage.removeItem("role");
+        clearSocketToken();
         if (window.location.pathname !== "/login") {
           window.location.href = "/login";
         }
