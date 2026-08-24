@@ -142,6 +142,8 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
     const [msgs, setMsgs]               = useState([]);
     const [chatInput, setChatInput]     = useState("");
     const [chatOpen, setChatOpen]       = useState(false);
+    const [quizReady, setQuizReady]     = useState(false);
+    const [creatingRoom, setCreatingRoom] = useState(true);
     const chatEnd   = useRef(null);
     const pickedRef = useRef(null);
 
@@ -149,23 +151,69 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
     const userName = localStorage.getItem("userName") || "Scholar";
 
     useEffect(() => {
-        if (!room) {
-            action === 'join' && joinCode
-                ? socket.emit("join_quiz_room", { roomId: joinCode.trim(), userId, userName })
-                : socket.emit("create_quiz_room", { userId, userName, topic, forceNew: action === 'host' });
+        let cancelled = false;
+        let started = false;
+
+        const startLobby = () => {
+            if (cancelled || started || room) return;
+            started = true;
+            setCreatingRoom(true);
+            setQuizReady(false);
+            if (action === 'join' && joinCode) {
+                socket.emit("join_quiz_room", { roomId: joinCode.trim().toUpperCase(), userId, userName });
+            } else {
+                socket.emit("create_quiz_room", {
+                    userId,
+                    userName,
+                    topic: topic || topic_ || "General CS",
+                    forceNew: true,
+                });
+            }
             socket.emit("get_online_users");
+        };
+
+        if (action === 'host' || !action) {
+            getAllCourses({ params: { limit: 200 } })
+                .then((r) => {
+                    const list = Array.isArray(r.data) ? r.data : (r.data?.courses || []);
+                    setCourses(list);
+                })
+                .catch(() => setCourses([]));
         }
 
-        if (action === 'host' || !action) getAllCourses().then(r => setCourses(r.data)).catch(()=>{});
+        const enterRoom = (d) => {
+            setRoom(d.id);
+            setPlayers([...(d.players || [])]);
+            setTopic_(d.topic || topic_ || "General CS");
+            setGameState("lobby");
+            setCreatingRoom(false);
+            setQuizReady(d.quizStatus === "ready" || Boolean(d.quiz?.questions?.length));
+        };
 
-        const enterRoom = (d) => { setRoom(d.id); setPlayers([...d.players]); setTopic_(d.topic); setGameState("lobby"); };
+        socket.on("authenticated", startLobby);
+        // If handshake already authenticated before this effect ran, start immediately.
+        if (socket.connected) {
+            // Ask server to re-auth; it will emit authenticated again.
+            socket.emit("authenticate", { userName });
+            // Fallback: if already authed via cookie handshake, don't wait forever.
+            const t = setTimeout(startLobby, 800);
+            socket.once("authenticated", () => clearTimeout(t));
+        } else {
+            socket.once("connect", () => {
+                socket.emit("authenticate", { userName });
+            });
+        }
 
         socket.on("room_created",       enterRoom);
         socket.on("joined_successfully",enterRoom);
-        socket.on("room_updated",       d => { setTopic_(d.topic); setPlayers([...d.players]); });
+        socket.on("room_updated",       d => { setTopic_(d.topic); setPlayers([...(d.players || [])]); setQuizReady(d.quizStatus === "ready" || Boolean(d.quiz?.questions?.length)); });
         socket.on("join_failed",        e => { toast.error(`Join failed: ${e}`); onClose(); });
-        socket.on("player_joined",      p => setPlayers([...p]));
-        socket.on("online_users_update",u => setOnlineUsers(u));
+        socket.on("player_joined",      p => setPlayers([...(p || [])]));
+        socket.on("online_users_update",u => setOnlineUsers(u || []));
+        socket.on("quiz_ready",         () => { setQuizReady(true); toast.success("Quiz ready — launch when everyone is set"); });
+        socket.on("quiz_status",        (d) => { if (d?.status === "generating") setQuizReady(false); });
+        socket.on("auth_error",         (e) => toast.error(e?.message || "Socket auth failed — refresh and try again"));
+        socket.on("error",              (e) => toast.error(e?.message || "Arena error"));
 
         socket.on("question_started", d => {
             setGameState("question"); setQuestion(d.question);
@@ -185,9 +233,12 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
         socket.on("match_chat", m => setMsgs(p => [...p.slice(-49), m]));
         socket.on("meme_alert", () => playFail());
 
-        return () => ["room_created","joined_successfully","room_updated","join_failed","player_joined",
-            "online_users_update","question_started","timer_tick","player_answered","answer_revealed",
+        return () => {
+            cancelled = true;
+            ["authenticated","room_created","joined_successfully","room_updated","join_failed","player_joined",
+            "online_users_update","quiz_ready","quiz_status","auth_error","error","question_started","timer_tick","player_answered","answer_revealed",
             "game_finished","match_chat","meme_alert"].forEach(e => socket.off(e));
+        };
     }, []);
 
     useEffect(() => { if (chatOpen) chatEnd.current?.scrollIntoView({ behavior:'smooth' }); }, [msgs, chatOpen]);
@@ -317,11 +368,15 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
                                 <div className="text-center">
                                     <p className="text-[10px] font-black uppercase tracking-[0.5em] mb-2" style={{ color: ui.muted }}>Share this PIN with friends</p>
                                     <div className="inline-flex items-center gap-3 px-8 py-3 rounded-2xl" style={{ background: ui.pinBg, border: `2px solid ${ui.pinBorder}` }}>
-                                        <span className="text-5xl font-black font-mono tracking-widest" style={{ color: ui.text }}>{room || '------'}</span>
+                                        <span className="text-5xl font-black font-mono tracking-widest" style={{ color: ui.text }}>
+                                            {room || (creatingRoom ? '······' : '------')}
+                                        </span>
                                     </div>
                                     <div className="flex items-center justify-center gap-2 mt-3">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                                        <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-widest">Lobby Open</span>
+                                        <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${room ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                                        <span className={`text-[11px] font-bold uppercase tracking-widest ${room ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                            {!room ? (creatingRoom ? 'Creating room…' : 'Waiting for server…') : (quizReady ? 'Lobby Open · Quiz Ready' : 'Lobby Open · Generating quiz…')}
+                                        </span>
                                     </div>
                                 </div>
 
@@ -364,8 +419,16 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
                                                     className="w-full rounded-xl px-3 py-2 text-[11px] font-bold text-indigo-300 outline-none"
                                                     style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.25)' }}>
                                                     <option value="General CS">General CS</option>
-                                                    {courses.map(c => <option key={c.id} value={c.name}>{c.name} (Y{c.year_number}S{c.semester_number})</option>)}
+                                                    {courses.map(c => (
+                                                        <option key={c.id} value={c.name}>
+                                                            {c.name} (Y{c.year_number ?? c.yearNumber ?? '?'}S{c.semester_number ?? c.semesterNumber ?? '?'})
+                                                        </option>
+                                                    ))}
                                                 </select>
+                                                {courses.length === 0 && (
+                                                    <p className="text-[9px] mt-2" style={{ color: ui.muted }}>No courses loaded — using General CS</p>
+                                                )}
+                                            </>
                                             ) : (
                                                 <div className="px-3 py-2 rounded-xl text-[11px] font-bold text-indigo-300 text-center" style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)' }}>{topic_}</div>
                                             )}
@@ -436,22 +499,31 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
 
                                 {/* Action button */}
                                 <div className="flex justify-center pt-2">
-                                    {isHost ? (
+                                    {!room ? (
+                                        <div className="px-10 py-4 rounded-2xl text-sm font-black uppercase tracking-widest" style={{ color: ui.muted, background: ui.card, border: `1px solid ${ui.cardBorder}` }}>
+                                            Connecting to arena…
+                                        </div>
+                                    ) : isHost ? (
                                         <motion.button onClick={startGame}
-                                            disabled={players.length > 1 && !players.slice(1).every(p => p.isReady)}
+                                            disabled={!quizReady || (players.length > 1 && !players.slice(1).every(p => p.isReady))}
                                             whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
                                             className="px-16 py-5 rounded-2xl text-white text-xl font-black uppercase tracking-widest shadow-2xl disabled:opacity-40 flex items-center gap-3"
                                             style={{ background: 'linear-gradient(135deg,#6366f1,#c026d3)', boxShadow: '0 0 40px rgba(99,102,241,0.4)' }}>
                                             <Zap size={22} fill="white" />
-                                            {players.length > 1 && !players.slice(1).every(p => p.isReady) ? 'Waiting for Ready...' : 'Launch Arena'}
+                                            {!quizReady
+                                                ? 'Preparing Quiz…'
+                                                : (players.length > 1 && !players.slice(1).every(p => p.isReady) ? 'Waiting for Ready…' : 'Launch Arena')}
                                         </motion.button>
                                     ) : (
-                                        <motion.button onClick={() => socket.emit("toggle_ready",{ roomId:room, userId })}
+                                        <motion.button onClick={() => {
+                                                if (!room) { toast.error('Room not ready yet'); return; }
+                                                socket.emit("toggle_ready", { roomId: room, userId });
+                                            }}
                                             whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
                                             className="px-16 py-5 rounded-2xl text-xl font-black uppercase tracking-widest flex items-center gap-3 transition-all"
-                                            style={{ background: players.find(p=>p.id===userId)?.isReady ? 'rgba(34,197,94,0.15)' : 'linear-gradient(135deg,#6366f1,#6366f1)', border: players.find(p=>p.id===userId)?.isReady ? '2px solid #22c55e' : 'none', color: players.find(p=>p.id===userId)?.isReady ? '#22c55e' : 'white' }}>
+                                            style={{ background: players.find(p => String(p.id) === String(userId))?.isReady ? 'rgba(34,197,94,0.15)' : 'linear-gradient(135deg,#6366f1,#6366f1)', border: players.find(p => String(p.id) === String(userId))?.isReady ? '2px solid #22c55e' : 'none', color: players.find(p => String(p.id) === String(userId))?.isReady ? '#22c55e' : 'white' }}>
                                             <Zap size={22} fill="currentColor" />
-                                            {players.find(p=>p.id===userId)?.isReady ? '✓ READY' : 'READY UP'}
+                                            {players.find(p => String(p.id) === String(userId))?.isReady ? '✓ READY' : 'READY UP'}
                                         </motion.button>
                                     )}
                                 </div>

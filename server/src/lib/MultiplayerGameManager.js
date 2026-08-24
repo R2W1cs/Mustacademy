@@ -52,13 +52,12 @@ class MultiplayerGameManager {
 
         const roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
 
-        // Generate Quiz Data pro-actively
-        const quizData = await this.generateQuizData(normalizedTopic);
-
+        // Create lobby + PIN immediately. Quiz generation must not block the PIN.
         const room = {
             id: roomId,
             topic: normalizedTopic,
-            quiz: quizData,
+            quiz: null,
+            quizStatus: "generating",
             players: [{ id: userId, name: userName, score: 0, streak: 0, loseStreak: 0, isReady: true, lastAnswered: -1 }],
             status: "lobby",
             currentQuestionIndex: -1,
@@ -69,7 +68,79 @@ class MultiplayerGameManager {
 
         this.rooms.set(roomId, room);
         console.log(`[ROOM] Created room: ${roomId} for topic ${normalizedTopic}`);
+        // Caller must join the socket room, then call prepareQuiz so the host receives events.
         return room;
+    }
+
+    prepareQuiz(roomId, topic) {
+        const room = this.rooms.get(roomId);
+        if (!room) return;
+        room.quizStatus = "generating";
+        this.io.to(this.LOBBY_ROOM_PREFIX + roomId).emit("quiz_status", { roomId, status: "generating", topic });
+
+        this.generateQuizData(topic)
+            .then((quizData) => {
+                const live = this.rooms.get(roomId);
+                if (!live || live.status !== "lobby") return;
+                live.quiz = quizData;
+                live.quizStatus = "ready";
+                this.io.to(this.LOBBY_ROOM_PREFIX + roomId).emit("quiz_ready", {
+                    roomId,
+                    topic: live.topic,
+                    questionCount: quizData?.questions?.length || 0,
+                });
+            })
+            .catch((err) => {
+                console.error(`[ROOM] Quiz prep failed for ${roomId}:`, err.message);
+                const live = this.rooms.get(roomId);
+                if (!live) return;
+                live.quiz = this.fallbackQuiz(topic);
+                live.quizStatus = "ready";
+                this.io.to(this.LOBBY_ROOM_PREFIX + roomId).emit("quiz_ready", {
+                    roomId,
+                    topic: live.topic,
+                    questionCount: live.quiz.questions.length,
+                    fallback: true,
+                });
+            });
+    }
+
+    fallbackQuiz(topic) {
+        const label = topic || "Computer Science";
+        return {
+            questions: [
+                {
+                    text: `Which concept is most central to ${label}?`,
+                    options: ["Core algorithms & data structures", "Only UI styling", "Printer drivers", "Spreadsheet macros"],
+                    correctIndex: 0,
+                    explanation: "Strong CS foundations start with algorithms and data structures.",
+                },
+                {
+                    text: "What does Big-O notation primarily describe?",
+                    options: ["Code style", "Asymptotic complexity", "Memory brand", "Git commit size"],
+                    correctIndex: 1,
+                    explanation: "Big-O estimates how runtime/space grow with input size.",
+                },
+                {
+                    text: "Which structure is typically LIFO?",
+                    options: ["Queue", "Stack", "Hash set", "B-Tree"],
+                    correctIndex: 1,
+                    explanation: "Stacks are last-in, first-out.",
+                },
+                {
+                    text: "HTTP is primarily a protocol for:",
+                    options: ["Disk formatting", "Client-server web communication", "CPU scheduling", "GPU shading"],
+                    correctIndex: 1,
+                    explanation: "HTTP defines request/response communication on the web.",
+                },
+                {
+                    text: "A race condition is most associated with:",
+                    options: ["Concurrent shared-state bugs", "CSS specificity", "DNS caching", "JPEG compression"],
+                    correctIndex: 0,
+                    explanation: "Race conditions appear when concurrent access to shared state is unsynchronized.",
+                },
+            ],
+        };
     }
 
     joinRoom(roomId, userId, userName) {
@@ -92,14 +163,14 @@ class MultiplayerGameManager {
     }
 
     toggleReady(roomId, userId) {
-        const room = this.rooms.get(roomId);
+        const cleanId = roomId?.trim()?.toUpperCase();
+        const room = this.rooms.get(cleanId);
         if (!room) return;
 
-        const player = room.players.find(p => p.id === userId);
+        const player = room.players.find(p => String(p.id) === String(userId));
         if (player) {
             player.isReady = !player.isReady;
-            // Broadcast the updated player list to the room
-            this.io.to(this.LOBBY_ROOM_PREFIX + roomId).emit("player_joined", room.players);
+            this.io.to(this.LOBBY_ROOM_PREFIX + cleanId).emit("player_joined", room.players);
         }
     }
 
@@ -110,7 +181,9 @@ class MultiplayerGameManager {
         if (room.status !== "lobby") throw new Error("Cannot change topic during game");
 
         room.topic = topic;
-        room.quiz = await this.generateQuizData(topic);
+        room.quiz = null;
+        room.quizStatus = "generating";
+        this.prepareQuiz(roomId, topic);
         return room;
     }
 
@@ -121,6 +194,10 @@ class MultiplayerGameManager {
         // Verify host (first player is the host)
         if (room.players[0].id !== userId) {
             throw new Error("Only the host can initiate the protocol.");
+        }
+
+        if (room.quizStatus !== "ready" || !room.quiz?.questions?.length) {
+            throw new Error("Quiz is still generating. Wait for the PIN lobby to finish loading questions.");
         }
 
         // Apply host config
@@ -315,7 +392,7 @@ class MultiplayerGameManager {
         }, 60000);
     }
 
-    async generateQuizData(topic, count = 15) {
+    async generateQuizData(topic, count = 10) {
         const prompt = `Generate a rigorous CS Quiz for Multiplayer.
         Topic: ${topic || "Computer Science"}
         Count: ${count} Questions (generate all ${count}, host may use fewer).
@@ -333,14 +410,16 @@ class MultiplayerGameManager {
 
         try {
             const data = await callOllama(prompt);
-            return data;
+            if (Array.isArray(data?.questions) && data.questions.length > 0) {
+                return data;
+            }
+            if (Array.isArray(data) && data.length > 0 && data[0]?.text) {
+                return { questions: data };
+            }
+            throw new Error("AI returned no quiz questions");
         } catch (err) {
-            // Simple fallback
-            return {
-                questions: [
-                    { text: "What is 2+2 in Binary?", options: ["100", "010", "110", "011"], correctIndex: 0, explanation: "2+2=4, and 4 in binary is 100." }
-                ]
-            };
+            console.warn("[ROOM] Using fallback quiz:", err.message);
+            return this.fallbackQuiz(topic);
         }
     }
 }

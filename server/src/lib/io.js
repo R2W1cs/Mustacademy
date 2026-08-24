@@ -44,6 +44,7 @@ export const initIo = (server) => {
         gameManager.setOnline(userId, socket.id, userName);
         const users = Array.from(gameManager.onlineUsers.entries()).map(([id, u]) => ({ id, name: u.userName }));
         socket.emit("online_users_update", users);
+        socket.emit("authenticated", { userId, userName });
         logger.info(`[SOCKET] User ${userId} (${userName}) authenticated.`);
     };
 
@@ -100,6 +101,10 @@ export const initIo = (server) => {
                 socket.join(`room_${room.id}`);
                 io.to(`room_${room.id}`).emit("player_joined", room.players);
                 socket.emit("room_created", room);
+                // Start quiz prep only after the host is in the room (so quiz_ready is received).
+                if (room.quizStatus !== "ready") {
+                    gameManager.prepareQuiz(room.id, room.topic);
+                }
             } catch (err) {
                 socket.emit("error", { message: err.message });
             }
@@ -114,6 +119,15 @@ export const initIo = (server) => {
                 socket.join(`room_${room.id}`);
                 io.to(`room_${room.id}`).emit("player_joined", room.players);
                 socket.emit("joined_successfully", room);
+                if (room.quizStatus === "ready") {
+                    socket.emit("quiz_ready", {
+                        roomId: room.id,
+                        topic: room.topic,
+                        questionCount: room.quiz?.questions?.length || 0,
+                    });
+                } else if (room.quizStatus === "generating") {
+                    socket.emit("quiz_status", { roomId: room.id, status: "generating", topic: room.topic });
+                }
             } catch (err) {
                 socket.emit("join_failed", err.message);
             }

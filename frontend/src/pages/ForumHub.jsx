@@ -133,7 +133,7 @@ function MarketSignalsTab({ isDark }) {
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
     const [syncedAt, setSyncedAt] = useState(null);
-    const LIMIT = 12;
+    const LIMIT = 24;
 
     const fetchSignals = useCallback(async (cat, loc, pg, append = false) => {
         if (pg === 1) setLoading(true); else setLoadingMore(true);

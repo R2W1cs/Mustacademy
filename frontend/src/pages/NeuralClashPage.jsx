@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import MultiplayerQuizModal from "../components/MultiplayerQuizModal";
 import { useTheme } from "../auth/ThemeContext";
-import { Rocket, Users, Zap, ChevronRight, Crown } from "lucide-react";
+import { Rocket, Users, Zap, ChevronRight, Crown, BookOpen } from "lucide-react";
 import { useSocket } from "../hooks/useSocket";
 import api from "../api/axios";
+import { getAllCourses } from "../api/courses";
 
 export default function NeuralClashPage() {
     const { theme } = useTheme();
@@ -14,6 +15,8 @@ export default function NeuralClashPage() {
     const [onlineCount, setOnlineCount] = useState(0);
     const [leaderboard, setLeaderboard] = useState([]);
     const [lbLoading, setLbLoading] = useState(true);
+    const [courses, setCourses] = useState([]);
+    const [selectedTopic, setSelectedTopic] = useState("General CS");
     const socket = useSocket();
 
     useEffect(() => {
@@ -29,8 +32,16 @@ export default function NeuralClashPage() {
             .finally(() => setLbLoading(false));
     }, [isArenaOpen]); // refresh after each match
 
-    const cardClass = isDark ? "bg-gray-900/50 border-gray-800" : "bg-white border-slate-200 shadow-xl";
+    useEffect(() => {
+        getAllCourses({ params: { limit: 200 } })
+            .then((r) => {
+                const list = Array.isArray(r.data) ? r.data : (r.data?.courses || []);
+                setCourses(list);
+            })
+            .catch(() => setCourses([]));
+    }, []);
 
+    const cardClass = isDark ? "bg-gray-900/50 border-gray-800" : "bg-white border-slate-200 shadow-xl";
     return (
         <div className={`min-h-screen p-8 lg:p-12 animate-fade-in ${isDark ? 'text-white' : 'text-slate-900'}`}>
             <header className="mb-12 border-b border-white/5 pb-8">
@@ -49,7 +60,29 @@ export default function NeuralClashPage() {
             </header>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2">
+                <div className="lg:col-span-2 space-y-6">
+                    <div className={`p-6 rounded-[2rem] border ${cardClass}`}>
+                        <div className="flex items-center gap-2 mb-3">
+                            <BookOpen size={15} className="text-indigo-400" />
+                            <h3 className="text-[10px] font-black uppercase tracking-widest opacity-50">Quiz Course</h3>
+                        </div>
+                        <p className={`text-xs mb-3 ${isDark ? 'text-white/40' : 'text-slate-500'}`}>
+                            Choose which course the arena quiz should cover before hosting.
+                        </p>
+                        <select
+                            value={selectedTopic}
+                            onChange={(e) => setSelectedTopic(e.target.value)}
+                            className={`w-full rounded-xl px-4 py-3 text-sm font-bold outline-none border ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'}`}
+                        >
+                            <option value="General CS">General CS</option>
+                            {courses.map((c) => (
+                                <option key={c.id} value={c.name}>
+                                    {c.name} (Y{c.year_number ?? '?'}S{c.semester_number ?? '?'})
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
                     <div className={`p-12 rounded-[3rem] border flex flex-col items-center text-center relative overflow-hidden ${cardClass}`}>
                         {/* Ambient Glow */}
                         <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600/10 blur-[100px] rounded-full translate-x-1/2 -translate-y-1/2" />
@@ -60,8 +93,11 @@ export default function NeuralClashPage() {
                             </div>
 
                             <h2 className="text-3xl font-black mb-4 uppercase italic tracking-tighter">Enter the Simulation</h2>
-                            <p className="text-slate-500 max-w-md mx-auto mb-10 font-medium">
+                            <p className="text-slate-500 max-w-md mx-auto mb-3 font-medium">
                                 Host a new assessment protocol or enter an existing room code to join an active simulation.
+                            </p>
+                            <p className="text-[11px] font-bold uppercase tracking-widest text-indigo-400 mb-10">
+                                Topic: {selectedTopic}
                             </p>
 
                             <div className="flex flex-col sm:flex-row items-center gap-4">
@@ -171,6 +207,7 @@ export default function NeuralClashPage() {
                     }}
                     action={arenaAction}
                     joinCode={joinCode}
+                    topic={selectedTopic}
                 />
             )}
         </div>
