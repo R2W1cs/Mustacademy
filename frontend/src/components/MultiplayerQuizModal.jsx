@@ -5,6 +5,7 @@ import { useSocket } from "../hooks/useSocket";
 import { runConfetti } from "../utils/confetti";
 import { getAllCourses } from "../api/courses";
 import toast from "react-hot-toast";
+import { useTheme } from "../auth/ThemeContext";
 
 // ─── Answer palette (Kahoot 4-color) ─────────────────────────────────────────
 const COLORS = [
@@ -81,6 +82,48 @@ const playWin  = () => { try { const ctx=new(window.AudioContext||window.webkitA
 const AVATAR_COLORS = ['#e21b3c','#1368ce','#d89e00','#26890c','#7c3aed','#0e7575','#c2410c','#0369a1'];
 
 export default function MultiplayerQuizModal({ onClose, topic, action, joinCode }) {
+    const { theme } = useTheme();
+    const isDark = theme !== 'light';
+    const ui = isDark ? {
+        overlay: 'rgba(3,4,11,0.92)',
+        shell: '#080b1a',
+        shellBorder: 'rgba(255,255,255,0.07)',
+        headerBg: 'rgba(8,11,26,0.85)',
+        headerBorder: 'rgba(255,255,255,0.06)',
+        text: '#ffffff',
+        muted: 'rgba(255,255,255,0.35)',
+        faint: 'rgba(255,255,255,0.15)',
+        card: 'rgba(255,255,255,0.04)',
+        cardBorder: 'rgba(255,255,255,0.08)',
+        pinBg: 'rgba(255,255,255,0.06)',
+        pinBorder: 'rgba(255,255,255,0.12)',
+        blobA: 'rgba(99,102,241,0.15)',
+        blobB: 'rgba(192,38,211,0.12)',
+        chatBg: 'rgba(6,8,20,0.97)',
+        inputBg: 'rgba(255,255,255,0.06)',
+        idleBtn: 'rgba(255,255,255,0.06)',
+        idleBtnText: 'rgba(255,255,255,0.4)',
+    } : {
+        overlay: 'rgba(241,245,249,0.82)',
+        shell: '#ffffff',
+        shellBorder: 'rgba(148,163,184,0.35)',
+        headerBg: 'rgba(255,255,255,0.96)',
+        headerBorder: 'rgba(226,232,240,1)',
+        text: '#0f172a',
+        muted: 'rgba(71,85,105,0.95)',
+        faint: 'rgba(148,163,184,0.85)',
+        card: 'rgba(248,250,252,1)',
+        cardBorder: 'rgba(226,232,240,1)',
+        pinBg: 'rgba(238,242,255,1)',
+        pinBorder: 'rgba(165,180,252,0.65)',
+        blobA: 'rgba(99,102,241,0.12)',
+        blobB: 'rgba(225,29,72,0.08)',
+        chatBg: 'rgba(255,255,255,0.98)',
+        inputBg: 'rgba(241,245,249,1)',
+        idleBtn: 'rgba(241,245,249,1)',
+        idleBtnText: 'rgba(100,116,139,1)',
+    };
+
     const socket = useSocket();
     const [gameState, setGameState]     = useState("lobby");
     const [room, setRoom]               = useState(null);
@@ -163,27 +206,27 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
     const circumference = 2 * Math.PI * 28;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3" style={{ background: 'rgba(3,4,11,0.92)', backdropFilter: 'blur(20px)' }}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3" style={{ background: ui.overlay, backdropFilter: 'blur(20px)' }}>
             <motion.div
                 initial={{ scale: 0.88, opacity: 0, y: 20 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 transition={{ type: 'spring', damping: 22, stiffness: 200 }}
                 className="relative w-full max-w-5xl flex flex-col overflow-hidden"
-                style={{ height: '92vh', background: '#080b1a', borderRadius: 32, border: '1px solid rgba(255,255,255,0.07)' }}
+                style={{ height: '92vh', background: ui.shell, borderRadius: 32, border: `1px solid ${ui.shellBorder}` }}
             >
                 {/* Ambient blobs */}
-                <div className="absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)' }} />
-                <div className="absolute -bottom-32 -left-32 w-[400px] h-[400px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(192,38,211,0.12) 0%, transparent 70%)' }} />
+                <div className="absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full pointer-events-none" style={{ background: `radial-gradient(circle, ${ui.blobA} 0%, transparent 70%)` }} />
+                <div className="absolute -bottom-32 -left-32 w-[400px] h-[400px] rounded-full pointer-events-none" style={{ background: `radial-gradient(circle, ${ui.blobB} 0%, transparent 70%)` }} />
 
                 {/* ── HEADER ── */}
-                <div className="relative z-10 flex items-center justify-between px-6 py-3.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(8,11,26,0.8)', backdropFilter: 'blur(12px)' }}>
+                <div className="relative z-10 flex items-center justify-between px-6 py-3.5" style={{ borderBottom: `1px solid ${ui.headerBorder}`, background: ui.headerBg, backdropFilter: 'blur(12px)' }}>
                     {/* Logo */}
                     <div className="flex items-center gap-2.5">
                         <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#6366f1,#c026d3)' }}>
                             <Zap size={15} fill="white" className="text-white" />
                         </div>
                         <div>
-                            <p className="text-sm font-black text-white uppercase tracking-wider leading-none">Neural Clash</p>
+                            <p className="text-sm font-black uppercase tracking-wider leading-none" style={{ color: ui.text }}>Neural Clash</p>
                             <p className="text-[9px] font-bold uppercase tracking-[0.3em]" style={{ color: '#6366f1' }}>Arena</p>
                         </div>
                     </div>
@@ -191,7 +234,7 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
                     {/* GAME PIN — always visible */}
                     {room && (
                         <div className="flex flex-col items-center">
-                            <span className="text-[8px] font-black uppercase tracking-[0.4em] mb-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>Game PIN</span>
+                            <span className="text-[8px] font-black uppercase tracking-[0.4em] mb-0.5" style={{ color: ui.muted }}>Game PIN</span>
                             <div className="px-5 py-1" style={{ background: 'white', borderRadius: 10 }}>
                                 <span className="text-xl font-black tracking-widest font-mono" style={{ color: '#080b1a' }}>{room}</span>
                             </div>
@@ -201,7 +244,7 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
                     {/* Right actions */}
                     <div className="flex items-center gap-1.5">
                         {gameState !== "lobby" && room && (
-                            <button onClick={() => setChatOpen(v => !v)} className="relative p-2 rounded-xl transition-all" style={{ background: chatOpen ? '#6366f1' : 'rgba(255,255,255,0.05)', color: chatOpen ? 'white' : 'rgba(255,255,255,0.4)' }}>
+                            <button onClick={() => setChatOpen(v => !v)} className="relative p-2 rounded-xl transition-all" style={{ background: chatOpen ? '#6366f1' : ui.idleBtn, color: chatOpen ? 'white' : ui.idleBtnText }}>
                                 <MessageSquare size={17} />
                                 {msgs.length > 0 && !chatOpen && (
                                     <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center text-white" style={{ background: '#6366f1' }}>
@@ -210,8 +253,8 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
                                 )}
                             </button>
                         )}
-                        <button onClick={onClose} className="p-2 rounded-xl transition-all" style={{ color: 'rgba(255,255,255,0.3)' }}
-                            onMouseEnter={e => e.currentTarget.style.color='white'} onMouseLeave={e => e.currentTarget.style.color='rgba(255,255,255,0.3)'}>
+                        <button onClick={onClose} className="p-2 rounded-xl transition-all" style={{ color: ui.muted }}
+                            onMouseEnter={e => e.currentTarget.style.color=ui.text} onMouseLeave={e => e.currentTarget.style.color=ui.muted}>
                             <X size={20} />
                         </button>
                     </div>
@@ -226,34 +269,34 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
                             exit={{ opacity: 0, y: 20, scale: 0.95 }}
                             transition={{ type: 'spring', damping: 26, stiffness: 300 }}
                             className="absolute bottom-4 right-4 z-20 flex flex-col rounded-2xl overflow-hidden"
-                            style={{ width: 260, height: 320, background: 'rgba(6,8,20,0.97)', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 8px 32px rgba(0,0,0,0.6)' }}
+                            style={{ width: 260, height: 320, background: ui.chatBg, border: `1px solid ${ui.cardBorder}`, boxShadow: isDark ? '0 8px 32px rgba(0,0,0,0.6)' : '0 8px 32px rgba(15,23,42,0.12)' }}
                         >
-                            <div className="flex items-center justify-between px-3 py-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(99,102,241,0.12)' }}>
+                            <div className="flex items-center justify-between px-3 py-2.5" style={{ borderBottom: `1px solid ${ui.cardBorder}`, background: isDark ? 'rgba(99,102,241,0.12)' : 'rgba(99,102,241,0.08)' }}>
                                 <div className="flex items-center gap-1.5">
                                     <MessageSquare size={13} style={{ color: '#6366f1' }} />
                                     <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#6366f1' }}>Match Chat</span>
                                 </div>
-                                <button onClick={() => setChatOpen(false)} className="p-1 rounded-lg transition-all hover:bg-white/10" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                                <button onClick={() => setChatOpen(false)} className="p-1 rounded-lg transition-all hover:bg-white/10" style={{ color: ui.muted }}>
                                     <X size={13} />
                                 </button>
                             </div>
                             <div className="flex-1 overflow-y-auto p-2.5 space-y-1.5">
-                                {msgs.length === 0 && <p className="text-center text-[10px] mt-6" style={{ color: 'rgba(255,255,255,0.2)' }}>No messages yet</p>}
+                                {msgs.length === 0 && <p className="text-center text-[10px] mt-6" style={{ color: ui.faint }}>No messages yet</p>}
                                 {msgs.map((m, i) => {
                                     const isMe = m.userName === userName;
                                     return (
                                         <div key={i} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                                            <span className="text-[9px] font-bold uppercase px-1 mb-0.5" style={{ color: 'rgba(255,255,255,0.25)' }}>{m.userName}</span>
-                                            <div className="px-2.5 py-1.5 rounded-xl text-[11px] font-medium max-w-[90%]" style={{ background: isMe ? '#6366f1' : 'rgba(255,255,255,0.08)', color: 'white' }}>{m.text}</div>
+                                            <span className="text-[9px] font-bold uppercase px-1 mb-0.5" style={{ color: ui.faint }}>{m.userName}</span>
+                                            <div className="px-2.5 py-1.5 rounded-xl text-[11px] font-medium max-w-[90%]" style={{ background: isMe ? '#6366f1' : ui.card, color: isMe ? 'white' : ui.text }}>{m.text}</div>
                                         </div>
                                     );
                                 })}
                                 <div ref={chatEnd} />
                             </div>
-                            <div className="p-2 flex gap-1.5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                            <div className="p-2 flex gap-1.5" style={{ borderTop: `1px solid ${ui.cardBorder}` }}>
                                 <input value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key==='Enter' && sendMsg()}
-                                    placeholder="Message..." className="flex-1 rounded-xl px-2.5 py-1.5 text-[11px] text-white outline-none"
-                                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                                    placeholder="Message..." className="flex-1 rounded-xl px-2.5 py-1.5 text-[11px] outline-none"
+                                    style={{ background: ui.inputBg, border: `1px solid ${ui.cardBorder}`, color: ui.text }} />
                                 <button onClick={sendMsg} disabled={!chatInput.trim()} className="p-1.5 rounded-xl text-white" style={{ background: '#6366f1', opacity: chatInput.trim() ? 1 : 0.3 }}>
                                     <Send size={12} />
                                 </button>
@@ -272,9 +315,9 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
 
                                 {/* Pin spotlight */}
                                 <div className="text-center">
-                                    <p className="text-[10px] font-black uppercase tracking-[0.5em] mb-2" style={{ color: 'rgba(255,255,255,0.3)' }}>Share this PIN with friends</p>
-                                    <div className="inline-flex items-center gap-3 px-8 py-3 rounded-2xl" style={{ background: 'rgba(255,255,255,0.06)', border: '2px solid rgba(255,255,255,0.12)' }}>
-                                        <span className="text-5xl font-black font-mono tracking-widest text-white">{room || '------'}</span>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.5em] mb-2" style={{ color: ui.muted }}>Share this PIN with friends</p>
+                                    <div className="inline-flex items-center gap-3 px-8 py-3 rounded-2xl" style={{ background: ui.pinBg, border: `2px solid ${ui.pinBorder}` }}>
+                                        <span className="text-5xl font-black font-mono tracking-widest" style={{ color: ui.text }}>{room || '------'}</span>
                                     </div>
                                     <div className="flex items-center justify-center gap-2 mt-3">
                                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -299,14 +342,14 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
                                                     {p.name}{p.id === userId ? ' ⭐' : ''}
                                                 </span>
                                                 <div className="px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest"
-                                                    style={{ background: i===0 ? 'rgba(251,191,36,0.15)' : p.isReady ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.06)', color: i===0 ? '#fbbf24' : p.isReady ? '#22c55e' : 'rgba(255,255,255,0.3)' }}>
+                                                    style={{ background: i===0 ? 'rgba(251,191,36,0.15)' : p.isReady ? 'rgba(34,197,94,0.15)' : ui.idleBtn, color: i===0 ? '#fbbf24' : p.isReady ? '#22c55e' : ui.muted }}>
                                                     {i === 0 ? 'HOST' : p.isReady ? '✓ READY' : 'WAITING'}
                                                 </div>
                                             </motion.div>
                                         ))}
                                         {[...Array(Math.max(0, 6 - players.length))].map((_, i) => (
-                                            <div key={i} className="flex items-center justify-center p-4 rounded-2xl" style={{ border: '2px dashed rgba(255,255,255,0.07)', minHeight: 112 }}>
-                                                <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.15)' }}>Waiting...</span>
+                                            <div key={i} className="flex items-center justify-center p-4 rounded-2xl" style={{ border: `2px dashed ${ui.faint}`, minHeight: 112 }}>
+                                                <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: ui.faint }}>Waiting...</span>
                                             </div>
                                         ))}
                                     </div>
@@ -314,8 +357,8 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
                                     {/* Settings sidebar */}
                                     <div className="w-64 flex flex-col gap-4 flex-shrink-0">
                                         {/* Topic */}
-                                        <div className="p-4 rounded-2xl" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                                            <p className="text-[9px] font-black uppercase tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.3)' }}>Topic</p>
+                                        <div className="p-4 rounded-2xl" style={{ background: ui.card, border: `1px solid ${ui.cardBorder}` }}>
+                                            <p className="text-[9px] font-black uppercase tracking-widest mb-2" style={{ color: ui.muted }}>Topic</p>
                                             {isHost ? (
                                                 <select value={topic_} onChange={e => changeTopic(e.target.value)}
                                                     className="w-full rounded-xl px-3 py-2 text-[11px] font-bold text-indigo-300 outline-none"
@@ -329,31 +372,31 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
                                         </div>
 
                                         {/* Match config */}
-                                        <div className="p-4 rounded-2xl" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                                        <div className="p-4 rounded-2xl" style={{ background: ui.card, border: `1px solid ${ui.cardBorder}` }}>
                                             <div className="flex items-center gap-1.5 mb-3">
-                                                <Settings size={11} style={{ color: 'rgba(255,255,255,0.3)' }} />
-                                                <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>Match Config</p>
+                                                <Settings size={11} style={{ color: ui.muted }} />
+                                                <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: ui.muted }}>Match Config</p>
                                             </div>
                                             <div className="space-y-3">
                                                 <div>
-                                                    <p className="text-[9px] uppercase tracking-widest mb-1.5" style={{ color: 'rgba(255,255,255,0.2)' }}>Questions</p>
+                                                    <p className="text-[9px] uppercase tracking-widest mb-1.5" style={{ color: ui.faint }}>Questions</p>
                                                     <div className="flex gap-1.5">
                                                         {[5,10,15].map(n => (
                                                             <button key={n} disabled={!isHost} onClick={() => setCfg(c => ({...c, questionCount: n}))}
                                                                 className="flex-1 py-1.5 rounded-lg text-[11px] font-black transition-all"
-                                                                style={{ background: cfg.questionCount===n ? '#6366f1' : 'rgba(255,255,255,0.06)', color: cfg.questionCount===n ? 'white' : 'rgba(255,255,255,0.4)' }}>
+                                                                style={{ background: cfg.questionCount===n ? '#6366f1' : ui.idleBtn, color: cfg.questionCount===n ? 'white' : ui.idleBtnText }}>
                                                                 {n}
                                                             </button>
                                                         ))}
                                                     </div>
                                                 </div>
                                                 <div>
-                                                    <p className="text-[9px] uppercase tracking-widest mb-1.5" style={{ color: 'rgba(255,255,255,0.2)' }}>Seconds / Q</p>
+                                                    <p className="text-[9px] uppercase tracking-widest mb-1.5" style={{ color: ui.faint }}>Seconds / Q</p>
                                                     <div className="flex gap-1.5">
                                                         {[10,15,30].map(t => (
                                                             <button key={t} disabled={!isHost} onClick={() => setCfg(c => ({...c, timePerQuestion: t}))}
                                                                 className="flex-1 py-1.5 rounded-lg text-[11px] font-black transition-all"
-                                                                style={{ background: cfg.timePerQuestion===t ? '#6366f1' : 'rgba(255,255,255,0.06)', color: cfg.timePerQuestion===t ? 'white' : 'rgba(255,255,255,0.4)' }}>
+                                                                style={{ background: cfg.timePerQuestion===t ? '#6366f1' : ui.idleBtn, color: cfg.timePerQuestion===t ? 'white' : ui.idleBtnText }}>
                                                                 {t}s
                                                             </button>
                                                         ))}
@@ -363,11 +406,11 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
                                         </div>
 
                                         {/* Online users */}
-                                        <div className="flex-1 p-4 rounded-2xl overflow-hidden flex flex-col" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                                        <div className="flex-1 p-4 rounded-2xl overflow-hidden flex flex-col" style={{ background: ui.card, border: `1px solid ${ui.cardBorder}` }}>
                                             <div className="flex items-center justify-between mb-3">
                                                 <div className="flex items-center gap-1.5">
                                                     <Users size={11} style={{ color: '#6366f1' }} />
-                                                    <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>Online</p>
+                                                    <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: ui.muted }}>Online</p>
                                                 </div>
                                                 <div className="flex items-center gap-1.5">
                                                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -376,9 +419,9 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
                                             </div>
                                             <div className="flex-1 space-y-1.5 overflow-y-auto">
                                                 {onlineUsers.filter(u => u.id !== userId).map((u, i) => (
-                                                    <div key={i} className="flex items-center gap-2 px-2 py-1.5 rounded-xl group" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                                                    <div key={i} className="flex items-center gap-2 px-2 py-1.5 rounded-xl group" style={{ background: ui.card }}>
                                                         <div className="w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black text-white" style={{ background: AVATAR_COLORS[i % AVATAR_COLORS.length] }}>{u.name.charAt(0)}</div>
-                                                        <span className="flex-1 text-[11px] font-bold text-white truncate">{u.name}</span>
+                                                        <span className="flex-1 text-[11px] font-bold truncate" style={{ color: ui.text }}>{u.name}</span>
                                                         <button onClick={() => { socket.emit("send_invitation",{ targetUserId:u.id, senderName:userName, roomId:room, topic:topic_||'General CS' }); toast.success(`Invited ${u.name}`); }}
                                                             className="opacity-0 group-hover:opacity-100 px-2 py-0.5 rounded-lg text-[8px] font-black text-white transition-all"
                                                             style={{ background: '#6366f1' }}>
@@ -422,13 +465,13 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
                                 {/* Top bar */}
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
-                                        <div className="px-3 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-widest text-white" style={{ background: 'rgba(255,255,255,0.07)' }}>
+                                        <div className="px-3 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-widest" style={{ background: ui.card, color: ui.text }}>
                                             Q{question.index + 1} / {question.total}
                                         </div>
-                                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.07)' }}>
-                                            <Users size={12} style={{ color: 'rgba(255,255,255,0.4)' }} />
-                                            <span className="text-[11px] font-black text-white">{answeredCount}/{players.length}</span>
-                                            <span className="text-[9px] uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>answered</span>
+                                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl" style={{ background: ui.card }}>
+                                            <Users size={12} style={{ color: ui.muted }} />
+                                            <span className="text-[11px] font-black" style={{ color: ui.text }}>{answeredCount}/{players.length}</span>
+                                            <span className="text-[9px] uppercase tracking-widest" style={{ color: ui.muted }}>answered</span>
                                         </div>
                                     </div>
 
@@ -450,8 +493,8 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
                                 </div>
 
                                 {/* Question card */}
-                                <div className="rounded-2xl px-8 py-6 flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', minHeight: 96 }}>
-                                    <h2 className="text-2xl font-bold text-white text-center leading-snug">{question.text}</h2>
+                                <div className="rounded-2xl px-8 py-6 flex items-center justify-center" style={{ background: ui.card, border: `1px solid ${ui.cardBorder}`, minHeight: 96 }}>
+                                    <h2 className="text-2xl font-bold text-center leading-snug" style={{ color: ui.text }}>{question.text}</h2>
                                 </div>
 
                                 {/* 2×2 Answer grid */}
@@ -490,17 +533,17 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
                             <motion.div key="leaderboard" initial={{ opacity:0,y:12 }} animate={{ opacity:1,y:0 }} className="h-full flex flex-col gap-5">
                                 <div className="flex items-start justify-between gap-4">
                                     <div>
-                                        <h2 className="text-4xl font-black text-white italic mb-1">Standings</h2>
+                                        <h2 className="text-4xl font-black italic mb-1" style={{ color: ui.text }}>Standings</h2>
                                         <p className="text-sm font-bold uppercase tracking-widest" style={{ color: '#6366f1' }}>After Question {question?.index + 1}</p>
                                     </div>
                                     {reveal && (
-                                        <div className="flex items-center gap-3 px-5 py-3 rounded-2xl flex-shrink-0" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                                        <div className="flex items-center gap-3 px-5 py-3 rounded-2xl flex-shrink-0" style={{ background: ui.card, border: `1px solid ${ui.cardBorder}` }}>
                                             <div className="w-11 h-11 rounded-xl flex items-center justify-center text-lg font-black text-white" style={{ background: COLORS[reveal.correctIndex]?.bg }}>
                                                 {COLORS[reveal.correctIndex]?.shape}
                                             </div>
                                             <div>
-                                                <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>Correct Answer</p>
-                                                <p className="text-sm font-bold text-white max-w-[180px] truncate">{question?.options?.[reveal.correctIndex]}</p>
+                                                <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: ui.muted }}>Correct Answer</p>
+                                                <p className="text-sm font-bold max-w-[180px] truncate" style={{ color: ui.text }}>{question?.options?.[reveal.correctIndex]}</p>
                                             </div>
                                             <div className="text-3xl font-black ml-2" style={{ color: picked === reveal.correctIndex ? '#22c55e' : '#ef4444' }}>
                                                 {picked === reveal.correctIndex ? '✓' : '✗'}
@@ -513,15 +556,15 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
                                     {board.map((p, i) => (
                                         <motion.div key={p.id} initial={{ opacity:0,x:-16 }} animate={{ opacity:1,x:0 }} transition={{ delay: i*0.04 }}
                                             className="flex items-center gap-4 px-5 py-4 rounded-2xl"
-                                            style={{ background: p.id===userId ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.04)', border: p.id===userId ? '1px solid rgba(99,102,241,0.35)' : '1px solid rgba(255,255,255,0.05)' }}>
-                                            <span className="text-2xl font-black w-10 text-center" style={{ color: i===0 ? '#fbbf24' : 'rgba(255,255,255,0.2)' }}>
+                                            style={{ background: p.id===userId ? (isDark ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.1)') : ui.card, border: p.id===userId ? '1px solid rgba(99,102,241,0.35)' : `1px solid ${ui.cardBorder}` }}>
+                                            <span className="text-2xl font-black w-10 text-center" style={{ color: i===0 ? '#fbbf24' : ui.faint }}>
                                                 {i === 0 ? <Crown size={22} className="mx-auto" style={{ color: '#fbbf24' }} /> : `#${i+1}`}
                                             </span>
                                             <div className="w-10 h-10 rounded-xl flex items-center justify-center text-base font-black text-white" style={{ background: AVATAR_COLORS[i % AVATAR_COLORS.length] }}>
                                                 {p.name.charAt(0)}
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-bold text-white truncate">{p.name}{p.id===userId ? ' (You)' : ''}</p>
+                                                <p className="text-sm font-bold truncate" style={{ color: ui.text }}>{p.name}{p.id===userId ? ' (You)' : ''}</p>
                                                 {p.streak > 1 && <span className="text-[10px] font-black" style={{ color: '#f97316' }}>🔥 {p.streak}x streak</span>}
                                             </div>
                                             <span className="text-xl font-black tabular-nums" style={{ color: '#6366f1' }}>{p.score.toLocaleString()}</span>
@@ -532,7 +575,7 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
                                 {reveal?.explanation && (
                                     <div className="px-5 py-4 rounded-2xl" style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)' }}>
                                         <p className="text-xs leading-relaxed" style={{ color: 'rgba(200,210,255,0.7)' }}>
-                                            <span className="font-black text-white mr-2">Why:</span>{reveal.explanation}
+                                            <span className="font-black mr-2" style={{ color: ui.text }}>Why:</span>{reveal.explanation}
                                         </p>
                                     </div>
                                 )}
@@ -552,8 +595,8 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
                                 </div>
 
                                 <div>
-                                    <h2 className="text-5xl font-black text-white italic mb-2">Game Over!</h2>
-                                    <p className="text-slate-400">Final synaptic rankings are in.</p>
+                                    <h2 className="text-5xl font-black italic mb-2" style={{ color: ui.text }}>Game Over!</h2>
+                                    <p style={{ color: ui.muted }}>Final synaptic rankings are in.</p>
                                 </div>
 
                                 {/* Podium */}
@@ -565,13 +608,13 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
                                                 style={{ background: AVATAR_COLORS[board.indexOf(p) % AVATAR_COLORS.length] }}>
                                                 {p.name.charAt(0)}
                                             </div>
-                                            <div className="text-xs font-bold text-white truncate max-w-[80px]">{p.name}</div>
+                                            <div className="text-xs font-bold truncate max-w-[80px]" style={{ color: ui.text }}>{p.name}</div>
                                             <div className="rounded-t-xl flex flex-col items-center justify-start pt-3 w-24"
                                                 style={{ height: pos===1 ? 120 : pos===0 ? 84 : 60, background: pos===1 ? 'rgba(251,191,36,0.2)' : 'rgba(255,255,255,0.06)', borderTop: `3px solid ${pos===1 ? '#fbbf24' : pos===0 ? '#94a3b8' : '#f97316'}` }}>
                                                 <span className="font-black" style={{ color: pos===1 ? '#fbbf24' : pos===0 ? '#94a3b8' : '#f97316', fontSize: pos===1 ? 24 : 18 }}>
                                                     #{pos===1?1:pos===0?2:3}
                                                 </span>
-                                                <span className="text-[10px] font-bold" style={{ color: 'rgba(255,255,255,0.4)' }}>{p.score.toLocaleString()}</span>
+                                                <span className="text-[10px] font-bold" style={{ color: ui.muted }}>{p.score.toLocaleString()}</span>
                                             </div>
                                         </div>
                                     ))}
@@ -579,7 +622,7 @@ export default function MultiplayerQuizModal({ onClose, topic, action, joinCode 
 
                                 <motion.button onClick={onClose} whileHover={{ scale:1.04 }} whileTap={{ scale:0.97 }}
                                     className="px-12 py-4 rounded-2xl text-white font-black uppercase tracking-widest"
-                                    style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }}>
+                                    style={{ background: ui.card, border: `1px solid ${ui.cardBorder}`, color: ui.text }}>
                                     Leave Arena
                                 </motion.button>
                             </motion.div>

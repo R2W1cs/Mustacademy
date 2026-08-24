@@ -488,13 +488,13 @@ const TopicNotebook = ({ topic, isDark }) => {
 
     // ── Styles ──
     const c = {
-        bg: isDark ? 'bg-[#09090b]' : 'bg-slate-50',
-        card: isDark ? 'bg-white/[0.03] border-white/[0.06]' : 'bg-white border-slate-200',
+        bg: isDark ? 'bg-[#09090b]' : 'bg-gradient-to-br from-white via-rose-50/40 to-indigo-50/50',
+        card: isDark ? 'bg-white/[0.03] border-white/[0.06]' : 'bg-white/90 border-slate-200 shadow-sm',
         border: isDark ? 'border-white/[0.06]' : 'border-slate-200',
         text: isDark ? 'text-slate-200' : 'text-slate-800',
-        sub: isDark ? 'text-slate-500' : 'text-slate-400',
-        input: isDark ? 'bg-white/[0.04] border-white/10 text-white placeholder:text-slate-600' : 'bg-white border-slate-200 text-slate-900 placeholder:text-slate-400',
-        badge: isDark ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400' : 'bg-red-50 border-red-200 text-red-600',
+        sub: isDark ? 'text-slate-500' : 'text-slate-500',
+        input: isDark ? 'bg-white/[0.04] border-white/10 text-white placeholder:text-slate-600' : 'bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 shadow-sm',
+        badge: isDark ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400' : 'bg-rose-50 border-rose-200 text-rose-700',
         accent: isDark ? 'bg-indigo-600 hover:bg-indigo-500' : 'bg-[#c01636] hover:bg-red-700',
         accentText: isDark ? 'text-indigo-400' : 'text-[#c01636]',
     };
@@ -587,7 +587,7 @@ const TopicNotebook = ({ topic, isDark }) => {
                                                     transition={{ duration: 0.3 }}
                                                     className="overflow-hidden"
                                                 >
-                                                    <div className={`px-6 py-5 prose prose-sm max-w-none ${isDark ? 'prose-invert' : ''} text-[13px] leading-relaxed`}>
+                                                    <div className={`px-6 py-5 prose prose-sm max-w-none ${isDark ? 'prose-invert prose-indigo' : 'prose-slate'} text-[13px] leading-relaxed ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
                                                         <Markdown options={{ overrides: { code: MarkdownCode } }}>{m.text}</Markdown>
                                                     </div>
                                                 </motion.div>

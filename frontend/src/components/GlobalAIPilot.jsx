@@ -585,16 +585,25 @@ function GlobalAIPilot() {
                         {activeTab === 'plan' && (
                             <div className="flex-1 overflow-y-auto px-5 py-6 space-y-6">
                                 {schedule.length === 0 ? (
-                                    <div className="h-full flex flex-col items-center justify-center gap-4 py-12 opacity-80">
-                                        <div className={`w-16 h-16 rounded-[2rem] flex items-center justify-center ${isDark ? 'bg-indigo-500/10' : 'bg-red-50'}`}>
-                                            <Activity size={32} className={isDark ? "text-indigo-500" : "text-red-600"} />
+                                    <div className="h-full flex flex-col items-center justify-center gap-4 py-12">
+                                        <div className={`relative w-16 h-16 rounded-[2rem] flex items-center justify-center shadow-lg ${isDark
+                                            ? 'bg-gradient-to-br from-indigo-500 via-violet-500 to-fuchsia-500 shadow-indigo-500/40'
+                                            : 'bg-gradient-to-br from-rose-500 via-red-500 to-orange-500 shadow-rose-400/45'
+                                            }`}>
+                                            <Activity size={28} className="text-white" />
                                         </div>
                                         <div className="text-center">
-                                            <p className={`text-xs font-black uppercase tracking-widest ${isDark ? 'text-white' : 'text-slate-900'}`}>No Active Plan</p>
-                                            <p className={`text-[10px] mt-2 mb-6 max-w-[200px] mx-auto leading-relaxed ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                                            <p className={`text-xs font-black uppercase tracking-widest ${isDark
+                                                ? 'bg-gradient-to-r from-indigo-300 to-fuchsia-300 bg-clip-text text-transparent'
+                                                : 'bg-gradient-to-r from-rose-600 to-orange-500 bg-clip-text text-transparent'
+                                                }`}>No Active Plan</p>
+                                            <p className={`text-[10px] mt-2 mb-6 max-w-[200px] mx-auto leading-relaxed ${isDark ? 'text-indigo-200/60' : 'text-slate-600'}`}>
                                                 Initialize your cognitive strategy to begin session tracking.
                                             </p>
-                                            <button onClick={openBuilder} className={`mx-auto flex items-center gap-2 px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${isDark ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20 hover:bg-indigo-500' : 'bg-indigo-600 text-white shadow-xl shadow-indigo-100 hover:bg-indigo-700'}`}>
+                                            <button onClick={openBuilder} className={`mx-auto flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all hover:scale-[1.03] ${isDark
+                                                ? 'bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-600 text-white shadow-xl shadow-indigo-600/30'
+                                                : 'bg-gradient-to-r from-rose-600 via-red-600 to-orange-500 text-white shadow-xl shadow-rose-400/40'
+                                                }`}>
                                                 <Zap size={14} fill="currentColor" />
                                                 Forge Daily Protocol
                                             </button>
@@ -646,21 +655,37 @@ function GlobalAIPilot() {
                             <>
                                 <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
                                     {messages.length === 0 && (
-                                        <div className="h-full flex flex-col items-center justify-center gap-3 py-6 opacity-60">
-                                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isDark ? 'bg-indigo-500/10' : 'bg-red-50'}`}>
-                                                <Bot size={22} className={isDark ? "text-indigo-500" : "text-red-600"} />
+                                        <div className="h-full flex flex-col items-center justify-center gap-4 py-8 px-4">
+                                            <div className={`relative w-16 h-16 rounded-[1.35rem] flex items-center justify-center shadow-lg ${isDark
+                                                ? 'bg-gradient-to-br from-indigo-500 via-violet-500 to-fuchsia-500 shadow-indigo-500/40'
+                                                : 'bg-gradient-to-br from-rose-500 via-red-500 to-orange-500 shadow-rose-400/50'
+                                                }`}>
+                                                <div className={`absolute inset-0 rounded-[1.35rem] blur-md opacity-60 ${isDark ? 'bg-indigo-400' : 'bg-rose-400'}`} />
+                                                <Bot size={28} className="text-white relative z-10" />
+                                                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-emerald-400 rounded-full border-2 border-white shadow" />
                                             </div>
                                             <div className="text-center">
-                                                <p className={`text-xs font-black uppercase tracking-widest ${isDark ? 'text-white' : 'text-slate-800'}`}>AI Pilot Ready</p>
-                                                <p className={`text-[10px] mt-1 mb-4 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                                                <p className={`text-sm font-black uppercase tracking-[0.18em] ${isDark
+                                                    ? 'bg-gradient-to-r from-indigo-300 via-violet-200 to-fuchsia-300 bg-clip-text text-transparent'
+                                                    : 'bg-gradient-to-r from-rose-600 via-red-600 to-orange-500 bg-clip-text text-transparent'
+                                                    }`}>AI Pilot Ready</p>
+                                                <p className={`text-[11px] mt-2 mb-5 max-w-[220px] mx-auto leading-relaxed ${isDark ? 'text-indigo-200/70' : 'text-slate-600'}`}>
                                                     Ask me anything or initialize your session strategy.
                                                 </p>
                                                 {!plan && (
-                                                    <button onClick={openBuilder} className={`mx-auto flex items-center gap-2 px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${isDark ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20 hover:bg-indigo-500' : 'bg-red-600 text-white shadow-xl shadow-red-100 hover:bg-red-700'}`}>
+                                                    <button onClick={openBuilder} className={`mx-auto flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all hover:scale-[1.03] active:scale-[0.98] ${isDark
+                                                        ? 'bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-600 text-white shadow-xl shadow-indigo-600/35 hover:shadow-indigo-500/50'
+                                                        : 'bg-gradient-to-r from-rose-600 via-red-600 to-orange-500 text-white shadow-xl shadow-rose-400/40 hover:shadow-rose-500/50'
+                                                        }`}>
                                                         <Zap size={14} fill="currentColor" />
                                                         Forge Daily Protocol
                                                     </button>
                                                 )}
+                                            </div>
+                                            <div className={`flex gap-1.5 mt-1 ${isDark ? 'opacity-70' : 'opacity-80'}`}>
+                                                {(isDark ? ['#818cf8', '#a78bfa', '#e879f9'] : ['#e11d48', '#f43f5e', '#f97316']).map((c, i) => (
+                                                    <span key={i} className="w-1.5 h-1.5 rounded-full" style={{ background: c }} />
+                                                ))}
                                             </div>
                                         </div>
                                     )}
@@ -786,7 +811,11 @@ function GlobalAIPilot() {
             <motion.button
                 whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.92 }}
                 onClick={() => isOpen ? setIsOpen(false) : handleOpen()}
-                className={`relative w-14 h-14 rounded-2xl flex items-center justify-center shadow-2xl transition-colors duration-200 shrink-0 ${isOpen ? 'bg-slate-700 shadow-slate-900/40' : (isDark ? 'bg-indigo-600 shadow-indigo-600/40 hover:bg-indigo-500' : 'bg-red-600 shadow-red-600/40 hover:bg-red-500')
+                className={`relative w-14 h-14 rounded-2xl flex items-center justify-center shadow-2xl transition-all duration-200 shrink-0 ${isOpen
+                    ? (isDark ? 'bg-slate-700 shadow-slate-900/40' : 'bg-slate-800 shadow-slate-400/30')
+                    : (isDark
+                        ? 'bg-gradient-to-br from-indigo-500 via-violet-600 to-fuchsia-600 shadow-indigo-600/45 hover:shadow-indigo-500/60'
+                        : 'bg-gradient-to-br from-rose-500 via-red-600 to-orange-500 shadow-rose-500/45 hover:shadow-rose-500/60')
                     }`}
             >
                 <AnimatePresence mode="wait">

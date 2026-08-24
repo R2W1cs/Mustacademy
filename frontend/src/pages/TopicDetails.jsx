@@ -356,7 +356,7 @@ const TopicDetails = () => {
                                     exit={{ opacity: 0, y: -20 }}
                                     className="w-full"
                                 >
-                                    <TopicNotebook topic={topic} isDark={true} />
+                                    <TopicNotebook topic={topic} isDark={!isLight} />
                                 </motion.div>
                             ) : viewMode === 'podcast' ? (
                                 <motion.div
