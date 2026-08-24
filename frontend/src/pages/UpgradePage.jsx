@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Check, Zap, Lock, Headphones, Brain, Map, Star } from "lucide-react";
+import { Check, Zap, Lock, Brain, Map, Star } from "lucide-react";
 import { useTheme } from "../auth/ThemeContext";
 import api from "../api/axios";
 import toast from "react-hot-toast";
@@ -18,7 +18,6 @@ const FREE_FEATURES = [
 
 const PREMIUM_FEATURES = [
     { label: "Everything in Free", highlight: false },
-    { label: "Podcast generation per topic", icon: Headphones, highlight: true },
     { label: "Dr. Nova interactive masterclass", icon: Brain, highlight: true },
     { label: "AI Career Roadmap generation", icon: Map, highlight: true },
     { label: "Priority AI response speed", icon: Zap, highlight: false },
@@ -59,7 +58,7 @@ export default function UpgradePage() {
                         Unlock <span className="text-indigo-400">Premium</span>
                     </h1>
                     <p className={`text-sm font-medium max-w-xl mx-auto leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                        Activate your full academic arsenal — AI-generated podcasts, Dr. Nova masterclasses, and personalized career roadmaps.
+                        Activate your full academic arsenal — Dr. Nova masterclasses and personalized career roadmaps.
                     </p>
                 </motion.div>
             </div>
@@ -87,7 +86,7 @@ export default function UpgradePage() {
                         ))}
                         <li className="flex items-center gap-3 opacity-30">
                             <Lock size={14} className="text-red-400" />
-                            <span className="text-sm line-through">Podcast, Dr. Nova, Career AI</span>
+                            <span className="text-sm line-through">Dr. Nova, Career AI</span>
                         </li>
                     </ul>
                 </motion.div>

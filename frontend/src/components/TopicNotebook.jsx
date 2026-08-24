@@ -354,15 +354,11 @@ const TopicNotebook = ({ topic, isDark }) => {
                     ],
                 }]);
 
-                const lessonExcerpt = [
-                    topic.content_easy_markdown || topic.content_markdown || '',
-                    topic.content_deep_markdown || '',
-                ].filter(Boolean).join('\n\n').slice(0, 9000);
-
+                // Keep the user message short — server loads lesson markdown via topicId
                 const masterclassMsg =
                     `MASTERCLASS STORY — ${topic.title}.\n` +
-                    `You are the Research Notebook professor. Using the OFFICIAL LESSON CONTENT below (and your expertise), ` +
-                    `rewrite a vivid FULL teaching story for this lesson (500–900 words).\n` +
+                    `You are the Research Notebook professor. Using the OFFICIAL LESSON CONTENT injected for topicId=${topic.id}, ` +
+                    `write a vivid FULL teaching story for this lesson (500–900 words).\n` +
                     `Requirements:\n` +
                     `1) Hook + why it matters in the real internet\n` +
                     `2) Simple idea a complete beginner can picture\n` +
@@ -373,18 +369,19 @@ const TopicNotebook = ({ topic, isDark }) => {
                     `7) 3 short check questions with answers\n` +
                     `8) ASCII diagram of the flow if helpful\n` +
                     `Do NOT force JavaScript labs or algo-viz for networking topics.\n` +
-                    `Do NOT say "provided below". Write the full story in your reply.\n\n` +
-                    `OFFICIAL LESSON CONTENT:\n${lessonExcerpt || '(use general CS networking knowledge for this title)'}`;
+                    `Do NOT say "provided below". Write the full story in your reply.`;
 
                 try {
                     const res = await api.post('/ai/chat', {
                         message: masterclassMsg,
                         topicId: topic.id,
-                        lessonContext: lessonExcerpt,
                     });
                     if (!cancelled) {
                         const reply = res.data.reply || localStory;
-                        const useAi = typeof reply === 'string' && reply.length > 600 && !/neural link interrupted|offline mode|system offline/i.test(reply);
+                        const useAi = typeof reply === 'string'
+                            && reply.length > 600
+                            && !res.data.offline
+                            && !/neural link interrupted|offline mode|system offline/i.test(reply);
                         if (res.data.goal) setActiveMission({ title: 'Mission', description: res.data.goal.description, tasks: ['Complete the protocol'] });
                         setMessages([{
                             sender: 'ai',
@@ -398,13 +395,23 @@ const TopicNotebook = ({ topic, isDark }) => {
                         }]);
                     }
                 } catch (err) {
+                    // Local lesson story already shown — only tip on auth/rate-limit so Q&A can be restored
                     console.error('[TopicNotebook] masterclass failed — keeping local lesson story', err?.response?.status, err?.response?.data || err?.message);
                     if (!cancelled) {
                         const status = err?.response?.status;
-                        let tip = 'AI narration is temporarily unavailable — you still have the full lesson story above. Ask questions anytime.';
-                        if (status === 401) tip = 'Session expired for AI chat — log out/in to restore live Q&A. The lesson story above still works.';
-                        else if (status === 429) tip = 'AI rate limit — wait ~30s for live Q&A. The lesson story above still works.';
-                        setMessages(prev => [...prev, { sender: 'ai', text: tip, id: Date.now() + '-tip' }]);
+                        if (status === 401) {
+                            setMessages(prev => [...prev, {
+                                sender: 'ai',
+                                text: 'Session expired for AI chat — log out/in to restore live Q&A. The lesson story above still works.',
+                                id: Date.now() + '-tip',
+                            }]);
+                        } else if (status === 429) {
+                            setMessages(prev => [...prev, {
+                                sender: 'ai',
+                                text: 'AI rate limit — wait ~30s for live Q&A. The lesson story above still works.',
+                                id: Date.now() + '-tip',
+                            }]);
+                        }
                     }
                 } finally {
                     if (!cancelled) setLoading(false);
@@ -498,15 +505,11 @@ const TopicNotebook = ({ topic, isDark }) => {
         setInput(""); setLoading(true);
 
         try {
-            const lessonExcerpt = [
-                topic.content_easy_markdown || topic.content_markdown || '',
-                topic.content_deep_markdown || '',
-            ].filter(Boolean).join('\n\n').slice(0, 7000);
-            const grounded = lessonExcerpt
-                ? `${text}\n\n(Context: answer as the Research Notebook professor for "${topic.title}". Use the lesson first. Be clear, warm, detailed. Lesson excerpt:\n${lessonExcerpt.slice(0, 3500)})`
-                : text;
-            const res = await api.post('/ai/chat', { message: grounded, topicId: topic.id, lessonContext: lessonExcerpt });
-            const reply = res.data.reply || "Synthesis complete.";
+            // Server loads full lesson via topicId — keep the chat message lean
+            const grounded =
+                `As the Research Notebook professor for "${topic.title}", answer clearly and warmly using the official lesson first.\n\nStudent question: ${text}`;
+            const res = await api.post('/ai/chat', { message: grounded, topicId: topic.id });
+            const reply = res.data.reply || (res.data.offline ? "I couldn't reach the live model just now — ask again in a moment, or rephrase from the lesson story above." : "Synthesis complete.");
 
             const missionMatch = reply.match(/```json\s*({[\s\S]*?"type":\s*"mission"[\s\S]*?})\s*```/);
             if (missionMatch) { try { setActiveMission(JSON.parse(missionMatch[1])); } catch {} }

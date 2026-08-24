@@ -31,12 +31,29 @@ export const chatWithMentor = async (req, res) => {
             history = historyRes.rows.reverse();
 
             if (topicId) {
+                // Load official lesson markdown so Research Notebook / MASTERCLASS can teach from it
                 const topicRes = await pool.query(
-                    "SELECT title FROM topics WHERE id = $1",
+                    `SELECT title,
+                            COALESCE(content_easy_markdown, content_markdown, '') AS easy,
+                            COALESCE(content_deep_markdown, '') AS deep
+                     FROM topics WHERE id = $1`,
                     [topicId]
                 );
                 if (topicRes.rows.length > 0) {
                     detectedTopic = topicRes.rows[0].title;
+                    const easyLesson = (topicRes.rows[0].easy || '').slice(0, 12000);
+                    const deepLesson = (topicRes.rows[0].deep || '').slice(0, 8000);
+                    if (easyLesson || deepLesson) {
+                        scholarlyContext +=
+                            "\n\n--- OFFICIAL LESSON CONTENT (teach from this) ---\n" +
+                            `Topic: ${detectedTopic}\n\n` +
+                            (easyLesson ? `ESSENTIAL TRACK:\n${easyLesson}\n\n` : '') +
+                            (deepLesson ? `DEEP TRACK:\n${deepLesson}\n` : '') +
+                            "--- END OFFICIAL LESSON CONTENT ---\n" +
+                            "\nYou are the Research Notebook professor for this exact lesson. " +
+                            "For MASTERCLASS/STORY: write a full teaching story covering every key idea in order (hook, simple idea, steps, analogy, worked example, mistakes, check questions). " +
+                            "For follow-ups: answer using the lesson first, clearly and warmly. Networking topics: no forced algo-viz/JS.\n";
+                    }
 
                     const resourcesRes = await pool.query(
                         `SELECT title, file_type, extracted_text FROM topic_resources
@@ -45,7 +62,7 @@ export const chatWithMentor = async (req, res) => {
                         [topicId, userId]
                     );
                     if (resourcesRes.rows.length > 0) {
-                        scholarlyContext = "\n\n--- STUDENT VAULT RESOURCES ---\n" +
+                        scholarlyContext += "\n\n--- STUDENT VAULT RESOURCES ---\n" +
                             resourcesRes.rows.map(r =>
                                 `[${r.file_type.toUpperCase()}] ${r.title}:\n${r.extracted_text.slice(0, 4000)}`
                             ).join("\n\n---\n\n") +
@@ -74,7 +91,12 @@ export const chatWithMentor = async (req, res) => {
             console.warn("AI DB Context Error (Recoverable):", dbErr.message);
         }
 
-        const ragKBContext = retrieveKBContext(message, detectedTopic);
+        let ragKBContext = null;
+        try {
+            ragKBContext = retrieveKBContext(message, detectedTopic);
+        } catch (ragErr) {
+            console.warn("RAG Context Error (Recoverable):", ragErr.message);
+        }
 
         const forceExerciseInstruction = shouldForceExercise
             ? "\n\nCRITICAL: The student has asked many questions. You MUST assign a mission using the 'mission' field."
@@ -89,9 +111,13 @@ export const chatWithMentor = async (req, res) => {
             streamMode: false,
         }) + forceExerciseInstruction;
 
+        // Longer budget for masterclass / story — short budgets truncate JSON and look like AI failure
+        const wantsLongForm = /MASTERCLASS|STORY|minimum \d+ words|standalone lesson|400-600 words|500.?900 words/i.test(String(message));
+        const tokenBudget = wantsLongForm ? 4096 : 2048;
+
         const aiData = await callAI(
             { system: systemPrompt, user: `Student: ${message}` },
-            true, 2048
+            true, tokenBudget
         );
 
         try {
@@ -101,14 +127,14 @@ export const chatWithMentor = async (req, res) => {
             );
             await pool.query(
                 "INSERT INTO chat_messages (user_id, chat_type, role, message, conversation_id) VALUES ($1, 'mentor', 'assistant', $2, $3)",
-                [userId, aiData.reply, conversationId]
+                [userId, aiData?.reply || '', conversationId]
             );
         } catch (dbSaveErr) {
             console.warn("AI DB Save Error (Recoverable):", dbSaveErr.message);
         }
 
         let goal = null;
-        if (aiData.mission) {
+        if (aiData?.mission) {
             try {
                 const deadline = new Date(Date.now() + 24 * 60 * 60 * 1000);
                 const goalRes = await pool.query(
@@ -121,10 +147,26 @@ export const chatWithMentor = async (req, res) => {
             }
         }
 
-        res.json({ ...aiData, goal });
+        res.json({
+            reply: aiData?.reply || '',
+            goal,
+            suggested_questions: aiData?.suggested_questions || [],
+            topic_detected: aiData?.topic_detected || detectedTopic || null,
+        });
     } catch (err) {
+        // Prefer 200 soft failure so Research Notebook keeps the local lesson story without a scary tip
         console.error("Mentor Chat Error:", err);
-        res.status(500).json({ message: "The Professor is temporarily unavailable.", error: err.message });
+        res.json({
+            reply: '',
+            goal: null,
+            suggested_questions: [
+                'Explain the hardest idea more slowly',
+                'Give me a worked example',
+                'What mistakes should I avoid?',
+            ],
+            offline: true,
+            message: 'Professor temporarily unavailable',
+        });
     }
 };
 
