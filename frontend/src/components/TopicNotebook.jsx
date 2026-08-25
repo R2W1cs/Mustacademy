@@ -369,6 +369,7 @@ const TopicNotebook = ({ topic, isDark }) => {
             if (!res.data || res.data.size < 500) throw new Error('Invalid audio');
             const url = URL.createObjectURL(res.data);
             const audio = new Audio(url);
+            audio.volume = 1;
             audioRef.current = audio;
             audio.onended = () => { killAudio(); URL.revokeObjectURL(url); };
             audio.onerror = () => { killAudio(); URL.revokeObjectURL(url); };
@@ -378,6 +379,7 @@ const TopicNotebook = ({ topic, isDark }) => {
                 window.speechSynthesis?.cancel();
                 const u = new SpeechSynthesisUtterance(clean);
                 u.rate = 1.02;
+                u.volume = 1;
                 u.onend = () => setIsSpeaking(false);
                 u.onerror = () => setIsSpeaking(false);
                 setIsSpeaking(true);

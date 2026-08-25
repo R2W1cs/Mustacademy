@@ -511,7 +511,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                 conversationId: conversationIdRef.current,
                 mode: selectedMode || 'STANDARD'
             });
-            const reply = res.data.reply || "Connection established. Marcus Stering here. Ready when you are.";
+            const reply = res.data.reply || "Connection established. Andrew Hale here. Ready when you are.";
             setMessages([{ sender: 'ai', text: String(reply) }]);
             setLoading(false);
             loadingRef.current = false;
@@ -651,10 +651,10 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
             setIsSpeaking(true);
             isSpeakingRef.current = true;
             setRevealedLength(0);
-            console.log("%c[Neural-Audio] Marcus Sterling high-fidelity stream active.", "color: #3b82f6; font-weight: bold;");
-            // Fetch Neural TTS from Backend
+            console.log("%c[Neural-Audio] Andrew Hale high-fidelity stream active.", "color: #3b82f6; font-weight: bold;");
+            // Fetch Neural TTS from Backend (Andrew — interview; Marcus/Brian reserved for podcast)
             const response = await api.post("/tts", 
-                { text: cleanText, voice: "en-US-BrianNeural" },
+                { text: cleanText, voice: "en-US-AndrewMultilingualNeural" },
                 { responseType: 'blob' }
             );
 
@@ -682,7 +682,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
 
             await audio.play();
         } catch (err) {
-            console.error(`%c[Neural-Audio] Marcus Synthesis Failure: ${err.message}`, "color: #ef4444; font-weight: bold;");
+            console.error(`%c[Neural-Audio] Andrew Synthesis Failure: ${err.message}`, "color: #ef4444; font-weight: bold;");
             setIsSpeaking(false);
             isSpeakingRef.current = false;
         }
@@ -1071,7 +1071,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                                     </motion.div>
 
                                     <div className={`text-[10px] font-bold uppercase tracking-[0.3em] transition-all duration-700 ${getAttitudeColor(attitude)}`}>
-                                        Interviewer: Marcus Sterling ({attitude})
+                                        Interviewer: Andrew Hale ({attitude})
                                     </div>
                                 </div>
                             </div>

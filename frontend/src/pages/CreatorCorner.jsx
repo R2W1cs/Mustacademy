@@ -495,36 +495,57 @@ export default function CreatorCorner() {
             {/* Header Area */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
                 <div>
-                    <h1 className="text-4xl font-black tracking-tight mb-2 flex items-center gap-3">
+                    <button
+                        type="button"
+                        onClick={() => setActiveView('browse')}
+                        className="text-left text-4xl font-black tracking-tight mb-2 flex items-center gap-3 hover:opacity-90 transition-opacity"
+                        title="Back to browse"
+                    >
                         <Rocket className="w-10 h-10 text-purple-500" />
                         Creator Corner
-                    </h1>
+                    </button>
                     <p className={`${isDark ? 'text-gray-400' : 'text-slate-500'} text-lg`}>
                         {activeView === 'browse'
                             ? "Collaborate on groundbreaking student initiatives."
-                            : "Manage incoming collaboration requests for your projects."}
+                            : activeView === 'teams'
+                                ? "Your projects and collaboration teams."
+                                : "Manage incoming collaboration requests for your projects."}
                     </p>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={() => setActiveView(activeView === 'teams' ? 'browse' : 'teams')}
-                        className={`px-6 py-3 rounded-xl font-bold transition-all border ${activeView === 'teams'
-                            ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400'
-                            : isDark ? 'bg-white/5 border-white/10 hover:bg-white/10' : 'bg-slate-100 border-slate-200 hover:bg-slate-200'
-                            }`}
-                    >
-                        My Projects
-                    </button>
-                    <button
-                        onClick={() => setActiveView(activeView === 'manage' ? 'browse' : 'manage')}
-                        className={`px-6 py-3 rounded-xl font-bold transition-all border ${activeView === 'manage'
-                            ? 'bg-purple-500/10 border-purple-500/20 text-purple-400'
-                            : isDark ? 'bg-white/5 border-white/10 hover:bg-white/10' : 'bg-slate-100 border-slate-200 hover:bg-slate-200'
-                            }`}
-                    >
-                        Manage Requests
-                    </button>
+                <div className="flex items-center gap-3 flex-wrap">
+                    <div className={`flex rounded-xl border overflow-hidden ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
+                        <button
+                            type="button"
+                            onClick={() => setActiveView('browse')}
+                            className={`px-5 py-3 font-bold transition-all ${activeView === 'browse'
+                                ? 'bg-purple-500/15 text-purple-400'
+                                : isDark ? 'bg-white/5 hover:bg-white/10 text-gray-300' : 'bg-slate-50 hover:bg-slate-100 text-slate-600'
+                                }`}
+                        >
+                            Browse
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setActiveView('teams')}
+                            className={`px-5 py-3 font-bold transition-all border-l ${isDark ? 'border-white/10' : 'border-slate-200'} ${activeView === 'teams'
+                                ? 'bg-indigo-500/15 text-indigo-400'
+                                : isDark ? 'bg-white/5 hover:bg-white/10 text-gray-300' : 'bg-slate-50 hover:bg-slate-100 text-slate-600'
+                                }`}
+                        >
+                            My Projects
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setActiveView('manage')}
+                            className={`px-5 py-3 font-bold transition-all border-l ${isDark ? 'border-white/10' : 'border-slate-200'} ${activeView === 'manage'
+                                ? 'bg-purple-500/15 text-purple-400'
+                                : isDark ? 'bg-white/5 hover:bg-white/10 text-gray-300' : 'bg-slate-50 hover:bg-slate-100 text-slate-600'
+                                }`}
+                        >
+                            Manage Requests
+                        </button>
+                    </div>
                     <button
                         onClick={() => setIsCreateModalOpen(true)}
                         className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold shadow-lg shadow-purple-500/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"

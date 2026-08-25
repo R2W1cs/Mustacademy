@@ -1504,7 +1504,8 @@ export const generatePodcastSpeech = async (req, res) => {
     // Premium Human-like Voices (FALLBACK CHAIN)
     // Using widely available high-quality Edge TTS default neural voices
     const hostVoices = ["en-US-JennyNeural", "en-US-AriaNeural"]; 
-    const expertVoices = ["en-US-AndrewMultilingualNeural", "en-US-BrianMultilingualNeural", "en-US-ChristopherNeural"];
+    // Marcus Sterling (Brian) leads podcast expert; Andrew reserved for interview
+    const expertVoices = ["en-US-BrianNeural", "en-US-BrianMultilingualNeural", "en-US-ChristopherNeural"];
     
     const trySynthesize = async (voices, text) => {
         for (const voice of voices) {

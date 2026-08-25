@@ -435,7 +435,7 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
                 conversationId: conversationIdRef.current,
                 mode: selectedMode || 'STANDARD'
             });
-            const reply = res.data.reply || "Connection established. Marcus Stering here. Ready when you are.";
+            const reply = res.data.reply || "Connection established. Andrew Hale here. Ready when you are.";
             setIsFlashing(true);
             setIsSpeaking(true);
             setRevealedLength(0);
@@ -598,7 +598,7 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
         // ── Phase 2: stream audio in parallel via GET so browser plays as chunks arrive ──
         try {
             const apiBase = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
-            const ttsUrl = `${apiBase}/tts?text=${encodeURIComponent(textSnapshot)}&voice=en-US-BrianNeural`;
+            const ttsUrl = `${apiBase}/tts?text=${encodeURIComponent(textSnapshot)}&voice=en-US-AndrewMultilingualNeural`;
 
             const audio = new Audio(ttsUrl);
             audio.preload = 'auto';
@@ -987,7 +987,7 @@ export default function SwainBoardroom({ onClose, isPage = false }) {
                                     </motion.div>
 
                                     <div className={`text-[10px] font-bold uppercase tracking-[0.3em] transition-all duration-700 ${getAttitudeColor(attitude)}`}>
-                                        Interviewer: Marcus Sterling ({attitude})
+                                        Interviewer: Andrew Hale ({attitude})
                                     </div>
                                 </div>
                             </div>

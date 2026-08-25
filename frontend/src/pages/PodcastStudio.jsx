@@ -9,6 +9,27 @@ import {
 import api from "../api/axios";
 import { useTheme } from "../auth/ThemeContext";
 
+/** Consistent API origin for media + podcast speech (hero, player, TTS). */
+const getApiOrigin = () => {
+    const apiUrl =
+        import.meta.env.VITE_API_URL ||
+        (typeof window !== "undefined" &&
+        window.location.hostname !== "localhost" &&
+        window.location.hostname !== "127.0.0.1"
+            ? "https://mustacademy-backend.onrender.com/api"
+            : "http://localhost:5000/api");
+    return apiUrl.replace(/\/api\/?$/, "");
+};
+
+const resolveMediaSrc = (url) => {
+    if (!url) return url;
+    if (/^https?:\/\//i.test(url)) return url;
+    return `${getApiOrigin()}${url.startsWith("/") ? url : `/${url}`}`;
+};
+
+const JOB_DONE = new Set(["DONE", "COMPLETED", "COMPLETE"]);
+const JOB_FAILED = new Set(["FAILED", "FAILED_UNKNOWN"]);
+
 // CS history chapters with icons and cover images (using Unsplash for a rich look)
 const CS_CHAPTERS = [
     {
@@ -144,9 +165,12 @@ export default function CsPodcastStudio() {
     const [mcTitle, setMcTitle] = useState("");
     const [mcTheme, setMcTheme] = useState("");
     const [generatingMasterclass, setGeneratingMasterclass] = useState(false);
+    const [pendingJobId, setPendingJobId] = useState(null);
 
     const [isAudioPrimed, setIsAudioPrimed] = useState(false);
     const audioRef = useRef(null);
+    const autoPlayedIdRef = useRef(null);
+    const prevVideoUrlRef = useRef(null);
 
     // Q&A state
     const [qaMessages, setQaMessages] = useState([]);
@@ -176,6 +200,16 @@ export default function CsPodcastStudio() {
         };
     }, [isAudioPrimed]);
 
+    const loadMasterclass = async () => {
+        try {
+            const res = await api.get("/ai/masterclass/all");
+            setMasterclassEpisodes(res.data || []);
+            return res.data || [];
+        } catch {
+            return null;
+        }
+    };
+
     useEffect(() => {
         const loadTopics = async () => {
             try {
@@ -183,15 +217,35 @@ export default function CsPodcastStudio() {
                 setTopics(res.data || []);
             } catch { /* fallback */ }
         };
-        const loadMasterclass = async () => {
-            try {
-                const res = await api.get("/ai/masterclass/all");
-                setMasterclassEpisodes(res.data || []);
-            } catch { /* fallback */ }
-        };
         loadTopics();
         loadMasterclass();
     }, []);
+
+    // Periodic + focus refetch so completed jobs appear without manual refresh
+    useEffect(() => {
+        const tick = () => { loadMasterclass(); };
+        const interval = setInterval(tick, 20000);
+        const onFocus = () => { loadMasterclass(); };
+        const onVis = () => {
+            if (document.visibilityState === "visible") loadMasterclass();
+        };
+        window.addEventListener("focus", onFocus);
+        document.addEventListener("visibilitychange", onVis);
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener("focus", onFocus);
+            document.removeEventListener("visibilitychange", onVis);
+        };
+    }, []);
+
+    // Allow video retry when URL updates (don't leave videoFailed sticky forever)
+    useEffect(() => {
+        const url = episode?.video_url || null;
+        if (url && url !== prevVideoUrlRef.current) {
+            setVideoFailed(false);
+        }
+        prevVideoUrlRef.current = url;
+    }, [episode?.video_url]);
 
     // Audio Playback Engine (Upgraded to Neural Backend with Pre-fetching)
     useEffect(() => {
@@ -221,12 +275,12 @@ export default function CsPodcastStudio() {
             const speaker = segment.speaker; // 'host' or 'expert'
             
             try {
-                const apiBase = (import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : 'https://mustacademy-backend.onrender.com/api')).replace('/api', '');
+                const apiBase = getApiOrigin();
                 
                 const nextIdx = currentIdx + 1;
                 if (nextIdx < episode.segments.length) {
                     const nextSeg = episode.segments[nextIdx];
-                    const nextUrl = `${apiBase}/ai/podcast/speech?text=${encodeURIComponent(nextSeg.text)}&speaker=${nextSeg.speaker}`;
+                    const nextUrl = `${apiBase}/api/ai/podcast/speech?text=${encodeURIComponent(nextSeg.text)}&speaker=${nextSeg.speaker}`;
                     
                     // Simple pre-fetch: Create a background audio element to start buffering
                     const preFetchAudio = new Audio();
@@ -242,7 +296,7 @@ export default function CsPodcastStudio() {
                 if (window._podcastAudioCache && window._podcastAudioCache[currentIdx]) {
                     url = window._podcastAudioCache[currentIdx];
                 } else {
-                    url = `${apiBase}/ai/podcast/speech?text=${encodeURIComponent(segment.text)}&speaker=${speaker}`;
+                    url = `${apiBase}/api/ai/podcast/speech?text=${encodeURIComponent(segment.text)}&speaker=${speaker}`;
                 }
 
                 const audio = new Audio(url);
@@ -251,7 +305,8 @@ export default function CsPodcastStudio() {
                 const fallbackToServerTTS = async () => {
                     console.warn(`[Podcast-Audio] Neural fallback triggered for ${speaker}. Using server TTS.`);
                     try {
-                        const voice = speaker === 'host' ? 'en-US-GuyNeural' : 'en-US-GuyNeural';
+                        // Host: Jenny; Expert: Marcus (Brian) — matches podcast.controller expertVoices
+                        const voice = speaker === 'host' ? 'en-US-JennyNeural' : 'en-US-BrianNeural';
                         const resp = await api.post('/tts', { text: segment.text, voice }, { responseType: 'blob' });
                         if (!resp.data || resp.data.size < 500) throw new Error('Empty TTS response');
                         const blobUrl = URL.createObjectURL(resp.data);
@@ -357,18 +412,66 @@ export default function CsPodcastStudio() {
         if (!mcTitle || !mcTheme) return;
         setGeneratingMasterclass(true);
         setError(null);
+        let polling = false;
         try {
-            await api.post("/ai/masterclass/generate", {
+            const createRes = await api.post("/ai/masterclass/generate", {
                 title: mcTitle, theme: mcTheme, partNumber: masterclassEpisodes.length + 1
             });
             setMcTitle(""); setMcTheme("");
-            const res = await api.get("/ai/masterclass/all");
-            setMasterclassEpisodes(res.data || []);
+            const jobId = createRes.data?.jobId;
+            if (createRes.data?.status === "PROCESSING" && jobId) {
+                polling = true;
+                setPendingJobId(jobId);
+                const poll = async () => {
+                    const maxAttempts = 120; // ~10 min at 5s
+                    for (let i = 0; i < maxAttempts; i++) {
+                        await new Promise((r) => setTimeout(r, 5000));
+                        try {
+                            const st = await api.get(`/ai/jobs/${jobId}`);
+                            const status = String(st.data?.status || "").toUpperCase();
+                            if (JOB_DONE.has(status)) {
+                                const eps = await loadMasterclass();
+                                setPendingJobId(null);
+                                setGeneratingMasterclass(false);
+                                if (eps?.length) {
+                                    const newest = [...eps].sort((a, b) => (b.part_number || 0) - (a.part_number || 0))[0];
+                                    if (newest) await playMasterclass(newest);
+                                }
+                                return;
+                            }
+                            if (JOB_FAILED.has(status)) {
+                                setPendingJobId(null);
+                                setGeneratingMasterclass(false);
+                                setError(st.data?.error || "Masterclass synthesis failed.");
+                                await loadMasterclass();
+                                return;
+                            }
+                        } catch {
+                            /* keep polling */
+                        }
+                    }
+                    setPendingJobId(null);
+                    setGeneratingMasterclass(false);
+                    setError("Masterclass is still processing — it will appear when ready.");
+                    await loadMasterclass();
+                };
+                poll();
+                return;
+            }
+            const eps = await loadMasterclass();
+            if (eps?.length) {
+                const newest = [...eps].sort((a, b) => (b.part_number || 0) - (a.part_number || 0))[0];
+                if (newest) await playMasterclass(newest);
+            }
         } catch { setError("Failed to synthesize Original Series."); }
-        finally { setGeneratingMasterclass(false); }
+        finally {
+            if (!polling) setGeneratingMasterclass(false);
+        }
     };
 
     const playMasterclass = async (ep) => {
+        if (!ep?.id) return;
+        autoPlayedIdRef.current = ep.id;
         setLoading(true);
         setEpisode(null);
         setError(null);
@@ -379,16 +482,22 @@ export default function CsPodcastStudio() {
             setEpisode(res.data);
             setActiveSegment(0);
             setIsPlaying(true);
-        } catch { setError("Failed to load archived episode."); }
+        } catch {
+            autoPlayedIdRef.current = null;
+            setError("Failed to load archived episode.");
+        }
         finally { setLoading(false); }
     };
 
-    // Load default episode (Chapter 1) once masterclass loads
+    // Prefer playMasterclass so media fields resolve (don't leave raw list row sticky)
     useEffect(() => {
-        if (masterclassEpisodes.length > 0 && !episode && !loading) {
-            setEpisode(masterclassEpisodes[0]);
+        if (masterclassEpisodes.length > 0 && !episode && !loading && !generatingMasterclass) {
+            const first = masterclassEpisodes[0];
+            if (first?.id && autoPlayedIdRef.current !== first.id) {
+                playMasterclass(first);
+            }
         }
-    }, [masterclassEpisodes]);
+    }, [masterclassEpisodes, episode, loading, generatingMasterclass]);
 
     // Filter topics and group into chapters
     const filteredTopics = topics.filter(t =>
@@ -438,7 +547,7 @@ export default function CsPodcastStudio() {
                     {masterclassEpisodes[0]?.video_url && (
                         <div className="absolute inset-0 opacity-30 pointer-events-none">
                             <video 
-                                src={masterclassEpisodes[0].video_url.startsWith('http') ? masterclassEpisodes[0].video_url : `${(import.meta.env.VITE_API_URL || '').replace('/api', '')}${masterclassEpisodes[0].video_url}`}
+                                src={resolveMediaSrc(masterclassEpisodes[0].video_url)}
                                 autoPlay muted loop playsInline
                                 className="w-full h-full object-cover grayscale brightness-50"
                             />
@@ -526,7 +635,7 @@ export default function CsPodcastStudio() {
                                     <div className={`relative ${isFullVideo ? 'h-[500px] md:h-[650px]' : 'h-48 lg:h-80'} overflow-hidden bg-black flex items-center justify-center`}>
                                         {episode.video_url && !videoFailed ? (
                                             <video
-                                                src={episode.video_url.startsWith('http') ? episode.video_url : `${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${episode.video_url}`}
+                                                src={resolveMediaSrc(episode.video_url)}
                                                 controls
                                                 autoPlay
                                                 className="w-full h-full object-contain"
@@ -923,7 +1032,9 @@ export default function CsPodcastStudio() {
                                 style={{ backgroundColor: netflixRed }}
                             >
                                 {generatingMasterclass ? <Loader2 className="animate-spin" size={20} /> : <Film size={20} />}
-                                {generatingMasterclass ? "Producing..." : "Produce Story"}
+                                {generatingMasterclass
+                                    ? (pendingJobId ? "Synthesizing in background..." : "Producing...")
+                                    : "Produce Story"}
                             </button>
                         </div>
                     </div>

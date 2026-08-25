@@ -4,8 +4,8 @@ import { Mic, MicOff, Send, Square, ChevronRight, BookOpen, MessageSquare } from
 import api from '../api/axios';
 import { useTheme } from '../auth/ThemeContext';
 
-// Dr. Nova voice — locked to server TTS, consistent across all browsers
-const NOVA_VOICE = 'en-US-GuyNeural';
+// Dr. Nova / topic podcast — Marcus (Brian), same expert voice as Podcast Studio
+const NOVA_VOICE = 'en-US-BrianNeural';
 
 async function serverTTS(text, signal) {
     const response = await api.post('/tts', { text, voice: NOVA_VOICE }, { responseType: 'blob', signal });
