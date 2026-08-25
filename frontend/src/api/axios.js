@@ -42,7 +42,15 @@ api.interceptors.response.use(
         localStorage.removeItem("userName");
         localStorage.removeItem("role");
         clearSocketToken();
-        if (window.location.pathname !== "/login") {
+        // Guests on public pages (landing, auth) must not be hard-redirected.
+        // AuthProvider calls /auth/session on every load; 401 there is normal when logged out.
+        const path = window.location.pathname;
+        const isPublicPage =
+          path === "/" ||
+          path === "/login" ||
+          path === "/register" ||
+          path.startsWith("/reset-password");
+        if (!isPublicPage) {
           window.location.href = "/login";
         }
         return Promise.reject(refreshError);
