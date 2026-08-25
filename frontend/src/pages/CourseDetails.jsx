@@ -54,7 +54,7 @@ const CourseDetails = () => {
       <div className={`flex items-center justify-center min-h-screen transition-colors duration-700 ${isDark ? '' : 'bg-slate-50'}`}>
         <div className="flex flex-col items-center gap-6">
           <div className={`w-16 h-16 border-4 rounded-full animate-spin ${isDark ? 'border-indigo-500/20 border-t-indigo-500' : 'border-slate-200 border-t-indigo-500'}`} />
-          <p className={`text-[10px] font-black uppercase tracking-widest animate-pulse ${isDark ? 'text-indigo-400' : 'text-slate-500'}`}>Synchronizing Neural Links</p>
+          <p className={`text-[10px] font-black uppercase tracking-widest animate-pulse ${isDark ? 'text-indigo-400' : 'text-slate-500'}`}>Loading course…</p>
         </div>
       </div>
     );
@@ -65,8 +65,8 @@ const CourseDetails = () => {
       <div className="flex flex-col items-center justify-center min-h-screen p-10">
         <div className={`studio-card p-20 text-center max-w-2xl w-full border border-red-500/20 bg-red-500/5 text-red-500 font-bold ${isDark ? 'text-red-400' : 'text-red-600'}`}>
           <AlertTriangle size={48} className="mx-auto mb-6 opacity-80" />
-          <h2 className="text-2xl font-black uppercase mb-4 tracking-tighter">System Error: 404</h2>
-          <p className="text-sm opacity-80 mb-8">{error || "Course Repository Offline"}</p>
+          <h2 className="text-2xl font-black uppercase mb-4 tracking-tighter">Course not found</h2>
+          <p className="text-sm opacity-80 mb-8">{error || "This course could not be loaded."}</p>
           <Link to="/library" className="px-8 py-3 bg-red-500 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-red-600 transition-colors">
             Return to Library
           </Link>
@@ -86,7 +86,7 @@ const CourseDetails = () => {
           className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest mb-10 transition-colors ${isDark ? 'text-indigo-400 hover:text-white' : 'text-indigo-600 hover:text-indigo-800'}`}
         >
           <ChevronLeft size={16} />
-          Archive Registry
+          All courses
         </Link>
         {/* COMMAND CENTER HEADER */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-10 mb-20 relative">
@@ -97,7 +97,7 @@ const CourseDetails = () => {
               className="flex items-center gap-4 mb-6"
             >
               <div className="w-12 h-0.5 bg-indigo-500" />
-              <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Mastery Protocol Active</span>
+              <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Your course</span>
             </motion.div>
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
@@ -119,12 +119,12 @@ const CourseDetails = () => {
           <div className="flex flex-col items-end gap-6">
             <div className={`flex items-center gap-4 px-8 py-4 rounded-[1.5rem] border ${isDark ? 'bg-indigo-500/5 border-indigo-500/20' : 'bg-white border-slate-200 shadow-md'}`}>
               <span className="text-xl">🎓</span>
-              <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>Scholarly Access Active</span>
+              <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>Enrolled</span>
             </div>
 
             <div className={`studio-card p-8 min-w-[300px] border ${isDark ? 'border-white/10' : 'bg-white border-slate-200 shadow-xl'}`}>
               <div className="flex justify-between items-end mb-4">
-                <span className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Synaptic Mastery</span>
+                <span className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Progress</span>
                 <span className={`text-2xl font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>{progressPercent}%</span>
               </div>
               <div className={`h-2 rounded-full overflow-hidden p-0.5 border ${isDark ? 'bg-white/5 border-white/5' : 'bg-slate-100 border-slate-200'}`}>
@@ -146,7 +146,7 @@ const CourseDetails = () => {
           <div className="space-y-12 relative z-10">
             {topics.length === 0 ? (
               <div className="studio-card p-12 text-center text-slate-500 font-bold italic tracking-widest uppercase text-[10px]">
-                Module contents pending authorization...
+                No lessons in this course yet.
               </div>
             ) : (
               topics.map((topic, idx) => (
@@ -161,7 +161,7 @@ const CourseDetails = () => {
                   <div className={`flex-1 w-full lg:max-w-md ${idx % 2 === 0 ? 'lg:text-right' : 'lg:text-left'}`}>
                     <div className={`studio-card p-8 group transition-all border ${isDark ? 'border-white/10 hover:border-indigo-500/30' : 'bg-white border-slate-200 hover:border-indigo-500/50 shadow-lg'}`}>
                       <div className={`flex items-center gap-4 mb-4 ${idx % 2 === 0 ? 'lg:flex-row-reverse' : 'lg:flex-row'}`}>
-                        <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>Ref. 0{idx + 1}</span>
+                        <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>Lesson {idx + 1}</span>
                         <div className={`h-px flex-1 transition-all ${isDark ? 'bg-white/5 group-hover:bg-indigo-500/20' : 'bg-slate-100 group-hover:bg-indigo-500/20'}`} />
                       </div>
                       <h3 className={`text-2xl font-black tracking-tight mb-4 transition-colors ${isDark ? 'text-white group-hover:text-indigo-400' : 'text-slate-900 group-hover:text-indigo-600'}`}>
@@ -170,7 +170,7 @@ const CourseDetails = () => {
 
                       <div className={`flex flex-wrap gap-2 mb-6 ${idx % 2 === 0 ? 'lg:justify-end' : 'lg:justify-start'}`}>
                         <span className="text-[8px] font-black px-2 py-1 rounded bg-white/5 text-slate-400 uppercase tracking-widest">
-                          Tier: {topic.importance_level}
+                          Level: {topic.importance_level}
                         </span>
                         {topic.completed ? (
                           <span className="text-[8px] font-black px-2 py-1 rounded bg-emerald-500/10 text-emerald-400 uppercase tracking-widest border border-emerald-500/20 shadow-lg">

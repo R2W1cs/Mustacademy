@@ -8,6 +8,11 @@ import {
     Brain, Send, Play
 } from "lucide-react";
 import api from "../api/axios";
+import {
+    playStreamingTtsQueued,
+    cleanSpeechText,
+    browserSpeechFallback,
+} from "../utils/streamingTts";
 import Markdown from "markdown-to-jsx";
 import AlgoVizBlock from "./AlgoVizBlock";
 
@@ -357,34 +362,20 @@ const TopicNotebook = ({ topic, isDark }) => {
 
     const speakResponse = useCallback(async (text) => {
         if (!text || !voiceEnabled) return;
-        const clean = text
-            .replace(/```[\s\S]*?```/g, " [code block] ")
-            .replace(/\*\*/g, "").replace(/###?\s/g, "")
-            .replace(/`([^`]+)`/g, "$1").replace(/\n+/g, " ").trim();
+        const clean = cleanSpeechText(text);
         if (sessionStatus !== "active") { pendingSpeech.current = clean; return; }
         killAudio();
         try {
             setIsSpeaking(true);
-            const res = await api.post('/tts', { text: clean, voice: 'en-US-AvaNeural' }, { responseType: 'blob' });
-            if (!res.data || res.data.size < 500) throw new Error('Invalid audio');
-            const url = URL.createObjectURL(res.data);
-            const audio = new Audio(url);
-            audio.volume = 1;
-            audioRef.current = audio;
-            audio.onended = () => { killAudio(); URL.revokeObjectURL(url); };
-            audio.onerror = () => { killAudio(); URL.revokeObjectURL(url); };
-            await audio.play().catch(() => {});
+            playStreamingTtsQueued(clean, 'en-US-AvaNeural', {
+                audioRef,
+                onEnded: () => killAudio(),
+                onError: () => {
+                    browserSpeechFallback(clean, () => killAudio());
+                },
+            });
         } catch {
-            try {
-                window.speechSynthesis?.cancel();
-                const u = new SpeechSynthesisUtterance(clean);
-                u.rate = 1.02;
-                u.volume = 1;
-                u.onend = () => setIsSpeaking(false);
-                u.onerror = () => setIsSpeaking(false);
-                setIsSpeaking(true);
-                window.speechSynthesis?.speak(u);
-            } catch { killAudio(); }
+            browserSpeechFallback(clean, () => killAudio());
         }
     }, [voiceEnabled, sessionStatus, killAudio]);
 

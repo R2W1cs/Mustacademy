@@ -6,6 +6,7 @@ import {
     Mic, MicOff, Volume2, VolumeX, Sparkles
 } from 'lucide-react';
 import api from '../api/axios';
+import { playStreamingTtsQueued, cleanSpeechText } from '../utils/streamingTts';
 import { useTheme } from '../auth/ThemeContext';
 import { usePlan } from '../auth/PlanContext';
 
@@ -178,64 +179,36 @@ function GlobalAIPilot() {
         if (!text || !voiceEnabled) return;
 
         killAudio();
+        const clean = cleanSpeechText(text);
+        const totalChars = clean.length;
 
         try {
             setIsSpeaking(true);
             setRevealedLength(0);
 
-            // Stop recognition while speaking to avoid feedback
             if (recognitionRef.current) {
                 try { recognitionRef.current.stop(); } catch (e) { }
             }
 
-            const response = await api.post(
-                '/tts',
-                { text, voice: 'en-US-AvaNeural' }, // Nova's voice
-                { responseType: 'blob' }
-            );
-
-            if (!response.data || response.data.size < 500) throw new Error('Invalid audio');
-
-            const url = URL.createObjectURL(response.data);
-            const audio = new Audio(url);
-            audioRef.current = audio;
-
-            const totalChars = text.length;
-
-            audio.onplay = () => {
-                textIntervalRef.current = setInterval(() => {
-                    const a = audioRef.current;
-                    if (!a || !a.duration) return;
-                    const progress = Math.min(a.currentTime / a.duration, 1);
-                    setRevealedLength(Math.floor(progress * totalChars));
-                    setVoiceIntensity(0.5 + Math.random() * 0.5);
-                }, 50);
-            };
-
-            audio.onended = () => {
-                killAudio();
-                URL.revokeObjectURL(url);
-                // Resume listening if we were in "interactive" mode (conceptually)
-                // For now, only resume if the modal is still open
-                if (isOpen && !loadingRef.current) {
-                    // Slight delay before resuming listening
-                    setTimeout(() => {
-                        if (isOpen && !isSpeakingRef.current && !loadingRef.current) {
-                            // Only resume if manually toggled or in a dedicated voice flow?
-                            // Let's keep it simple: don't auto-start listening unless user clicked mic
-                        }
-                    }, 500);
-                }
-            };
-
-            audio.onerror = () => {
-                killAudio();
-                URL.revokeObjectURL(url);
-            };
-
-            await audio.play();
-        } catch (err) {
-            console.error("[Nova-Voice] Synthesis failed:", err);
+            playStreamingTtsQueued(clean, 'en-US-AvaNeural', {
+                audioRef,
+                onPlay: () => {
+                    textIntervalRef.current = setInterval(() => {
+                        const a = audioRef.current;
+                        if (!a || !a.duration) return;
+                        const progress = Math.min(a.currentTime / a.duration, 1);
+                        setRevealedLength(Math.floor(progress * totalChars));
+                        setVoiceIntensity(0.5 + Math.random() * 0.5);
+                    }, 50);
+                },
+                onEnded: () => {
+                    killAudio();
+                },
+                onError: () => {
+                    killAudio();
+                },
+            });
+        } catch {
             killAudio();
         }
     };

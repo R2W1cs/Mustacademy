@@ -122,18 +122,17 @@ const Courses = () => {
                             <Shield size={56} className="animate-pulse" />
                         </div>
                         <h1 className={`text-7xl font-black tracking-tightest mb-8 uppercase leading-[0.85] ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                            Protocol <br /> <span className="text-nebula">Unauthorized</span>
+                            Sign in <br /> <span className="text-nebula">required</span>
                         </h1>
                         <p className={`text-lg font-medium max-w-xl mx-auto leading-relaxed mb-12 uppercase tracking-wide opacity-80 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                            Vocal & DNA signatures not detected in the <span className={isDark ? 'text-white' : 'text-slate-900'}>Celestial Archive</span>. <br />
-                            Synthesize your academic identity to proceed.
+                            Complete your profile to browse courses and track progress.
                         </p>
                         <button
                             onClick={() => navigate('/profile/setup')}
                             className={`group relative px-14 py-6 overflow-hidden font-black text-[12px] uppercase tracking-[0.4em] rounded-[1.5rem] transition-all hover:scale-[1.05] active:scale-95 shadow-lg ${isDark ? 'bg-white text-black' : 'bg-slate-900 text-white'}`}
                         >
                             <div className={`absolute inset-0 translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-700 ${isDark ? 'bg-gradient-to-r from-cyan-400 via-violet-500 to-magenta-500' : 'bg-gradient-to-r from-red-600 via-red-700 to-slate-900'}`} />
-                            <span className={`relative z-10 transition-colors ${isDark ? 'group-hover:text-white' : 'group-hover:text-black'}`}>Generate Identity Protocol</span>
+                            <span className={`relative z-10 transition-colors ${isDark ? 'group-hover:text-white' : 'group-hover:text-black'}`}>Set up profile</span>
                         </button>
                     </div>
                 </motion.div>
@@ -161,7 +160,7 @@ const Courses = () => {
                             className="flex items-center gap-8 mb-16"
                         >
                             <div className={`h-px w-24 bg-gradient-to-r to-transparent ${isDark ? 'from-amber-500 shadow-lg' : 'from-red-600'}`} />
-                            <span className={`text-[13px] font-bold uppercase tracking-[0.3em] ${isDark ? 'text-amber-500 opacity-80' : 'text-red-700 opacity-90'}`}>Curriculum Registry</span>
+                            <span className={`text-[13px] font-bold uppercase tracking-[0.3em] ${isDark ? 'text-amber-500 opacity-80' : 'text-red-700 opacity-90'}`}>Course library</span>
                         </motion.div>
 
                         <div className="relative">
@@ -383,10 +382,10 @@ const Courses = () => {
                     className="relative z-10"
                 >
                     <div className={`flex justify-between items-center px-6 md:px-12 text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
-                        <span>Celestial Navigation Protocol</span>
+                        <span>MustAcademy</span>
                         <span className="flex items-center gap-3">
                             <div className={`w-2 h-2 rounded-full ${isDark ? 'bg-cyan-500/20' : 'bg-red-500/20'}`} />
-                            Standard Encryption Active
+                            Secure connection
                         </span>
                         <span>© {new Date().getFullYear()} CS Platform</span>
                     </div>

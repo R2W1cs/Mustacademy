@@ -28,6 +28,7 @@ import pool from './src/config/db.js';
 import { redisAvailable } from './src/config/redis.js';
 import { startSynthesisWorker } from './src/workers/synthesis.worker.js';
 import { startMasterclassWorker } from './src/workers/masterclass.worker.js';
+import { warmTtsConnection } from './src/controllers/tts.controller.js';
 
 const PORT = parseInt(process.env.PORT) || 5000;
 const server = http.createServer(app);
@@ -68,4 +69,6 @@ server.on('error', (err) => {
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
+  // Warm Edge TTS so first user voice request is not a cold start
+  warmTtsConnection().catch((e) => console.warn('[TTS-Module] Warm-up error:', e.message));
 });

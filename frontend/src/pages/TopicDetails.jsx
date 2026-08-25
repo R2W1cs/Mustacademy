@@ -24,8 +24,26 @@ import ComplexityVisualizer from "../components/ComplexityVisualizer";
 import MethodologyVisualizer from "../components/MethodologyVisualizer";
 import UMLDiagramVisualizer from "../components/UMLDiagramVisualizer";
 import DataWarehouseVisualizer from "../components/DataWarehouseVisualizer";
+import NetworkVisualizer from "../components/NetworkVisualizer";
+import { resolveLessonVisualizers } from "../utils/lessonVisualizers";
 
 import api from "../api/axios";
+
+function renderLessonViz(lab, key) {
+    const p = lab.props || {};
+    switch (lab.viz) {
+        case 'sorting': return <SortingVisualizer key={key} />;
+        case 'graph': return <GraphVisualizer key={key} algorithm={p.algorithm || 'BFS'} />;
+        case 'knapsack': return <KnapsackVisualizer key={key} />;
+        case 'recurrence': return <RecurrenceVisualizer key={key} />;
+        case 'complexity': return <ComplexityVisualizer key={key} />;
+        case 'methodology': return <MethodologyVisualizer key={key} type={p.type || 'waterfall'} />;
+        case 'uml': return <UMLDiagramVisualizer key={key} type={p.type || 'class'} />;
+        case 'warehouse': return <DataWarehouseVisualizer key={key} type="comparison" />;
+        case 'network': return <NetworkVisualizer key={key} type={p.type} config={p.config} />;
+        default: return null;
+    }
+}
 
 const TopicDetails = () => {
     const { id } = useParams();
@@ -90,9 +108,10 @@ const TopicDetails = () => {
         }
     };
 
-    if (!topic && !loading) return <div className="p-20 text-center text-red-500 font-black uppercase">Topic Synchronization Failed</div>;
+    if (!topic && !loading) return <div className="p-20 text-center text-red-500 font-black uppercase">Could not load this lesson</div>;
 
     const isLight = theme === 'light';
+    const lessonLabs = topic ? resolveLessonVisualizers(topic.title) : [];
 
     return (
         <div
@@ -123,16 +142,16 @@ const TopicDetails = () => {
                         <div className="w-20 h-20 bg-red-500/10 rounded-2xl flex items-center justify-center mx-auto mb-8 border border-red-500/20 shadow-lg shadow-red-500/10">
                             <ShieldCheck size={32} className="text-red-500" />
                         </div>
-                        <h1 className={`text-4xl font-black mb-4 uppercase italic tracking-tightest ${isLight ? 'text-gray-900' : 'text-white'}`}>Security Clearance Required</h1>
+                        <h1 className={`text-4xl font-black mb-4 uppercase italic tracking-tightest ${isLight ? 'text-gray-900' : 'text-white'}`}>Complete the previous lesson first</h1>
                         <p className={`mb-10 text-sm leading-relaxed uppercase tracking-widest font-bold ${isLight ? 'text-gray-500' : 'text-slate-400'}`}>
-                            Proficiency Threshold: <span className="text-red-500">{access.reqScore}%</span> <br />
-                            Current Synchronization: <span className={isLight ? 'text-gray-700' : 'text-slate-200'}>{access.yourPrevScore}%</span>
+                            Required score: <span className="text-red-500">{access.reqScore}%</span> <br />
+                            Your score: <span className={isLight ? 'text-gray-700' : 'text-slate-200'}>{access.yourPrevScore}%</span>
                         </p>
                         <button
                             onClick={() => navigate(`/topics/${access.prevTopicId}`)}
                             className="w-full py-5 bg-red-600 hover:bg-red-700 text-white font-black rounded-2xl uppercase tracking-[0.3em] transition-all active:scale-95 shadow-xl shadow-red-600/20"
                         >
-                            Retreat to Previous Node
+                            Go to previous lesson
                         </button>
                     </motion.div>
                 </div>
@@ -163,59 +182,56 @@ const TopicDetails = () => {
                     />
 
                     <div className="relative z-10 w-full mx-auto px-6 lg:px-20 py-16 lg:py-20 pb-8 max-w-[1600px]">
-                        {/* CINEMATIC HERO */}
-                        <motion.header 
-                            style={{ opacity: headerOpacity, scale: headerScale }}
-                            className="mb-24 flex flex-col gap-8"
-                        >
+                        {/* HERO — back link stays visible; title fades on scroll */}
+                        <header className="mb-16 flex flex-col gap-8">
                             <nav className={`flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.3em] ${isLight ? 'text-gray-400' : 'text-slate-500'}`}>
-                                <button onClick={() => navigate('/dashboard')} className={`transition-colors ${isLight ? 'hover:text-red-600' : 'hover:text-indigo-400'}`}>Neural Hub</button>
+                                <button onClick={() => navigate('/dashboard')} className={`transition-colors ${isLight ? 'hover:text-red-600' : 'hover:text-indigo-400'}`}>Home</button>
                                 <ChevronRight size={12} className="opacity-30" />
                                 <button onClick={() => navigate(`/courses/${topic.course_id}`)} className={`transition-colors ${isLight ? 'hover:text-red-600' : 'hover:text-indigo-400'}`}>Course</button>
                                 <ChevronRight size={12} className="opacity-30" />
                                 <span className={isLight ? 'text-red-600/70' : 'text-indigo-400/60'}>{topic.title}</span>
                             </nav>
 
-                            <div className="flex flex-wrap items-center gap-3">
-                                <button
-                                    type="button"
-                                    onClick={() => navigate(`/courses/${topic.course_id}`)}
-                                    className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${isLight ? 'bg-white border-gray-200 text-gray-700 hover:border-red-300 hover:text-red-600' : 'bg-white/5 border-white/10 text-slate-300 hover:border-indigo-400/40 hover:text-white'}`}
-                                >
-                                    <ArrowLeft size={14} /> Back to course
-                                </button>
-                            </div>
+                            <motion.div style={{ opacity: headerOpacity, scale: headerScale }}>
+                                <h1 className={`text-5xl lg:text-7xl xl:text-8xl font-black tracking-tightest leading-[1] italic drop-shadow-2xl max-w-5xl ${isLight ? 'text-gray-900' : 'text-white'}`}>
+                                    {topic.title}
+                                </h1>
 
-                            <h1 className={`text-5xl lg:text-7xl xl:text-8xl font-black tracking-tightest leading-[1] italic drop-shadow-2xl max-w-5xl ${isLight ? 'text-gray-900' : 'text-white'}`}>
-                                {topic.title}
-                            </h1>
+                                <div className={`flex flex-wrap items-center gap-10 mt-6 pt-10 border-t ${isLight ? 'border-gray-200' : 'border-white/5'}`}>
+                                    <div className="flex flex-col gap-2">
+                                        <span className={`text-[10px] font-black uppercase tracking-widest ${isLight ? 'text-gray-400' : 'text-slate-500'}`}>Difficulty</span>
+                                        <span className={`text-sm font-bold uppercase tracking-tighter flex items-center gap-2 ${isLight ? 'text-red-600' : 'text-indigo-400'}`}>
+                                            <Layers size={14} /> {topic.difficulty || 'Intermediate'}
+                                        </span>
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <span className={`text-[10px] font-black uppercase tracking-widest ${isLight ? 'text-gray-400' : 'text-slate-500'}`}>Est. time</span>
+                                        <span className={`text-sm font-bold uppercase tracking-tighter flex items-center gap-2 ${isLight ? 'text-gray-700' : 'text-slate-200'}`}>
+                                            <Clock size={14} /> {topic.estimated_time || '2h 15m'}
+                                        </span>
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <span className={`text-[10px] font-black uppercase tracking-widest ${isLight ? 'text-gray-400' : 'text-slate-500'}`}>Progress</span>
+                                        <span className={`text-sm font-bold uppercase tracking-tighter flex items-center gap-2 ${topic.completed ? 'text-emerald-500' : isLight ? 'text-gray-400' : 'text-slate-600'}`}>
+                                            <CheckCircle size={14} /> {topic.completed ? 'Done' : 'Not started'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </header>
 
-                            <div className={`flex flex-wrap items-center gap-10 mt-6 pt-10 border-t ${isLight ? 'border-gray-200' : 'border-white/5'}`}>
-                                <div className="flex flex-col gap-2">
-                                    <span className={`text-[10px] font-black uppercase tracking-widest ${isLight ? 'text-gray-400' : 'text-slate-500'}`}>Protocol Complexity</span>
-                                    <span className={`text-sm font-bold uppercase tracking-tighter flex items-center gap-2 ${isLight ? 'text-red-600' : 'text-indigo-400'}`}>
-                                        <Layers size={14} /> {topic.difficulty || 'Advanced Matrix'}
-                                    </span>
-                                </div>
-                                <div className="flex flex-col gap-2">
-                                    <span className={`text-[10px] font-black uppercase tracking-widest ${isLight ? 'text-gray-400' : 'text-slate-500'}`}>Cognitive Load</span>
-                                    <span className={`text-sm font-bold uppercase tracking-tighter flex items-center gap-2 ${isLight ? 'text-gray-700' : 'text-slate-200'}`}>
-                                        <Clock size={14} /> {topic.estimated_time || '2h 15m'}
-                                    </span>
-                                </div>
-                                <div className="flex flex-col gap-2">
-                                    <span className={`text-[10px] font-black uppercase tracking-widest ${isLight ? 'text-gray-400' : 'text-slate-500'}`}>Mastery Status</span>
-                                    <span className={`text-sm font-bold uppercase tracking-tighter flex items-center gap-2 ${topic.completed ? 'text-emerald-500' : isLight ? 'text-gray-400' : 'text-slate-600'}`}>
-                                        <CheckCircle size={14} /> {topic.completed ? 'Verified' : 'Pending Sync'}
-                                    </span>
-                                </div>
-                            </div>
-                        </motion.header>
-
-                        {/* ADAPTIVE CONTROL BAR (STICKY) */}
-                        <div className="sticky top-6 z-50 mb-16">
-                            <div className={`glass-morphism p-2 rounded-2xl flex items-center justify-between gap-4 shadow-2xl backdrop-blur-2xl ${isLight ? 'bg-white/80 border-gray-200' : 'bg-zinc-900/40 border-white/5'}`}>
-                                <div className="flex items-center gap-1">
+                        {/* STICKY BAR — back button always visible */}
+                        <div className="sticky top-3 z-50 mb-16">
+                            <div className={`glass-morphism p-2 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-2xl backdrop-blur-2xl ${isLight ? 'bg-white/90 border-gray-200' : 'bg-zinc-900/60 border-white/5'}`}>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate(`/courses/${topic.course_id}`)}
+                                        className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all shrink-0 ${isLight ? 'bg-white border-gray-200 text-gray-700 hover:border-red-300 hover:text-red-600' : 'bg-white/10 border-white/10 text-slate-200 hover:border-indigo-400/40 hover:text-white'}`}
+                                    >
+                                        <ArrowLeft size={14} /> Back to course
+                                    </button>
+                                    <div className={`hidden sm:block w-px h-8 ${isLight ? 'bg-gray-200' : 'bg-white/10'}`} />
                                     <button 
                                         onClick={() => setViewMode('lesson')}
                                         className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${viewMode === 'lesson' ? (isLight ? 'bg-red-600 text-white shadow-lg' : 'bg-indigo-600 text-white shadow-lg') : (isLight ? 'text-gray-500 hover:text-gray-700' : 'text-slate-500 hover:text-slate-300')}`}
@@ -239,7 +255,7 @@ const TopicDetails = () => {
 
                                 <div className="flex items-center gap-2 pr-2">
                                     <div className={`hidden lg:flex items-center gap-2 mr-4 pr-4 border-r ${isLight ? 'border-gray-200' : 'border-white/10'}`}>
-                                        <span className={`text-[10px] font-black uppercase tracking-widest ${isLight ? 'text-gray-400' : 'text-slate-500'}`}>Synaptic Map:</span>
+                                        <span className={`text-[10px] font-black uppercase tracking-widest ${isLight ? 'text-gray-400' : 'text-slate-500'}`}>Before this:</span>
                                         {topic.prerequisites?.length > 0 ? (
                                             <div className="flex gap-2">
                                                 {topic.prerequisites.map((pre, idx) => (
@@ -254,7 +270,7 @@ const TopicDetails = () => {
                                         onClick={handleToggle}
                                         className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${topic.completed ? 'bg-emerald-600 text-white' : (isLight ? 'bg-red-600 text-white' : 'bg-indigo-600 text-white')}`}
                                     >
-                                        <CheckCircle size={14} /> {topic.completed ? 'Mastered' : 'Complete Sync'}
+                                        <CheckCircle size={14} /> {topic.completed ? 'Done' : 'Mark complete'}
                                     </button>
                                 </div>
                             </div>
@@ -292,45 +308,22 @@ const TopicDetails = () => {
                                 >
                                     <div className="space-y-20">
                                         
-                                        {/* VISUALIZER MATRIX — only when a lab matches */}
-                                        {(
-                                            topic.title?.toLowerCase().includes("sorting")
-                                            || topic.title?.toLowerCase().includes("graph")
-                                            || topic.title?.toLowerCase().includes("bfs")
-                                            || topic.title?.toLowerCase().includes("dfs")
-                                            || topic.title?.toLowerCase().includes("knapsack")
-                                            || topic.title?.toLowerCase().includes("recurrence")
-                                            || topic.title?.toLowerCase().includes("complexity")
-                                            || topic.title?.toLowerCase().includes("big o")
-                                            || topic.title?.toLowerCase().includes("olap")
-                                            || topic.title?.toLowerCase().includes("warehouse")
-                                            || topic.title?.toLowerCase().includes("uml")
-                                            || topic.title?.toLowerCase().includes("sdlc")
-                                            || topic.title?.toLowerCase().includes("waterfall")
-                                            || topic.title?.toLowerCase().includes("scrum")
-                                            || topic.title?.toLowerCase().includes("agile")
-                                        ) && (
-                                        <section className="space-y-16">
-                                            <div className="flex items-center justify-between mb-8">
+                                        {/* Interactive lab — every lesson gets at least one animation */}
+                                        <section className="space-y-10">
+                                            <div className="flex items-center justify-between mb-4">
                                                 <div className="flex items-center gap-4">
                                                     <div className={`w-1 h-8 rounded-full ${isLight ? 'bg-red-500' : 'bg-purple-500'}`} />
-                                                    <h2 className={`text-2xl font-black uppercase italic tracking-tightest ${isLight ? 'text-gray-900' : ''}`}>Tactile Lab</h2>
+                                                    <div>
+                                                        <h2 className={`text-2xl font-black uppercase italic tracking-tightest ${isLight ? 'text-gray-900' : 'text-white'}`}>Interactive lab</h2>
+                                                        <p className={`text-xs mt-1 ${isLight ? 'text-gray-500' : 'text-slate-400'}`}>Press Play or Step to walk through this lesson.</p>
+                                                    </div>
                                                 </div>
-                                                <span className={`text-[10px] font-black uppercase tracking-widest ${isLight ? 'text-gray-400' : 'text-slate-500'}`}>Active Simulation Engine</span>
                                             </div>
 
-                                            <AnimatePresence mode="wait">
-                                                {topic.title?.toLowerCase().includes("sorting") && <SortingVisualizer />}
-                                                {(topic.title?.toLowerCase().includes("graph") || topic.title?.toLowerCase().includes("bfs") || topic.title?.toLowerCase().includes("dfs")) && <GraphVisualizer algorithm="BFS" />}
-                                                {topic.title?.toLowerCase().includes("knapsack") && <KnapsackVisualizer />}
-                                                {topic.title?.toLowerCase().includes("recurrence") && <RecurrenceVisualizer />}
-                                                 {(topic.title?.toLowerCase().includes("complexity") || topic.title?.toLowerCase().includes("big o") || topic.title?.toLowerCase().includes("asymptotic") || topic.title?.toLowerCase().includes("growth")) && <ComplexityVisualizer />}
-                                                 {(topic.title?.toLowerCase().includes("olap") || topic.title?.toLowerCase().includes("warehouse")) && <DataWarehouseVisualizer type="comparison" />}
-                                                 {(topic.title?.toLowerCase().includes("uml") || topic.title?.toLowerCase().includes("activity") || topic.title?.toLowerCase().includes("sequence") || topic.title?.toLowerCase().includes("use case")) && <UMLDiagramVisualizer type={topic.title?.toLowerCase().includes("activity") ? "activity" : topic.title?.toLowerCase().includes("sequence") ? "sequence" : "class"} />}
-                                                 {(topic.title?.toLowerCase().includes("sdlc") || topic.title?.toLowerCase().includes("waterfall") || topic.title?.toLowerCase().includes("spiral") || topic.title?.toLowerCase().includes("scrum") || topic.title?.toLowerCase().includes("agile") || topic.title?.toLowerCase().includes("kanban") || topic.title?.toLowerCase().includes("xp")) && <MethodologyVisualizer type={topic.title?.toLowerCase().includes("spiral") ? "spiral" : topic.title?.toLowerCase().includes("scrum") ? "scrum" : topic.title?.toLowerCase().includes("kanban") ? "kanban" : topic.title?.toLowerCase().includes("xp") ? "xp" : "waterfall"} />}
-                                            </AnimatePresence>
+                                            <div className="space-y-12">
+                                                {lessonLabs.map((lab, i) => renderLessonViz(lab, `${lab.viz}-${i}`))}
+                                            </div>
                                         </section>
-                                        )}
 
                                         {/* ACADEMIC MANUSCRIPT — NetworkVisualizer mounts inside TopicContent */}
                                         <section className={`prose max-w-none ${isLight ? 'prose-gray' : 'prose-invert'}`}>
@@ -380,10 +373,10 @@ const TopicDetails = () => {
                                                     <div className="flex-1 space-y-6">
                                                         <div className="flex items-center gap-4">
                                                             <div className="w-1 h-8 bg-amber-500 rounded-full" />
-                                                            <h2 className={`text-3xl font-black uppercase italic tracking-tightest ${isLight ? 'text-gray-900' : ''}`}>Harmonic Reinforcement</h2>
+                                                            <h2 className={`text-3xl font-black uppercase italic tracking-tightest ${isLight ? 'text-gray-900' : ''}`}>Lesson song</h2>
                                                         </div>
                                                         <p className={`text-lg leading-relaxed font-medium italic ${isLight ? 'text-gray-500' : 'text-slate-400'}`}>
-                                                            "A cognitive lock-in for your neural pathways. Let the rhythm solidify the architecture."
+                                                            Listen to reinforce what you learned in this lesson.
                                                         </p>
                                                     </div>
                                                     <div className="w-full md:w-[400px]">

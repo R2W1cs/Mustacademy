@@ -90,7 +90,7 @@ const CourseCard = ({ course, index }) => {
             </div>
 
             <div className="text-right">
-              <span className={`text-[10px] font-black uppercase tracking-[0.4em] mb-2 block ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Section Registry</span>
+              <span className={`text-[10px] font-black uppercase tracking-[0.4em] mb-2 block ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Section</span>
               <div className="flex items-center gap-2 justify-end">
                 <div className={`w-1.5 h-1.5 rounded-full ${isDark ? 'bg-cyan-400 shadow-lg' : 'bg-red-500 shadow-lg'}`} />
                 <span className={`text-xl font-black transition-colors ${isDark ? 'text-white/40 group-hover:text-cyan-300' : 'text-slate-400 group-hover:text-red-600'}`}>SEC-{course.id.toString().slice(-2)}</span>

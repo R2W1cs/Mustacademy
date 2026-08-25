@@ -11,8 +11,6 @@ import { useTheme } from "../auth/ThemeContext";
 import 'katex/dist/katex.min.css';
 import { InlineMath, BlockMath } from 'react-katex';
 import ProgrammingDeepDive from "./programming-units/ProgrammingDeepDive";
-import NetworkVisualizer from "./NetworkVisualizer";
-import { resolveNetworkLabs } from "../utils/networkLabs";
 
 // ─── CODE EXECUTION BLOCK ──────────────────────────────────────────────────
 const CodeBlock = ({ children, language }) => {
@@ -194,8 +192,8 @@ const TopicExercises = ({ topicId, topicTitle }) => {
                 <div className={`absolute inset-0 bg-gradient-to-br ${isDark ? 'from-indigo-500/5' : 'from-red-500/3'} to-transparent`} />
                 <div className="relative z-10 flex flex-col items-center text-center">
                     <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-6 border ${accCls}`}><Zap size={28} className={isDark ? 'text-indigo-400' : 'text-red-500'} /></div>
-                    <h3 className={`text-xl font-black uppercase tracking-widest mb-3 ${isDark ? 'text-white' : 'text-slate-900'}`}>Mastery Crucible</h3>
-                    <p className={`mb-10 max-w-md mx-auto text-sm leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Configure your training intensity and generate AI-powered exercises.</p>
+                    <h3 className={`text-xl font-black uppercase tracking-widest mb-3 ${isDark ? 'text-white' : 'text-slate-900'}`}>Practice quiz</h3>
+                    <p className={`mb-10 max-w-md mx-auto text-sm leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Choose how many questions you want, then generate a quiz for this lesson.</p>
 
                     <div className={`grid grid-cols-2 gap-6 w-full mb-10 p-8 rounded-2xl border ${isDark ? 'border-white/5 bg-white/[0.02]' : 'border-slate-200 bg-slate-50'}`}>
                         {[{ label: 'MCQ Count', val: mcqCount, set: setMcqCount, min: 5, max: 30, color: acc },
@@ -212,7 +210,7 @@ const TopicExercises = ({ topicId, topicTitle }) => {
                     </div>
 
                     <button onClick={fetchExercises} className={`group px-10 py-4 font-black uppercase tracking-widest text-xs rounded-2xl text-white transition-all hover:scale-105 active:scale-95 shadow-lg ${isDark ? 'bg-indigo-600 shadow-indigo-500/20' : 'bg-red-600 shadow-red-500/20'}`}>
-                        Initialize Exercise Matrix
+                        Generate quiz
                     </button>
                 </div>
             </div>
@@ -222,7 +220,7 @@ const TopicExercises = ({ topicId, topicTitle }) => {
     if (loading) return (
         <div className="mt-16 p-20 rounded-[3rem] bg-indigo-500/[0.02] border border-indigo-500/10 flex flex-col items-center gap-6">
             <Loader2 size={40} className="text-indigo-500 animate-spin" />
-            <p className="text-[11px] font-black uppercase tracking-widest text-indigo-400 animate-pulse">Forging {mcqCount} Questions…</p>
+            <p className="text-[11px] font-black uppercase tracking-widest text-indigo-400 animate-pulse">Generating {mcqCount} questions…</p>
         </div>
     );
 
@@ -231,7 +229,7 @@ const TopicExercises = ({ topicId, topicTitle }) => {
             <div className="flex items-center gap-4">
                 <div className="h-px flex-1 bg-gradient-to-r from-transparent to-current opacity-10" />
                 <h3 className={`text-lg font-black uppercase tracking-widest flex items-center gap-3 ${isDark ? 'text-indigo-400' : 'text-red-600'}`}>
-                    <Target size={18} /> Mastery Crucible
+                    <Target size={18} /> Practice quiz
                 </h3>
                 <div className="h-px flex-1 bg-gradient-to-l from-transparent to-current opacity-10" />
             </div>
@@ -569,35 +567,7 @@ const TopicContent = ({ topic, mode = 'easy' }) => {
                 )}
             </div>
 
-            {/* ── NETWORK LABS (one or more inline animations per lesson) ── */}
-            {(() => {
-                const labs = resolveNetworkLabs(topic.title);
-                if (!labs.length) return null;
-                return (
-                    <div className="mb-14 space-y-8">
-                        <div className="px-1">
-                            <p className={`text-[10px] font-black uppercase tracking-[0.25em] mb-1 ${isDark ? 'text-cyan-400' : 'text-cyan-700'}`}>
-                                Lesson lab{labs.length > 1 ? 's' : ''}
-                            </p>
-                            <h3 className={`text-lg font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                                See this idea move
-                            </h3>
-                            <p className={`text-xs mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                                {labs.length > 1
-                                    ? `${labs.length} lesson-specific animations — Play or Step each one.`
-                                    : 'A lesson-specific animation — press Play or Step.'}
-                            </p>
-                        </div>
-                        {labs.map((lab, i) => (
-                            <NetworkVisualizer
-                                key={`${lab.type}-${lab.config?.title || i}`}
-                                type={lab.type}
-                                config={lab.config || null}
-                            />
-                        ))}
-                    </div>
-                );
-            })()}
+            {/* Labs render in TopicDetails — avoid duplicate animations here */}
 
             {/* ── PROGRAMMING DEEP DIVE ── */}
             {programmingDomain && <ProgrammingDeepDive type={programmingDomain} />}

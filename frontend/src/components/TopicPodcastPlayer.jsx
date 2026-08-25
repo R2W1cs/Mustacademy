@@ -3,15 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Mic, MicOff, Send, Square, ChevronRight, BookOpen, MessageSquare } from 'lucide-react';
 import api from '../api/axios';
 import { useTheme } from '../auth/ThemeContext';
+import { playStreamingTtsQueued, prefetchTts } from '../utils/streamingTts';
 
 // Dr. Nova / topic podcast — Marcus (Brian), same expert voice as Podcast Studio
 const NOVA_VOICE = 'en-US-BrianNeural';
-
-async function serverTTS(text, signal) {
-    const response = await api.post('/tts', { text, voice: NOVA_VOICE }, { responseType: 'blob', signal });
-    if (!response.data || response.data.size < 500) throw new Error('Invalid audio response');
-    return URL.createObjectURL(response.data);
-}
 
 export default function InteractivePodcastPlayer({ topic }) {
     const { theme } = useTheme();
@@ -31,7 +26,6 @@ export default function InteractivePodcastPlayer({ topic }) {
     const [phaseOffset, setPhaseOffset] = useState(0);
 
     const audioRef = useRef(null);
-    const currentBlobUrl = useRef(null);
     const recognitionRef = useRef(null);
     const transcriptEndRef = useRef(null);
     const abortControllerRef = useRef(null);
@@ -73,45 +67,33 @@ export default function InteractivePodcastPlayer({ topic }) {
         if (abortControllerRef.current) abortControllerRef.current.abort();
         if (audioRef.current) {
             audioRef.current.pause();
+            audioRef.current.removeAttribute('src');
+            audioRef.current.load();
             audioRef.current.onended = null;
             audioRef.current.onerror = null;
             audioRef.current = null;
         }
-        if (currentBlobUrl.current) {
-            URL.revokeObjectURL(currentBlobUrl.current);
-            currentBlobUrl.current = null;
-        }
         setIsSpeaking(false);
     }, []);
 
-    const playText = useCallback(async (text, onEnd) => {
+    const playText = useCallback(async (text, onEnd, nextText = null) => {
         stopAudio();
         abortControllerRef.current = new AbortController();
         setIsSpeaking(true);
-        try {
-            const blobUrl = await serverTTS(text, abortControllerRef.current.signal);
-            currentBlobUrl.current = blobUrl;
-            const audio = new Audio(blobUrl);
-            audioRef.current = audio;
-            audio.onended = () => {
-                URL.revokeObjectURL(blobUrl);
-                currentBlobUrl.current = null;
+        if (nextText) prefetchTts(nextText, NOVA_VOICE);
+
+        playStreamingTtsQueued(text, NOVA_VOICE, {
+            audioRef,
+            signal: abortControllerRef.current.signal,
+            onEnded: () => {
                 setIsSpeaking(false);
                 if (onEnd) onEnd();
-            };
-            audio.onerror = () => {
-                URL.revokeObjectURL(blobUrl);
-                currentBlobUrl.current = null;
+            },
+            onError: () => {
                 setIsSpeaking(false);
                 if (onEnd) onEnd();
-            };
-            await audio.play();
-        } catch (err) {
-            if (err.name !== 'AbortError' && err.name !== 'CanceledError') {
-                console.error('[Dr. Nova] TTS error:', err);
-            }
-            setIsSpeaking(false);
-        }
+            },
+        });
     }, [stopAudio]);
 
     // Play lesson paragraphs sequentially
@@ -124,7 +106,7 @@ export default function InteractivePodcastPlayer({ topic }) {
         setCurrentParagraphIdx(startIdx);
         const para = paragraphs[startIdx];
         setTranscript(prev => [...prev, { role: 'nova', text: para }]);
-        await playText(para, () => playLessonFrom(paragraphs, startIdx + 1));
+        await playText(para, () => playLessonFrom(paragraphs, startIdx + 1), paragraphs[startIdx + 1]);
     }, [playText]);
 
     const startSession = async () => {

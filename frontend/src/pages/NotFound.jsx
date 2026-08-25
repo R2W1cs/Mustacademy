@@ -30,10 +30,10 @@ export default function NotFound() {
                 </div>
 
                 <h1 className={`text-3xl font-black uppercase italic tracking-tighter mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                    Signal Lost
+                    Page not found
                 </h1>
                 <p className={`text-sm leading-relaxed mb-10 ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>
-                    This node doesn't exist in the matrix. It may have been moved, deleted, or never synthesized.
+                    This page does not exist. It may have been moved or removed.
                 </p>
 
                 <div className="flex gap-3">
@@ -47,7 +47,7 @@ export default function NotFound() {
                         onClick={() => navigate('/dashboard')}
                         className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-white transition-all ${isDark ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-red-600 hover:bg-red-700'}`}
                     >
-                        Neural Hub
+                        Home
                     </button>
                 </div>
             </motion.div>

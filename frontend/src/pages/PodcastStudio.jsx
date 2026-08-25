@@ -7,6 +7,7 @@ import {
     MessageCircle
 } from "lucide-react";
 import api from "../api/axios";
+import { buildTtsUrl } from "../utils/streamingTts";
 import { useTheme } from "../auth/ThemeContext";
 
 /** Consistent API origin for media + podcast speech (hero, player, TTS). */
@@ -303,22 +304,18 @@ export default function CsPodcastStudio() {
                 audioRef.current = audio;
 
                 const fallbackToServerTTS = async () => {
-                    console.warn(`[Podcast-Audio] Neural fallback triggered for ${speaker}. Using server TTS.`);
+                    console.warn(`[Podcast-Audio] Neural fallback triggered for ${speaker}. Using streaming TTS.`);
                     try {
-                        // Host: Jenny; Expert: Marcus (Brian) — matches podcast.controller expertVoices
                         const voice = speaker === 'host' ? 'en-US-JennyNeural' : 'en-US-BrianNeural';
-                        const resp = await api.post('/tts', { text: segment.text, voice }, { responseType: 'blob' });
-                        if (!resp.data || resp.data.size < 500) throw new Error('Empty TTS response');
-                        const blobUrl = URL.createObjectURL(resp.data);
-                        const fallbackAudio = new Audio(blobUrl);
+                        const streamUrl = buildTtsUrl(segment.text, voice);
+                        const fallbackAudio = new Audio(streamUrl);
+                        fallbackAudio.preload = 'auto';
                         audioRef.current = fallbackAudio;
                         fallbackAudio.onended = () => {
-                            URL.revokeObjectURL(blobUrl);
                             if (activeSegment < episode.segments.length - 1) setActiveSegment(prev => prev + 1);
                             else setIsPlaying(false);
                         };
                         fallbackAudio.onerror = () => {
-                            URL.revokeObjectURL(blobUrl);
                             if (activeSegment < episode.segments.length - 1) setActiveSegment(prev => prev + 1);
                             else setIsPlaying(false);
                         };

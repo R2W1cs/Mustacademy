@@ -1,16 +1,24 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import api from "../api/axios";
+import {
+    playStreamingTtsQueued,
+    cleanSpeechText,
+    browserSpeechFallback,
+} from "../utils/streamingTts";
 
 export function useNovaVoice() {
     const [isSpeaking, setIsSpeaking] = useState(false);
-    const audioRef = useRef(new Audio());
+    const audioRef = useRef(null);
+    const stopRef = useRef(null);
     const onEndedCallback = useRef(null);
     const [audioContextReady, setAudioContextReady] = useState(false);
 
     const killAudio = useCallback(() => {
+        stopRef.current?.();
+        stopRef.current = null;
         if (audioRef.current) {
             audioRef.current.pause();
-            audioRef.current.src = "";
+            audioRef.current.removeAttribute('src');
+            audioRef.current.load();
         }
         setIsSpeaking(false);
     }, []);
@@ -19,16 +27,15 @@ export function useNovaVoice() {
     useEffect(() => {
         const prime = async () => {
             if (audioContextReady) return;
-            // Short silent WAV base64
             const silent = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==";
-            audioRef.current.src = silent;
+            const a = new Audio(silent);
             try {
-                await audioRef.current.play();
+                await a.play();
                 setAudioContextReady(true);
                 window.removeEventListener('click', prime);
                 window.removeEventListener('keydown', prime);
-            } catch (err) {
-                // user hasn't interacted with page yet...
+            } catch {
+                // user hasn't interacted with page yet
             }
         };
         window.addEventListener('click', prime);
@@ -45,63 +52,27 @@ export function useNovaVoice() {
         onEndedCallback.current = onEnded;
 
         if (!text) {
-            if (onEnded) onEnded();
+            onEnded?.();
             return;
         }
 
-        // Clean text formatting so she speaks naturally
-        const clean = text
-            .replace(/```[\s\S]*?```/g, " code block ")
-            .replace(/\*\*/g, "")
-            .replace(/###?\s/g, "")
-            .replace(/`([^`]+)`/g, "$1")
-            .replace(/\n+/g, " ")
-            .trim();
+        const clean = cleanSpeechText(text);
+        setIsSpeaking(true);
 
-        try {
-            setIsSpeaking(true);
-            const res = await api.post('/tts', { text: clean, voice: 'en-US-AvaNeural' }, { responseType: 'blob' });
-            
-            if (!res.data || res.data.size < 500) {
-                throw new Error('Invalid or short audio received');
-            }
-
-            const url = URL.createObjectURL(res.data);
-            const audio = new Audio(url);
-            audioRef.current = audio;
-            
-            audio.onended = () => {
+        const { stop } = playStreamingTtsQueued(clean, 'en-US-AvaNeural', {
+            audioRef,
+            onEnded: () => {
                 killAudio();
-                URL.revokeObjectURL(url);
-                if (onEndedCallback.current) {
-                    onEndedCallback.current();
-                }
-            };
-            audio.onerror = () => {
-                killAudio();
-                URL.revokeObjectURL(url);
-                if (onEndedCallback.current) {
-                    onEndedCallback.current();
-                }
-            };
-            
-            // Try to play. If browser blocks, it fails.
-            await audio.play().catch((e) => {
-                console.warn('Playback blocked by browser:', e);
-                killAudio();
-                if (onEndedCallback.current) {
-                    // Fallback to instantly calling onEnded so the flow doesn't hang
-                    onEndedCallback.current();
-                }
-            });
-        } catch (err) {
-            console.error('Nova TTS failed:', err);
-            killAudio();
-            if (onEndedCallback.current) {
-                // Instant falback
-                onEndedCallback.current();
-            }
-        }
+                onEndedCallback.current?.();
+            },
+            onError: () => {
+                browserSpeechFallback(clean, () => {
+                    killAudio();
+                    onEndedCallback.current?.();
+                });
+            },
+        });
+        stopRef.current = stop;
     }, [killAudio]);
 
     return { speak, killAudio, isSpeaking };

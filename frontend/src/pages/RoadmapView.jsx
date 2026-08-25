@@ -134,7 +134,7 @@ const RoadmapView = () => {
                                 onClick={handleRegenerate}
                                 className="text-[10px] font-black text-indigo-400 hover:text-indigo-300 uppercase tracking-widest transition-colors flex items-center gap-2 border border-indigo-500/20 px-4 py-1.5 rounded-lg bg-indigo-500/5 disabled:opacity-50"
                             >
-                                {forging ? "🔄 FORGING..." : "🔄 Recalculate Synaptic Path"}
+                                {forging ? "🔄 Updating…" : "🔄 Recalculate path"}
                             </button>
                         )}
                     </div>
