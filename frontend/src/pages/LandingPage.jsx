@@ -1,712 +1,426 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import {
     ArrowRight,
-    Sparkles,
-    Brain,
-    Trophy,
-    TrendingUp,
-    Zap,
-    GraduationCap,
-    GitBranch,
-    Users,
-    Code2,
-    Rocket,
-    CheckCircle2,
     Mic,
-    Map,
-    Star,
-    ChevronRight,
-    ChevronDown,
-    Layers,
-    GitMerge,
     Moon,
     Sun,
-    MessageSquare,
     Menu,
     X,
+    Swords,
     BookOpen,
-    Target,
+    GitBranch,
 } from "lucide-react";
 import { useTheme } from "../auth/ThemeContext";
 import mustLogo from "../assets/must_logo.png";
 
-const TECHS_ROW1 = [
-    { name: "Python", color: "#3b82f6", bg: "#1e3a5f" },
-    { name: "JavaScript", color: "#fbbf24", bg: "#3d2c00" },
-    { name: "React", color: "#38bdf8", bg: "#0c2d3f" },
-    { name: "Node.js", color: "#4ade80", bg: "#0a2e14" },
-    { name: "TypeScript", color: "#60a5fa", bg: "#1a2f4e" },
-    { name: "Java", color: "#fb923c", bg: "#3d1800" },
-    { name: "SQL", color: "#f472b6", bg: "#3d1029" },
-    { name: "Docker", color: "#38bdf8", bg: "#0c2433" },
-    { name: "AWS", color: "#f59e0b", bg: "#3d2600" },
-    { name: "Firebase", color: "#fb923c", bg: "#3d1800" },
+const NAV = [
+    { id: "platform", label: "Platform" },
+    { id: "arena", label: "Arena" },
+    { id: "path", label: "Path" },
 ];
 
-const TECHS_ROW2 = [
-    { name: "Git", color: "#f87171", bg: "#3b0a0a" },
-    { name: "Linux", color: "#facc15", bg: "#2e2400" },
-    { name: "REST APIs", color: "#a78bfa", bg: "#1e1040" },
-    { name: "GraphQL", color: "#e879f9", bg: "#2a0a35" },
-    { name: "Redis", color: "#f87171", bg: "#3b0a0a" },
-    { name: "MongoDB", color: "#4ade80", bg: "#0a2e14" },
-    { name: "C++", color: "#60a5fa", bg: "#0c1e3a" },
-    { name: "Cloud", color: "#38bdf8", bg: "#0a1e2e" },
-    { name: "Security", color: "#f43f5e", bg: "#3b0a14" },
-    { name: "Algorithms", color: "#a78bfa", bg: "#1e1040" },
-    { name: "System Design", color: "#fbbf24", bg: "#3d2c00" },
-];
-
-const NAV_LINKS = [
-    { label: "Features", id: "features" },
-    { label: "Arena", id: "arena" },
-    { label: "How It Works", id: "journey" },
-];
-
-const FEATURES = [
-    { icon: GitBranch, title: "Structured Roadmaps", desc: "Curated paths from fundamentals to job-ready skills.", color: "from-[#6366f1] to-[#8b5cf6]" },
-    { icon: Brain, title: "1-on-1 AI Tutor", desc: "Ask questions, get examples, and practice on every topic.", color: "from-[#8b5cf6] to-[#a855f7]" },
-    { icon: Zap, title: "Neural Clash Arena", desc: "Live quiz battles with classmates — learn faster under pressure.", color: "from-[#ec4899] to-[#f43f5e]" },
-    { icon: Mic, title: "Interview Boardroom", desc: "Voice mock interviews with AI feedback and scorecards.", color: "from-[#10b981] to-[#14b8a6]" },
-    { icon: Users, title: "Team Projects", desc: "Collaborate on real projects and build portfolio-worthy work.", color: "from-[#6366f1] to-[#818cf8]" },
-    { icon: TrendingUp, title: "Career Tracking", desc: "See what to learn next for your target role.", color: "from-[#f59e0b] to-[#eab308]" },
-];
-
-const JOURNEY_STEPS = [
+const PILLARS = [
     {
-        step: "01", icon: Map, title: "Pick Your Track",
-        desc: "Web Dev, AI/ML, Cybersecurity, and more — matched to your goals.",
-        detail: "Answer a short quiz and get a suggested starting track. Each path shows what to learn, why it matters, and which skills employers expect.",
+        n: "01",
+        title: "Roadmaps that mean something",
+        body: "Weekly modules, labs, and checkpoints — not a random YouTube queue.",
     },
     {
-        step: "02", icon: GitBranch, title: "Follow the Roadmap",
-        desc: "Weekly modules with clear deliverables — no guesswork.",
-        detail: "Curated resources, progress checkpoints, and AI summaries for every topic. The roadmap adapts as you go.",
+        n: "02",
+        title: "Practice that sticks",
+        body: "1-on-1 AI Tutor on every topic. Ask, quiz yourself, keep notes.",
     },
     {
-        step: "03", icon: GitMerge, title: "Build & Compete",
-        desc: "Mini-projects, team work, and live arena rounds.",
-        detail: "Apply what you learn through hands-on labs, team contributions, and Neural Clash sessions that make revision stick.",
-    },
-    {
-        step: "04", icon: Mic, title: "Practice Interviews",
-        desc: "Mock sessions that mirror real technical interviews.",
-        detail: "The Boardroom runs voice-based mock interviews with instant feedback, scorecards, and tips on clarity and confidence.",
-    },
-    {
-        step: "05", icon: Star, title: "Show Your Work",
-        desc: "A portfolio of projects, progress, and proof.",
-        detail: "Ship projects, track completed topics, and walk into interviews with work you can actually talk about.",
+        n: "03",
+        title: "Pressure you can use",
+        body: "Neural Clash arenas and Boardroom voice mocks — rehearse before it counts.",
     },
 ];
 
-const TESTIMONIALS = [
-    {
-        quote: "Neural Clash makes studying fun. I picked up algorithms faster competing with classmates than reading alone.",
-        name: "Ahmed K.", role: "CS Student", avatar: "A", color: "#6366f1",
-    },
-    {
-        quote: "The AI Tutor explained recursion with examples I could follow step by step. Better than rewatching lectures.",
-        name: "Sara M.", role: "Software Engineering Intern", avatar: "S", color: "#8b5cf6",
-    },
-    {
-        quote: "After a few Boardroom sessions I felt ready for my technical interview. The voice practice made the difference.",
-        name: "Omar L.", role: "Final-year CS student", avatar: "O", color: "#ec4899",
-    },
+const PATH = [
+    { step: "01", label: "Choose a track", detail: "Web, systems, ML, security — start where you are." },
+    { step: "02", label: "Work the roadmap", detail: "Lessons, labs, and progress you can see." },
+    { step: "03", label: "Build & compete", detail: "Projects, teams, live quiz rounds." },
+    { step: "04", label: "Interview out loud", detail: "Voice mocks with feedback and scorecards." },
 ];
 
 export default function LandingPage() {
     const { theme, toggleTheme } = useTheme();
-    const isDark = theme === 'dark';
-    const canvasRef = useRef(null);
-    const [openStep, setOpenStep] = useState(null);
-    const [mobileOpen, setMobileOpen] = useState(false);
-
-    const themeClass = isDark ? "bg-[#0a0e1a] text-white" : "bg-[#FAFAFF] text-slate-900";
-    const textMuted = isDark ? "text-gray-400" : "text-slate-500";
-    const cardBg = isDark
-        ? "bg-white/[0.03] border-white/[0.07] hover:bg-white/[0.06] hover:border-white/[0.12]"
-        : "bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-100";
-
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext("2d");
-        let W = (canvas.width = window.innerWidth);
-        let H = (canvas.height = document.body.scrollHeight);
-        const pts = Array.from({ length: 50 }, () => ({
-            x: Math.random() * W, y: Math.random() * H,
-            r: Math.random() * 1.4 + 0.3,
-            dx: (Math.random() - 0.5) * 0.25, dy: (Math.random() - 0.5) * 0.25,
-            a: Math.random() * (isDark ? 0.4 : 0.2) + 0.06,
-        }));
-        let raf;
-        const draw = () => {
-            ctx.clearRect(0, 0, W, H);
-            pts.forEach((p) => {
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-                ctx.fillStyle = isDark ? `rgba(99,102,241,${p.a})` : `rgba(79,70,229,${p.a})`;
-                ctx.fill();
-                p.x += p.dx;
-                p.y += p.dy;
-                if (p.x < 0 || p.x > W) p.dx *= -1;
-                if (p.y < 0 || p.y > H) p.dy *= -1;
-            });
-            raf = requestAnimationFrame(draw);
-        };
-        draw();
-        const onR = () => { W = canvas.width = window.innerWidth; H = canvas.height = document.body.scrollHeight; };
-        window.addEventListener("resize", onR);
-        return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", onR); };
-    }, [isDark]);
+    const isDark = theme === "dark";
+    const [menuOpen, setMenuOpen] = useState(false);
 
     const scrollTo = (id) => {
-        setMobileOpen(false);
+        setMenuOpen(false);
         document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
     };
 
-    const btnPrimary = "inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white font-semibold text-[15px] hover:shadow-xl hover:shadow-indigo-500/20 transition-all";
-    const btnSecondary = isDark
-        ? "inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-white/[0.06] text-white border border-white/10 hover:bg-white/10 font-medium text-[15px] transition-all"
-        : "inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-white text-slate-700 border border-slate-200 hover:border-indigo-200 hover:shadow-md font-medium text-[15px] transition-all";
+    const fade = (delay = 0) => ({
+        initial: { opacity: 0, y: 20 },
+        animate: { opacity: 1, y: 0 },
+        transition: { duration: 0.55, delay, ease: [0.22, 1, 0.36, 1] },
+    });
 
     return (
-        <div id="main-content" tabIndex={-1} className={`min-h-screen flex flex-col font-sans transition-colors duration-500 selection:bg-[#6366f1]/30 overflow-x-hidden ${themeClass}`}>
+        <div className={`landing-page min-h-screen ${isDark ? "mesh-bg text-[#f1f5f9]" : "bg-[#fafafa] text-[#141414]"}`}>
             <style>{`
-                html { scroll-behavior: smooth; }
-                @keyframes marquee-left  { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-                @keyframes marquee-right { from { transform: translateX(-50%); } to { transform: translateX(0); } }
-                .marquee-track-left  { animation: marquee-left  30s linear infinite; }
-                .marquee-track-right { animation: marquee-right 28s linear infinite; }
-                .marquee-track-left:hover, .marquee-track-right:hover { animation-play-state: paused; }
-                .step-detail { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.35s ease; }
-                .step-detail.open { grid-template-rows: 1fr; }
-                .step-detail-inner { overflow: hidden; }
+                @import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,500&family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap');
+                .landing-page { font-family: 'DM Sans', system-ui, sans-serif; }
+                .landing-display { font-family: 'Newsreader', Georgia, 'Times New Roman', serif; }
+                .landing-mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+                .landing-grid-bg {
+                    background-image:
+                        linear-gradient(${isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.06)"} 1px, transparent 1px),
+                        linear-gradient(90deg, ${isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.06)"} 1px, transparent 1px);
+                    background-size: 48px 48px;
+                }
+                .landing-btn-primary {
+                    background: ${isDark ? "#c01636" : "#c01636"};
+                    color: #fff;
+                }
+                .landing-btn-primary:hover {
+                    background: ${isDark ? "#9b1c2e" : "#9b1c2e"};
+                }
+                .landing-accent-line {
+                    background: ${isDark ? "#00f2ff" : "#c01636"};
+                }
             `}</style>
 
-            <canvas ref={canvasRef} className="pointer-events-none fixed inset-0 z-0" style={{ opacity: 0.45 }} />
-
             {/* Header */}
-            <header className={`relative z-50 border-b ${isDark ? 'border-white/[0.04] bg-[#0a0e1a]/80 backdrop-blur-md' : 'border-slate-200 bg-[#FAFAFF]/90 backdrop-blur-md'}`}>
-                <div className="flex justify-between items-center px-6 lg:px-12 py-4">
-                    <div className="flex items-center gap-3">
-                        <img src={mustLogo} alt="MustAcademy" className="h-11 w-auto object-contain" />
-                        <span className={`${isDark ? 'text-white' : 'text-slate-900'} font-semibold text-[17px] tracking-tight`}>
-                            Must<span className="text-[#818cf8]">Academy</span>
-                        </span>
-                    </div>
+            <header className={`relative z-50 border-b ${isDark ? "border-white/[0.06]" : "border-black/[0.08]"}`}>
+                <div className="max-w-[1200px] mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
+                    <Link to="/" className="flex items-center gap-2.5 shrink-0">
+                        <img src={mustLogo} alt="MustAcademy" className="h-9 w-auto" />
+                        <span className="font-semibold text-[15px] tracking-tight">MustAcademy</span>
+                    </Link>
 
-                    <nav className="hidden md:flex items-center gap-1">
-                        {NAV_LINKS.map(({ label, id }) => (
+                    <nav className="hidden md:flex items-center gap-8">
+                        {NAV.map(({ id, label }) => (
                             <button
                                 key={id}
+                                type="button"
                                 onClick={() => scrollTo(id)}
-                                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${isDark ? 'text-gray-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'}`}
+                                className={`text-sm font-medium transition-colors ${isDark ? "text-slate-400 hover:text-white" : "text-neutral-500 hover:text-neutral-900"}`}
                             >
                                 {label}
                             </button>
                         ))}
                     </nav>
 
-                    <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="flex items-center gap-2">
                         <button
+                            type="button"
                             onClick={toggleTheme}
                             aria-label="Toggle theme"
-                            className={`p-2 rounded-full transition-all ${isDark ? 'bg-white/5 text-amber-400 hover:bg-white/10' : 'bg-slate-100 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600'}`}
+                            className={`p-2 rounded-lg transition-colors ${isDark ? "text-slate-400 hover:text-white hover:bg-white/5" : "text-neutral-500 hover:text-neutral-900 hover:bg-black/[0.04]"}`}
                         >
                             {isDark ? <Sun size={18} /> : <Moon size={18} />}
                         </button>
-                        <Link to="/login" className={`hidden sm:inline-flex px-4 py-2 rounded-full text-sm font-medium transition-all ${isDark ? 'text-slate-300 hover:text-white hover:bg-white/5' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}>Login</Link>
-                        <Link to="/register" className={`hidden sm:inline-flex px-5 py-2 rounded-full text-sm font-medium transition-all ${isDark ? 'bg-white/10 text-white hover:bg-white/20 border border-white/10' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-200'}`}>Get Started</Link>
+                        <Link
+                            to="/login"
+                            className={`hidden sm:inline-flex text-sm font-medium px-3 py-2 ${isDark ? "text-slate-300 hover:text-white" : "text-neutral-600 hover:text-neutral-900"}`}
+                        >
+                            Log in
+                        </Link>
+                        <Link to="/register" className="landing-btn-primary hidden sm:inline-flex text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
+                            Sign up
+                        </Link>
                         <button
                             type="button"
-                            aria-label="Open menu"
-                            onClick={() => setMobileOpen((v) => !v)}
-                            className={`md:hidden p-2 rounded-lg ${isDark ? 'text-white hover:bg-white/10' : 'text-slate-700 hover:bg-slate-100'}`}
+                            aria-label="Menu"
+                            onClick={() => setMenuOpen((v) => !v)}
+                            className={`md:hidden p-2 rounded-lg ${isDark ? "hover:bg-white/5" : "hover:bg-black/[0.04]"}`}
                         >
-                            {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+                            {menuOpen ? <X size={22} /> : <Menu size={22} />}
                         </button>
                     </div>
                 </div>
 
-                {mobileOpen && (
-                    <div className={`md:hidden border-t px-6 py-4 space-y-2 ${isDark ? 'border-white/5 bg-[#0a0e1a]' : 'border-slate-200 bg-white'}`}>
-                        {NAV_LINKS.map(({ label, id }) => (
-                            <button key={id} onClick={() => scrollTo(id)} className={`block w-full text-left px-4 py-3 rounded-xl text-sm font-medium ${isDark ? 'text-gray-300 hover:bg-white/5' : 'text-slate-600 hover:bg-slate-50'}`}>
+                {menuOpen && (
+                    <div className={`md:hidden border-t px-5 py-4 space-y-1 ${isDark ? "border-white/[0.06] bg-[#050810]" : "border-black/[0.06] bg-white"}`}>
+                        {NAV.map(({ id, label }) => (
+                            <button key={id} type="button" onClick={() => scrollTo(id)} className={`block w-full text-left py-3 text-sm font-medium ${isDark ? "text-slate-300" : "text-neutral-700"}`}>
                                 {label}
                             </button>
                         ))}
-                        <div className="flex gap-2 pt-2">
-                            <Link to="/login" onClick={() => setMobileOpen(false)} className={`flex-1 text-center py-3 rounded-xl text-sm font-medium border ${isDark ? 'border-white/10 text-white' : 'border-slate-200 text-slate-700'}`}>Login</Link>
-                            <Link to="/register" onClick={() => setMobileOpen(false)} className="flex-1 text-center py-3 rounded-xl text-sm font-semibold bg-indigo-600 text-white">Get Started</Link>
+                        <div className="flex gap-2 pt-3">
+                            <Link to="/login" className={`flex-1 text-center py-2.5 rounded-lg text-sm border ${isDark ? "border-white/10" : "border-neutral-200"}`}>Log in</Link>
+                            <Link to="/register" className="flex-1 text-center py-2.5 rounded-lg text-sm font-semibold landing-btn-primary">Sign up</Link>
                         </div>
                     </div>
                 )}
             </header>
 
-            {/* Hero */}
-            <section className="relative z-10 pt-16 pb-20 lg:pt-24 lg:pb-28 px-6 lg:px-12">
-                <div className="absolute top-0 left-1/4 w-[480px] h-[480px] bg-[#6366f1]/10 rounded-full blur-[120px] pointer-events-none" />
-                <div className="absolute top-1/3 right-0 w-[360px] h-[360px] bg-[#8b5cf6]/10 rounded-full blur-[100px] pointer-events-none" />
-
-                <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-14 lg:gap-16 items-center">
-                    <div>
-                        <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold tracking-widest uppercase border mb-6 ${isDark ? 'bg-[#6366f1]/10 border-[#6366f1]/20 text-[#818cf8]' : 'bg-indigo-50 border-indigo-100 text-indigo-600'}`}>
-                            <Sparkles className="w-3.5 h-3.5" /> Built for CS students
-                        </span>
-                        <h1 className="text-4xl sm:text-5xl lg:text-[3.4rem] font-bold tracking-tight leading-[1.08] mb-5">
-                            <span className={`block ${isDark ? 'text-white' : 'text-slate-900'}`}>Learn by doing.</span>
-                            <span className="block bg-gradient-to-r from-[#818cf8] via-[#a78bfa] to-[#c084fc] bg-clip-text text-transparent">Ship work you can show.</span>
-                        </h1>
-                        <p className={`text-[17px] leading-relaxed mb-8 max-w-lg ${textMuted}`}>
-                            Roadmaps, AI tutoring, live quiz arenas, and voice mock interviews — one platform to go from coursework to interview-ready.
-                        </p>
-                        <div className="flex flex-col sm:flex-row gap-3 mb-10">
-                            <Link to="/register" className={btnPrimary}>
-                                Start free <ArrowRight className="w-4 h-4" />
-                            </Link>
-                            <button type="button" onClick={() => scrollTo("features")} className={btnSecondary}>
-                                <GraduationCap className="w-4 h-4 text-[#818cf8]" /> See what's inside
-                            </button>
-                        </div>
-                        <ul className="space-y-2.5">
-                            {["Structured CS roadmaps with interactive labs", "Neural Clash — live quiz battles with friends", "Boardroom voice interviews with AI feedback"].map((line) => (
-                                <li key={line} className={`flex items-center gap-2.5 text-sm ${isDark ? 'text-gray-300' : 'text-slate-600'}`}>
-                                    <CheckCircle2 className="w-4 h-4 text-indigo-400 flex-shrink-0" />
-                                    {line}
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-
-                    <HeroPreview isDark={isDark} />
-                </div>
-            </section>
-
-            <Divider isDark={isDark} />
-
-            {/* Features */}
-            <section id="features" className="relative z-10 py-24 px-6 lg:px-12">
-                <div className="max-w-6xl mx-auto">
-                    <div className="text-center mb-14">
-                        <SectionLabel icon={Layers} label="Platform" isDark={isDark} />
-                        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.1] mb-4">
-                            Everything you need to{" "}
-                            <span className="bg-gradient-to-r from-[#6366f1] via-[#8b5cf6] to-[#a855f7] bg-clip-text text-transparent">level up</span>
-                        </h2>
-                        <p className={`text-[16px] max-w-2xl mx-auto leading-relaxed ${textMuted}`}>
-                            No scattered tutorials. One place to learn, practice, compete, and prepare for real interviews.
-                        </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-12">
-                        {FEATURES.map((f) => (
-                            <div key={f.title} className={`group p-6 rounded-2xl border transition-all duration-300 ${cardBg}`}>
-                                <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${f.color} flex items-center justify-center mb-4 shadow-lg group-hover:scale-105 transition-transform`}>
-                                    <f.icon className="w-5 h-5 text-white" />
-                                </div>
-                                <h3 className={`text-base font-semibold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>{f.title}</h3>
-                                <p className={`text-sm leading-relaxed ${textMuted}`}>{f.desc}</p>
-                            </div>
-                        ))}
-                    </div>
-
-                    <div className="text-center">
-                        <Link to="/register" className={btnPrimary}>Create your free account <ArrowRight className="w-4 h-4" /></Link>
-                    </div>
-                </div>
-            </section>
-
-            <Divider isDark={isDark} />
-
-            {/* Tech marquee */}
-            <section className="relative z-10 py-20 overflow-hidden">
-                <div className="max-w-6xl mx-auto px-6 lg:px-12 mb-10">
-                    <h2 className={`text-center text-2xl sm:text-3xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                        Skills you'll actually use on the job
-                    </h2>
-                </div>
-                <div className="relative mb-4 overflow-hidden" style={{ maskImage: "linear-gradient(to right, transparent, black 10%, black 90%, transparent)" }}>
-                    <div className="flex w-max marquee-track-left gap-3">
-                        {[...TECHS_ROW1, ...TECHS_ROW1].map((t, i) => <TechBadge key={`r1-${i}`} t={t} isDark={isDark} />)}
-                    </div>
-                </div>
-                <div className="relative overflow-hidden" style={{ maskImage: "linear-gradient(to right, transparent, black 10%, black 90%, transparent)" }}>
-                    <div className="flex w-max marquee-track-right gap-3">
-                        {[...TECHS_ROW2, ...TECHS_ROW2].map((t, i) => <TechBadge key={`r2-${i}`} t={t} isDark={isDark} />)}
-                    </div>
-                </div>
-            </section>
-
-            <Divider isDark={isDark} />
-
-            {/* Signature: Arena + Boardroom */}
-            <section id="arena" className="relative z-10 py-24 px-6 lg:px-12">
-                <div className="max-w-6xl mx-auto">
-                    <div className="text-center mb-14">
-                        <SectionLabel icon={Zap} label="Standout features" isDark={isDark} />
-                        <h2 className={`text-3xl sm:text-4xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                            Where MustAcademy feels different
-                        </h2>
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        {/* Arena */}
-                        <div className={`rounded-3xl border overflow-hidden ${isDark ? 'border-indigo-500/20 bg-white/[0.02]' : 'border-indigo-100 bg-white shadow-lg'}`}>
-                            <div className="p-8 pb-6">
-                                <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold mb-4 ${isDark ? 'bg-indigo-500/10 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>
-                                    <Zap className="w-3.5 h-3.5" /> Neural Clash Arena
-                                </div>
-                                <h3 className={`text-2xl font-bold mb-3 ${isDark ? 'text-white' : 'text-slate-900'}`}>Battle classmates in real time</h3>
-                                <p className={`text-sm leading-relaxed mb-6 ${textMuted}`}>
-                                    Host a live quiz on any CS topic. PIN-based rooms, leaderboards, and instant feedback — studying that feels like a game.
-                                </p>
-                            </div>
-                            <div className="mx-6 mb-6 rounded-2xl overflow-hidden border border-indigo-500/20 shadow-xl">
-                                <div className="bg-[#0d0f2b] px-5 py-4 text-center border-b border-white/5">
-                                    <div className="text-[9px] font-black uppercase tracking-[0.4em] text-indigo-400 mb-1">Game PIN</div>
-                                    <div className="text-3xl font-black text-white tracking-[0.35em] font-mono">8 4 7 2 1</div>
-                                </div>
-                                <div className="bg-[#111428] px-5 py-4 text-center">
-                                    <p className="text-white font-semibold text-sm">What is the time complexity of binary search?</p>
-                                </div>
-                                <div className="grid grid-cols-2">
-                                    {[
-                                        { c: '#e21b3c', s: '▲', t: 'O(log n)' },
-                                        { c: '#1368ce', s: '◆', t: 'O(n)' },
-                                        { c: '#d89e00', s: '●', t: 'O(n²)' },
-                                        { c: '#26890c', s: '■', t: 'O(1)' },
-                                    ].map((a) => (
-                                        <div key={a.t} className="flex items-center gap-2 px-4 py-3 text-white font-bold text-xs border-t border-r border-white/5" style={{ background: a.c }}>
-                                            <span className="opacity-70">{a.s}</span> {a.t}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Boardroom */}
-                        <div className={`rounded-3xl border overflow-hidden ${isDark ? 'border-indigo-500/20 bg-white/[0.02]' : 'border-indigo-100 bg-white shadow-lg'}`}>
-                            <div className="p-8 pb-6">
-                                <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold mb-4 ${isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>
-                                    <Mic className="w-3.5 h-3.5" /> Interview Boardroom
-                                </div>
-                                <h3 className={`text-2xl font-bold mb-3 ${isDark ? 'text-white' : 'text-slate-900'}`}>Practice out loud, not on paper</h3>
-                                <p className={`text-sm leading-relaxed mb-6 ${textMuted}`}>
-                                    Voice mock interviews with an AI interviewer. Get a scorecard on technical depth, clarity, and confidence after each session.
-                                </p>
-                            </div>
-                            <div className={`mx-6 mb-6 rounded-2xl border p-5 space-y-4 ${isDark ? 'border-white/10 bg-[#0d0f1e]' : 'border-slate-200 bg-slate-50'}`}>
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center">
-                                        <Mic className="w-4 h-4 text-indigo-400" />
-                                    </div>
-                                    <div>
-                                        <div className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-white' : 'text-slate-900'}`}>Marcus Sterling</div>
-                                        <div className={`text-[10px] ${textMuted}`}>Senior interviewer · Live session</div>
-                                    </div>
-                                    <div className="ml-auto flex items-center gap-1.5">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                                        <span className="text-[10px] text-emerald-500 font-semibold">Listening</span>
-                                    </div>
-                                </div>
-                                <div className={`rounded-xl p-4 text-sm leading-relaxed ${isDark ? 'bg-white/5 text-gray-300' : 'bg-white text-slate-600 border border-slate-100'}`}>
-                                    "Walk me through how you'd design a rate limiter for an API. What trade-offs would you consider?"
-                                </div>
-                                <div className="flex items-center justify-between pt-1">
-                                    <div className={`text-xs ${textMuted}`}>Technical score</div>
-                                    <div className="text-2xl font-black text-indigo-500">78</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="text-center mt-12">
-                        <Link to="/register" className={btnPrimary}>Try it yourself <ArrowRight className="w-4 h-4" /></Link>
-                    </div>
-                </div>
-            </section>
-
-            <Divider isDark={isDark} />
-
-            {/* Platform preview */}
-            <section className="relative z-10 py-24 px-6 lg:px-12">
-                <div className="max-w-6xl mx-auto space-y-16">
-                    <div className="text-center">
-                        <SectionLabel icon={BookOpen} label="Inside the app" isDark={isDark} />
-                        <h2 className={`text-3xl sm:text-4xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                            Learn with structure, not chaos
-                        </h2>
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-                        <div className={`rounded-2xl border overflow-hidden shadow-xl ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
-                            <div className={`px-4 py-3 flex items-center gap-2 border-b ${isDark ? 'bg-[#0d0f1e] border-white/5' : 'bg-slate-800 border-white/10'}`}>
-                                <div className="w-2.5 h-2.5 rounded-full bg-rose-500/70" />
-                                <div className="w-2.5 h-2.5 rounded-full bg-amber-400/70" />
-                                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/70" />
-                                <span className="ml-2 text-[11px] text-white/40 font-mono">1-on-1 AI Tutor</span>
-                            </div>
-                            <div className={`p-5 space-y-4 ${isDark ? 'bg-[#0d0f1e]' : 'bg-slate-900'}`}>
-                                <p className="text-white/90 text-sm font-medium">How does a binary search tree stay balanced?</p>
-                                <div className="rounded-xl bg-indigo-500/10 border border-indigo-500/20 p-4 text-indigo-100/90 text-sm leading-relaxed">
-                                    A balanced BST keeps height O(log n) so search stays fast. AVL and Red-Black trees re-balance after inserts by rotating nodes when subtrees grow uneven.
-                                </div>
-                                <div className="flex gap-2">
-                                    <span className="px-3 py-1 rounded-lg bg-white/5 text-white/50 text-xs">Ask a follow-up</span>
-                                    <span className="px-3 py-1 rounded-lg bg-indigo-500/20 text-indigo-300 text-xs">Quick quiz</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div>
-                            <h3 className={`text-2xl font-bold mb-3 ${isDark ? 'text-white' : 'text-slate-900'}`}>A tutor on every topic</h3>
-                            <p className={`text-[15px] leading-relaxed ${textMuted}`}>
-                                Open any lesson and practice with a 1-on-1 AI Tutor — ask questions, get examples, run a quick quiz, and keep notes without sitting through a full lecture first.
+            {/* Hero — editorial, left-aligned */}
+            <section className="relative overflow-hidden">
+                <div className="landing-grid-bg absolute inset-0 opacity-40 pointer-events-none" />
+                <div className="max-w-[1200px] mx-auto px-5 sm:px-8 pt-16 pb-20 lg:pt-24 lg:pb-28 relative">
+                    <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-12 lg:gap-16 items-end">
+                        <motion.div {...fade(0)}>
+                            <p className={`landing-mono text-[11px] uppercase tracking-[0.2em] mb-6 ${isDark ? "text-[#00f2ff]/80" : "text-[#c01636]"}`}>
+                                CS learning · built at MUST
                             </p>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-                        <div className="order-2 lg:order-1">
-                            <h3 className={`text-2xl font-bold mb-3 ${isDark ? 'text-white' : 'text-slate-900'}`}>Know what to learn next</h3>
-                            <p className={`text-[15px] leading-relaxed ${textMuted}`}>
-                                Career roadmaps map your goal role to concrete skills. Track progress topic by topic and see what's left before you're interview-ready.
+                            <h1 className="landing-display text-[2.75rem] sm:text-[3.5rem] lg:text-[4rem] leading-[1.05] tracking-[-0.02em] mb-6">
+                                Computer science
+                                <br />
+                                shouldn't feel like
+                                <br />
+                                <em className={isDark ? "text-[#00f2ff]" : "text-[#c01636]"}>a playlist.</em>
+                            </h1>
+                            <p className={`text-lg leading-relaxed max-w-md mb-9 ${isDark ? "text-slate-400" : "text-neutral-600"}`}>
+                                Structured roadmaps, hands-on labs, live quiz arenas, and voice mock interviews — one place to actually get good.
                             </p>
-                        </div>
-                        <div className={`order-1 lg:order-2 rounded-2xl border overflow-hidden shadow-xl ${isDark ? 'border-white/10 bg-[#0d0f1e]' : 'border-slate-200 bg-white'}`}>
-                            <div className={`px-5 py-4 border-b ${isDark ? 'border-white/5' : 'border-slate-200'}`}>
-                                <div className={`text-xs font-bold uppercase tracking-widest mb-1 ${isDark ? 'text-white/30' : 'text-slate-400'}`}>Frontend Engineer</div>
-                                <div className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Your progress</div>
-                            </div>
-                            <div className="p-5 space-y-3">
-                                {[
-                                    { label: "HTML & CSS", pct: 100, color: '#10b981' },
-                                    { label: "JavaScript", pct: 85, color: '#6366f1' },
-                                    { label: "React", pct: 60, color: '#8b5cf6' },
-                                    { label: "TypeScript", pct: 20, color: '#f59e0b' },
-                                ].map((row) => (
-                                    <div key={row.label} className="space-y-1">
-                                        <div className="flex justify-between items-center">
-                                            <span className={`text-xs font-medium ${isDark ? 'text-white/60' : 'text-slate-600'}`}>{row.label}</span>
-                                            <span className="text-[10px] font-bold" style={{ color: row.color }}>{row.pct}%</span>
-                                        </div>
-                                        <div className={`h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-white/5' : 'bg-slate-100'}`}>
-                                            <div className="h-full rounded-full transition-all" style={{ width: `${row.pct}%`, background: row.color }} />
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <Divider isDark={isDark} />
-
-            {/* Testimonials */}
-            <section className="relative z-10 py-20 px-6 lg:px-12">
-                <div className="max-w-6xl mx-auto">
-                    <div className="text-center mb-12">
-                        <SectionLabel icon={MessageSquare} label="Early feedback" isDark={isDark} />
-                        <h2 className={`text-3xl sm:text-4xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                            Students who've tried it
-                        </h2>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {TESTIMONIALS.map((t) => (
-                            <div key={t.name} className={`p-6 rounded-2xl border flex flex-col ${cardBg}`}>
-                                <p className={`text-[15px] leading-relaxed mb-6 flex-1 ${isDark ? 'text-gray-300' : 'text-slate-600'}`}>"{t.quote}"</p>
-                                <div className={`flex items-center gap-3 pt-4 border-t ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
-                                    <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm" style={{ background: t.color }}>{t.avatar}</div>
-                                    <div>
-                                        <div className={`font-semibold text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>{t.name}</div>
-                                        <div className={`text-xs ${textMuted}`}>{t.role}</div>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </section>
-
-            <Divider isDark={isDark} />
-
-            {/* Journey */}
-            <section id="journey" className="relative z-10 py-24 px-6 lg:px-12">
-                <div className="max-w-3xl mx-auto">
-                    <div className="text-center mb-14">
-                        <SectionLabel icon={Rocket} label="How it works" isDark={isDark} />
-                        <h2 className={`text-3xl sm:text-4xl font-bold tracking-tight mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                            From first topic to interview day
-                        </h2>
-                        <p className={`text-[16px] ${textMuted}`}>Five steps. No fluff.</p>
-                    </div>
-
-                    <div className="space-y-3">
-                        {JOURNEY_STEPS.map((s, i) => {
-                            const isOpen = openStep === i;
-                            return (
-                                <div
-                                    key={s.step}
-                                    className={`rounded-2xl border transition-all duration-300 overflow-hidden ${isOpen ? (isDark ? "bg-white/[0.06] border-[#6366f1]/40 shadow-lg" : "bg-white border-indigo-200 shadow-md") : cardBg}`}
+                            <div className="flex flex-wrap gap-3">
+                                <Link to="/register" className="landing-btn-primary inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-colors">
+                                    Start free <ArrowRight size={16} />
+                                </Link>
+                                <button
+                                    type="button"
+                                    onClick={() => scrollTo("platform")}
+                                    className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold border transition-colors ${isDark ? "border-white/15 text-slate-200 hover:bg-white/5" : "border-neutral-300 text-neutral-800 hover:bg-neutral-100"}`}
                                 >
-                                    <button type="button" onClick={() => setOpenStep(isOpen ? null : i)} className="w-full flex items-center gap-5 p-5 sm:p-6 text-left">
-                                        <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm ${isOpen ? "bg-gradient-to-br from-[#6366f1] to-[#8b5cf6]" : "bg-gradient-to-br from-[#6366f1]/60 to-[#8b5cf6]/60"}`}>
-                                            {s.step}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 mb-0.5">
-                                                <s.icon className="w-4 h-4 text-[#818cf8] flex-shrink-0" />
-                                                <span className={`text-base font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>{s.title}</span>
-                                            </div>
-                                            <p className={`text-sm ${textMuted}`}>{s.desc}</p>
-                                        </div>
-                                        <ChevronDown className={`w-5 h-5 flex-shrink-0 transition-transform duration-300 ${isOpen ? "rotate-180 text-[#818cf8]" : "text-gray-500"}`} />
-                                    </button>
-                                    <div className={`step-detail${isOpen ? " open" : ""}`}>
-                                        <div className="step-detail-inner">
-                                            <div className="px-6 pb-6 pt-0">
-                                                <div className={`ml-14 sm:ml-16 pl-4 border-l-2 ${isDark ? 'border-[#6366f1]/30' : 'border-indigo-100'}`}>
-                                                    <p className={`text-sm leading-relaxed ${isDark ? 'text-gray-300' : 'text-slate-600'}`}>{s.detail}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
+                                    See the platform
+                                </button>
+                            </div>
+                        </motion.div>
+
+                        <motion.div {...fade(0.12)} className="relative lg:mb-2">
+                            <BentoStack isDark={isDark} />
+                        </motion.div>
                     </div>
                 </div>
             </section>
 
-            {/* Final CTA */}
-            <section className="relative z-10 py-20 px-6 lg:px-12">
-                <div className="max-w-3xl mx-auto">
-                    <div className={`relative rounded-3xl overflow-hidden border p-12 lg:p-16 text-center ${isDark ? 'border-indigo-500/20 bg-indigo-500/5' : 'border-indigo-100 bg-gradient-to-br from-indigo-50 to-violet-50 shadow-lg'}`}>
-                        <Target className={`w-10 h-10 mx-auto mb-5 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`} />
-                        <h2 className={`text-3xl lg:text-4xl font-bold tracking-tight mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>Ready to start?</h2>
-                        <p className={`text-[16px] max-w-md mx-auto mb-8 ${textMuted}`}>Free to join. Pick a track, open a lesson, or jump into the arena.</p>
-                        <Link to="/register" className={btnPrimary}>Get started free <ArrowRight className="w-4 h-4" /></Link>
+            {/* Pillars — typographic, not cards */}
+            <section id="platform" className={`border-y ${isDark ? "border-white/[0.06] bg-[#080c12]/80" : "border-black/[0.06] bg-white"}`}>
+                <div className="max-w-[1200px] mx-auto px-5 sm:px-8 py-20 lg:py-24">
+                    <div className="grid lg:grid-cols-3 gap-12 lg:gap-16">
+                        {PILLARS.map((p, i) => (
+                            <motion.article key={p.n} {...fade(i * 0.08)} className="relative">
+                                <span className={`landing-mono text-xs block mb-4 ${isDark ? "text-slate-500" : "text-neutral-400"}`}>{p.n}</span>
+                                <div className="landing-accent-line w-8 h-[2px] mb-5" />
+                                <h2 className="landing-display text-2xl mb-3 leading-snug">{p.title}</h2>
+                                <p className={`text-[15px] leading-relaxed ${isDark ? "text-slate-400" : "text-neutral-600"}`}>{p.body}</p>
+                            </motion.article>
+                        ))}
                     </div>
+                </div>
+            </section>
+
+            {/* Signature bento — Arena + Boardroom */}
+            <section id="arena" className="max-w-[1200px] mx-auto px-5 sm:px-8 py-20 lg:py-28">
+                <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-12">
+                    <div>
+                        <h2 className="landing-display text-3xl sm:text-4xl lg:text-[2.75rem] leading-tight max-w-lg">
+                            The parts students actually remember
+                        </h2>
+                    </div>
+                    <p className={`text-[15px] max-w-sm lg:text-right ${isDark ? "text-slate-400" : "text-neutral-500"}`}>
+                        Not another feature grid. Two modes that change how you study and how you interview.
+                    </p>
+                </div>
+
+                <div className="grid lg:grid-cols-12 gap-4 lg:gap-5">
+                    <ArenaPanel isDark={isDark} />
+                    <BoardroomPanel isDark={isDark} />
+                    <TutorStrip isDark={isDark} />
+                </div>
+            </section>
+
+            {/* Quote — one voice, not three cards */}
+            <section className={`py-20 lg:py-24 ${isDark ? "bg-white/[0.02]" : "bg-neutral-100/80"}`}>
+                <div className="max-w-[800px] mx-auto px-5 sm:px-8">
+                    <blockquote className="landing-display text-2xl sm:text-3xl lg:text-[2.1rem] leading-snug italic">
+                        "Neural Clash turned revision into something I'd actually show up for. I stopped rereading slides and started{' '}
+                        <span className={isDark ? "text-[#00f2ff] not-italic" : "text-[#c01636] not-italic"}>winning rounds</span>."
+                    </blockquote>
+                    <footer className={`mt-8 flex items-center gap-3 text-sm ${isDark ? "text-slate-400" : "text-neutral-500"}`}>
+                        <span className={`landing-mono text-xs px-2 py-1 rounded ${isDark ? "bg-white/5" : "bg-white border border-neutral-200"}`}>CS · Y3</span>
+                        Ahmed K. · early tester
+                    </footer>
+                </div>
+            </section>
+
+            {/* Path */}
+            <section id="path" className="max-w-[1200px] mx-auto px-5 sm:px-8 py-20 lg:py-28">
+                <h2 className="landing-display text-3xl sm:text-4xl mb-14">How it unfolds</h2>
+                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-6">
+                    {PATH.map((item, i) => (
+                        <div key={item.step} className="relative">
+                            {i < PATH.length - 1 && (
+                                <div className={`hidden lg:block absolute top-4 left-[calc(100%+0.5rem)] w-[calc(100%-2rem)] h-px ${isDark ? "bg-white/10" : "bg-neutral-200"}`} />
+                            )}
+                            <span className={`landing-mono text-[11px] ${isDark ? "text-[#00f2ff]/70" : "text-[#c01636]"}`}>{item.step}</span>
+                            <h3 className="text-base font-semibold mt-2 mb-2">{item.label}</h3>
+                            <p className={`text-sm leading-relaxed ${isDark ? "text-slate-400" : "text-neutral-600"}`}>{item.detail}</p>
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            {/* CTA */}
+            <section className={`border-t ${isDark ? "border-white/[0.06]" : "border-black/[0.06]"}`}>
+                <div className="max-w-[1200px] mx-auto px-5 sm:px-8 py-20 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
+                    <div>
+                        <h2 className="landing-display text-3xl sm:text-4xl mb-3">Ready when you are.</h2>
+                        <p className={`text-[15px] ${isDark ? "text-slate-400" : "text-neutral-600"}`}>Free to join. Pick a track and open your first lesson.</p>
+                    </div>
+                    <Link to="/register" className="landing-btn-primary inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-lg text-sm font-semibold shrink-0 transition-colors">
+                        Create account <ArrowRight size={16} />
+                    </Link>
                 </div>
             </section>
 
             {/* Footer */}
-            <footer className={`relative z-10 border-t px-6 lg:px-12 py-12 ${isDark ? 'border-white/5' : 'border-slate-200'}`}>
-                <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
-                    <div className="sm:col-span-2 lg:col-span-2">
-                        <div className="flex items-center gap-2 mb-3">
-                            <img src={mustLogo} alt="" className="h-9 w-auto" />
-                            <span className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>MustAcademy</span>
-                        </div>
-                        <p className={`text-sm max-w-sm leading-relaxed ${textMuted}`}>
-                            A CS learning platform for students who want roadmaps, practice, and proof of work — not another playlist.
-                        </p>
+            <footer className={`border-t text-sm ${isDark ? "border-white/[0.06] text-slate-500" : "border-black/[0.06] text-neutral-500"}`}>
+                <div className="max-w-[1200px] mx-auto px-5 sm:px-8 py-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <span>© {new Date().getFullYear()} MustAcademy</span>
+                    <div className="flex flex-wrap gap-6">
+                        {NAV.map(({ id, label }) => (
+                            <button key={id} type="button" onClick={() => scrollTo(id)} className="hover:underline underline-offset-4">
+                                {label}
+                            </button>
+                        ))}
+                        <Link to="/login" className="hover:underline underline-offset-4">Log in</Link>
                     </div>
-                    <div>
-                        <div className={`text-xs font-bold uppercase tracking-widest mb-4 ${isDark ? 'text-white/40' : 'text-slate-400'}`}>Explore</div>
-                        <ul className="space-y-2">
-                            {NAV_LINKS.map(({ label, id }) => (
-                                <li key={id}>
-                                    <button type="button" onClick={() => scrollTo(id)} className={`text-sm transition-colors ${isDark ? 'text-gray-400 hover:text-white' : 'text-slate-500 hover:text-indigo-600'}`}>{label}</button>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                    <div>
-                        <div className={`text-xs font-bold uppercase tracking-widest mb-4 ${isDark ? 'text-white/40' : 'text-slate-400'}`}>Account</div>
-                        <ul className="space-y-2">
-                            <li><Link to="/login" className={`text-sm transition-colors ${isDark ? 'text-gray-400 hover:text-white' : 'text-slate-500 hover:text-indigo-600'}`}>Login</Link></li>
-                            <li><Link to="/register" className={`text-sm transition-colors ${isDark ? 'text-gray-400 hover:text-white' : 'text-slate-500 hover:text-indigo-600'}`}>Register</Link></li>
-                        </ul>
-                    </div>
-                </div>
-                <div className={`max-w-6xl mx-auto mt-10 pt-6 border-t text-center text-xs ${isDark ? 'border-white/5 text-gray-500' : 'border-slate-100 text-slate-400'}`}>
-                    © {new Date().getFullYear()} MustAcademy. Built for CS students.
                 </div>
             </footer>
         </div>
     );
 }
 
-function HeroPreview({ isDark }) {
+function BentoStack({ isDark }) {
     return (
-        <div className="relative">
-            <div className="absolute -inset-3 bg-gradient-to-br from-indigo-500/15 to-violet-500/10 rounded-3xl blur-2xl" />
-            <div className={`relative rounded-2xl border overflow-hidden shadow-2xl ${isDark ? 'border-white/10 bg-[#0d0f1e]' : 'border-slate-200 bg-white'}`}>
-                <div className={`px-4 py-3 flex items-center justify-between border-b ${isDark ? 'border-white/5 bg-black/20' : 'border-slate-100 bg-slate-50'}`}>
-                    <span className={`text-xs font-semibold ${isDark ? 'text-white/70' : 'text-slate-600'}`}>Your dashboard</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-500 font-semibold">On track</span>
+        <div className="space-y-3">
+            <div className={`rounded-xl border p-4 ${isDark ? "border-white/10 bg-[#0d1222]/90" : "border-neutral-200 bg-white shadow-sm"}`}>
+                <div className="flex items-center justify-between mb-3">
+                    <span className={`landing-mono text-[10px] uppercase tracking-wider ${isDark ? "text-slate-500" : "text-neutral-400"}`}>Progress</span>
+                    <span className={`landing-mono text-xs font-medium ${isDark ? "text-[#00f2ff]" : "text-[#c01636]"}`}>72%</span>
                 </div>
-                <div className="p-5 space-y-4">
-                    <div>
-                        <div className="flex justify-between text-xs mb-1.5">
-                            <span className={isDark ? 'text-white/60' : 'text-slate-500'}>Data Structures</span>
-                            <span className="text-indigo-400 font-bold">72%</span>
-                        </div>
-                        <div className={`h-2 rounded-full overflow-hidden ${isDark ? 'bg-white/5' : 'bg-slate-100'}`}>
-                            <div className="h-full w-[72%] rounded-full bg-gradient-to-r from-indigo-500 to-violet-500" />
-                        </div>
+                <p className="text-sm font-medium mb-2">Data Structures</p>
+                <div className={`h-1.5 rounded-full overflow-hidden ${isDark ? "bg-white/5" : "bg-neutral-100"}`}>
+                    <div className={`h-full w-[72%] rounded-full ${isDark ? "bg-[#00f2ff]" : "bg-[#c01636]"}`} />
+                </div>
+            </div>
+
+            <div className={`rounded-xl border overflow-hidden ${isDark ? "border-white/10" : "border-neutral-200 shadow-sm"}`}>
+                <div className="bg-[#1a1033] px-4 py-3 flex items-center justify-between">
+                    <span className="landing-mono text-[10px] text-violet-300/80 uppercase tracking-widest">Arena · live</span>
+                    <Swords size={14} className="text-violet-300/60" />
+                </div>
+                <div className="bg-[#120a24] px-4 py-3">
+                    <p className="text-white/90 text-xs font-medium mb-2">Time complexity of binary search?</p>
+                    <div className="grid grid-cols-2 gap-1.5">
+                        {["O(log n)", "O(n)", "O(n²)", "O(1)"].map((opt, i) => (
+                            <div
+                                key={opt}
+                                className="text-[10px] font-semibold text-white/90 py-1.5 px-2 rounded"
+                                style={{ background: ["#c01636", "#1e3a5f", "#3d2c00", "#0a2e14"][i] }}
+                            >
+                                {opt}
+                            </div>
+                        ))}
                     </div>
-                    <div className={`grid grid-cols-2 gap-3`}>
-                        <div className={`rounded-xl p-3 border ${isDark ? 'border-indigo-500/20 bg-indigo-500/5' : 'border-indigo-100 bg-indigo-50/50'}`}>
-                            <Code2 className="w-4 h-4 text-indigo-400 mb-2" />
-                            <div className={`text-xs font-semibold ${isDark ? 'text-white' : 'text-slate-800'}`}>Next lesson</div>
-                            <div className={`text-[11px] mt-0.5 ${isDark ? 'text-white/50' : 'text-slate-500'}`}>Binary Trees</div>
-                        </div>
-                        <div className={`rounded-xl p-3 border ${isDark ? 'border-fuchsia-500/20 bg-fuchsia-500/5' : 'border-fuchsia-100 bg-fuchsia-50/50'}`}>
-                            <Zap className="w-4 h-4 text-fuchsia-400 mb-2" />
-                            <div className={`text-xs font-semibold ${isDark ? 'text-white' : 'text-slate-800'}`}>Arena live</div>
-                            <div className={`text-[11px] mt-0.5 font-mono ${isDark ? 'text-white/50' : 'text-slate-500'}`}>PIN 84721</div>
-                        </div>
-                    </div>
-                    <div className={`rounded-xl p-3 border flex items-center gap-3 ${isDark ? 'border-white/5 bg-white/[0.02]' : 'border-slate-100 bg-slate-50'}`}>
-                        <div className="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center">
-                            <Trophy className="w-4 h-4 text-emerald-500" />
-                        </div>
-                        <div>
-                            <div className={`text-xs font-semibold ${isDark ? 'text-white' : 'text-slate-800'}`}>Boardroom ready</div>
-                            <div className={`text-[11px] ${isDark ? 'text-white/50' : 'text-slate-500'}`}>Mock interview unlocked</div>
-                        </div>
-                    </div>
+                </div>
+            </div>
+
+            <div className={`rounded-xl border px-4 py-3 flex items-center gap-3 ${isDark ? "border-white/10 bg-[#0d1222]/90" : "border-neutral-200 bg-white"}`}>
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isDark ? "bg-[#c01636]/20" : "bg-[#c01636]/10"}`}>
+                    <Mic size={14} className={isDark ? "text-[#ff4d6d]" : "text-[#c01636]"} />
+                </div>
+                <div>
+                    <p className="text-xs font-semibold">Boardroom session</p>
+                    <p className={`text-[11px] ${isDark ? "text-slate-500" : "text-neutral-500"}`}>Voice mock · scorecard ready</p>
                 </div>
             </div>
         </div>
     );
 }
 
-function Divider({ isDark }) {
+function ArenaPanel({ isDark }) {
     return (
-        <div className="relative z-10 max-w-6xl mx-auto px-6 lg:px-12">
-            <div className={`h-px w-full bg-gradient-to-r from-transparent ${isDark ? 'via-white/[0.07]' : 'via-slate-200'} to-transparent`} />
+        <div className={`lg:col-span-7 rounded-2xl border overflow-hidden ${isDark ? "border-white/10 bg-[#0a0e14]" : "border-neutral-200 bg-white shadow-sm"}`}>
+            <div className="p-6 sm:p-8">
+                <div className="flex items-start justify-between gap-4 mb-6">
+                    <div>
+                        <span className={`landing-mono text-[10px] uppercase tracking-[0.15em] ${isDark ? "text-[#00f2ff]/80" : "text-[#c01636]"}`}>Neural Clash</span>
+                        <h3 className="landing-display text-2xl sm:text-3xl mt-2">Study like a game night</h3>
+                    </div>
+                    <Swords className={`shrink-0 ${isDark ? "text-slate-600" : "text-neutral-300"}`} size={28} strokeWidth={1.25} />
+                </div>
+                <p className={`text-sm leading-relaxed max-w-md mb-6 ${isDark ? "text-slate-400" : "text-neutral-600"}`}>
+                    Host a room with a PIN. AI-generated questions, live leaderboard, classmates trash-talking your Big-O answer — the good kind of stress.
+                </p>
+            </div>
+            <div className="border-t border-inherit mx-6 sm:mx-8 mb-6 sm:mb-8 rounded-xl overflow-hidden">
+                <div className="bg-[#0f0a1a] px-5 py-4 text-center border-b border-white/5">
+                    <div className="landing-mono text-[9px] text-violet-400/90 uppercase tracking-[0.35em] mb-1">Join with PIN</div>
+                    <div className="text-3xl font-bold text-white tracking-[0.3em] landing-mono">84721</div>
+                </div>
+                <div className="grid grid-cols-2">
+                    {[
+                        { c: "#c01636", t: "O(log n)" },
+                        { c: "#1e4d7b", t: "O(n)" },
+                        { c: "#8b6914", t: "O(n²)" },
+                        { c: "#1a5c38", t: "O(1)" },
+                    ].map((a) => (
+                        <div key={a.t} className="py-3.5 px-4 text-white text-sm font-semibold border-t border-r border-white/5" style={{ background: a.c }}>
+                            {a.t}
+                        </div>
+                    ))}
+                </div>
+            </div>
         </div>
     );
 }
 
-function SectionLabel({ icon: Icon, label, isDark }) {
+function BoardroomPanel({ isDark }) {
     return (
-        <div className="flex justify-center mb-4">
-            <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold tracking-widest uppercase border ${isDark ? 'bg-[#6366f1]/10 border-[#6366f1]/20 text-[#818cf8]' : 'bg-indigo-50 border-indigo-100 text-indigo-600'}`}>
-                <Icon className="w-3.5 h-3.5" /> {label}
-            </span>
+        <div className={`lg:col-span-5 rounded-2xl border p-6 sm:p-8 flex flex-col ${isDark ? "border-white/10 bg-[#0d1222]" : "border-neutral-200 bg-neutral-50"}`}>
+            <span className={`landing-mono text-[10px] uppercase tracking-[0.15em] ${isDark ? "text-[#ff4d6d]" : "text-[#c01636]"}`}>The Boardroom</span>
+            <h3 className="landing-display text-2xl sm:text-3xl mt-2 mb-4">Interview out loud</h3>
+            <p className={`text-sm leading-relaxed mb-6 flex-1 ${isDark ? "text-slate-400" : "text-neutral-600"}`}>
+                Voice mock sessions with an AI interviewer. You speak, it pushes back, you get a scorecard — not a textarea fantasy.
+            </p>
+            <div className={`rounded-xl border p-4 space-y-3 ${isDark ? "border-white/8 bg-black/25" : "border-neutral-200 bg-white"}`}>
+                <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="landing-mono text-[10px] text-emerald-500/90">Live · Marcus Sterling</span>
+                </div>
+                <p className={`text-sm leading-relaxed ${isDark ? "text-slate-300" : "text-neutral-700"}`}>
+                    "How would you design a rate limiter? Walk me through the trade-offs."
+                </p>
+                <div className="flex items-end justify-between pt-1">
+                    <span className={`text-xs ${isDark ? "text-slate-500" : "text-neutral-400"}`}>Technical</span>
+                    <span className={`landing-display text-3xl not-italic ${isDark ? "text-white" : "text-neutral-900"}`}>78</span>
+                </div>
+            </div>
         </div>
     );
 }
 
-function TechBadge({ t, isDark }) {
+function TutorStrip({ isDark }) {
     return (
-        <span
-            className="inline-flex items-center px-5 py-2.5 rounded-full text-sm font-semibold border whitespace-nowrap select-none cursor-default transition-all hover:scale-105"
-            style={{
-                color: t.color,
-                backgroundColor: isDark ? t.bg : `${t.color}15`,
-                borderColor: isDark ? t.color + "40" : t.color + "60",
-                boxShadow: isDark ? `0 0 14px ${t.color}1a` : `0 2px 8px ${t.color}10`,
-            }}
-        >
-            {t.name}
-        </span>
+        <div className={`lg:col-span-12 grid sm:grid-cols-2 gap-4 lg:gap-5`}>
+            <div className={`rounded-2xl border p-5 sm:p-6 flex gap-4 ${isDark ? "border-white/10 bg-[#0a0e14]" : "border-neutral-200 bg-white"}`}>
+                <BookOpen size={22} className={`shrink-0 mt-0.5 ${isDark ? "text-slate-500" : "text-neutral-400"}`} strokeWidth={1.5} />
+                <div>
+                    <h4 className="font-semibold mb-1">1-on-1 AI Tutor</h4>
+                    <p className={`text-sm leading-relaxed ${isDark ? "text-slate-400" : "text-neutral-600"}`}>
+                        Every topic opens a tutor — ask, get examples, quick quiz. No 40-minute lecture dump on open.
+                    </p>
+                </div>
+            </div>
+            <div className={`rounded-2xl border p-5 sm:p-6 flex gap-4 ${isDark ? "border-white/10 bg-[#0a0e14]" : "border-neutral-200 bg-white"}`}>
+                <GitBranch size={22} className={`shrink-0 mt-0.5 ${isDark ? "text-slate-500" : "text-neutral-400"}`} strokeWidth={1.5} />
+                <div>
+                    <h4 className="font-semibold mb-1">Career roadmaps</h4>
+                    <p className={`text-sm leading-relaxed ${isDark ? "text-slate-400" : "text-neutral-600"}`}>
+                        Visual path to your target role. See what's done, what's next, and what employers actually ask for.
+                    </p>
+                </div>
+            </div>
+        </div>
     );
 }
