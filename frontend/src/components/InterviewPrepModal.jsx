@@ -1105,20 +1105,20 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                                         <span className="text-sm font-black text-indigo-400 uppercase tracking-widest">Score</span>
                                         <span className="text-6xl font-black text-indigo-500">{scorecard.technical_score}</span>
                                     </motion.div>
-                                    <h2 className="text-6xl font-black mb-6 uppercase tracking-tighter text-white">{scorecard.level} - {scorecard.verdict}</h2>
+                                    <h2 className={`text-6xl font-black mb-6 uppercase tracking-tighter ${isDark ? 'text-white' : 'text-indigo-950'}`}>{scorecard.level} - {scorecard.verdict}</h2>
                                     <div className="flex gap-12 mb-16 justify-center">
                                         <div className="flex flex-col items-center gap-2">
-                                            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-indigo-400 mb-2"><DollarSign size={20} /></div>
+                                            <div className={`p-4 rounded-2xl mb-2 ${isDark ? 'bg-slate-900 border border-slate-800 text-indigo-400' : 'bg-white border border-indigo-200 text-indigo-600 shadow-sm'}`}><DollarSign size={20} /></div>
                                             <span className="text-slate-500 font-bold uppercase tracking-widest text-[9px]">Market Valuation</span>
-                                            <span className="text-white font-black text-xs">{scorecard.salary_band}</span>
+                                            <span className={`font-black text-xs ${isDark ? 'text-white' : 'text-indigo-950'}`}>{scorecard.salary_band}</span>
                                         </div>
                                         <div className="flex flex-col items-center gap-2">
-                                            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-indigo-400 mb-2"><TrendingUp size={20} /></div>
+                                            <div className={`p-4 rounded-2xl mb-2 ${isDark ? 'bg-slate-900 border border-slate-800 text-indigo-400' : 'bg-white border border-indigo-200 text-indigo-600 shadow-sm'}`}><TrendingUp size={20} /></div>
                                             <span className="text-slate-500 font-bold uppercase tracking-widest text-[9px]">Trajectory</span>
-                                            <span className="text-white font-black text-xs">{scorecard.promotion_readiness}</span>
+                                            <span className={`font-black text-xs ${isDark ? 'text-white' : 'text-indigo-950'}`}>{scorecard.promotion_readiness}</span>
                                         </div>
                                     </div>
-                                    <p className="text-slate-400 max-w-xl mb-16 italic border-l-4 border-indigo-500/50 pl-10 text-lg leading-relaxed text-left">"{scorecard.summary}"</p>
+                                    <p className={`max-w-xl mb-16 italic border-l-4 pl-10 text-lg leading-relaxed text-left ${isDark ? 'text-slate-400 border-indigo-500/50' : 'text-indigo-800/80 border-indigo-300'}`}>"{scorecard.summary}"</p>
                                     <button onClick={handleClose} className="bg-indigo-600 hover:bg-indigo-500 text-white px-16 py-6 rounded-2xl font-black uppercase tracking-[0.5em] text-sm shadow-2xl transition-all hover:scale-105 active:scale-95">Secure Session & Exit</button>
                                 </div>
                             ) : (
