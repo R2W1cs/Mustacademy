@@ -149,7 +149,7 @@ const runMasterclassInProcess = async ({ title, theme, partNumber, userId }) => 
             .replace(/{chapter_index}/g, i).replace(/{total_chapters}/g, totalChapters)
             .replace(/{previous_context}/g, previousContext).replace(/{USER_NAME}/g, userName);
 
-        const aiData = await callAI(prompt, true, 3072);
+        const aiData = await callAI(prompt, true, 3072, { route: 'quality' });
         if (aiData?.segments?.length > 0) {
             allSegments = [...allSegments, ...aiData.segments.map(s => ({
                 ...s, text: s.text.replace(/{USER_NAME}/g, userName),

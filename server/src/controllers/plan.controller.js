@@ -167,7 +167,7 @@ FAILURE VECTORS: ${(topicData.failure_analysis || '').slice(0, 300)}
             .replace(/{topic}/g, topic || "Computer Science Mastery")
             .replace(/{context}/g, contextText);
 
-        const aiData = await callFastAI(prompt, true, 1024);
+        const aiData = await callFastAI(prompt, true, 1024, { route: 'fast' });
 
         if (!aiData || !Array.isArray(aiData.questions)) {
             console.warn("[generateQuiz] Invalid format from AI. Serving fallback.");

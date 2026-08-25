@@ -10,6 +10,16 @@ const INCEPTION_REASONING = process.env.INCEPTION_REASONING_EFFORT || 'low';
 const ORCAROUTER_API_KEY = process.env.ORCAROUTER_API_KEY;
 const ORCAROUTER_BASE_URL = (process.env.ORCAROUTER_BASE_URL || 'https://api.orcarouter.ai/v1').replace(/\/$/, '');
 export const ORCAROUTER_MODEL = process.env.ORCAROUTER_MODEL || 'deepseek/deepseek-v4-flash-free';
+
+/** OpenRouter (OpenAI-compatible) — https://openrouter.ai/api/v1 */
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+const OPENROUTER_BASE_URL = (process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1').replace(/\/$/, '');
+const OPENROUTER_HTTP_REFERER = process.env.OPENROUTER_HTTP_REFERER || 'https://mustacademy.vercel.app';
+const OPENROUTER_APP_TITLE = process.env.OPENROUTER_APP_TITLE || 'MustAcademy';
+export const OPENROUTER_MODEL_QUALITY = process.env.OPENROUTER_MODEL_QUALITY || 'openai/gpt-4o';
+export const OPENROUTER_MODEL_BOARDROOM = process.env.OPENROUTER_MODEL_BOARDROOM || 'openai/gpt-4o';
+export const OPENROUTER_MODEL_FAST = process.env.OPENROUTER_MODEL_FAST || 'openai/gpt-4o-mini';
+
 const ALLOW_OLLAMA = process.env.ALLOW_OLLAMA === 'true' || process.env.NODE_ENV !== 'production';
 // Groq retired legacy public Llama IDs — remap even if Render still has GROQ_MODEL=llama-3.3-70b-versatile.
 const DEFAULT_GROQ_MODEL = 'openai/gpt-oss-120b';
@@ -38,9 +48,23 @@ export const resolveGroqModel = (requested, fallback = DEFAULT_GROQ_MODEL) => {
 
 export const GROQ_MODEL = resolveGroqModel(process.env.GROQ_MODEL, DEFAULT_GROQ_MODEL);
 export const GROQ_FAST_MODEL = resolveGroqModel(process.env.GROQ_FAST_MODEL, DEFAULT_GROQ_FAST_MODEL);
-/** Prefer orca | inception | groq | auto (default: Groq → Orca → Inception) */
+/** Prefer openrouter | orca | inception | groq | auto */
 const AI_PRIMARY = (process.env.AI_PRIMARY || 'auto').toLowerCase();
 
+const OPENROUTER_ROUTE_MODELS = {
+    quality: OPENROUTER_MODEL_QUALITY,
+    boardroom: OPENROUTER_MODEL_BOARDROOM,
+    fast: OPENROUTER_MODEL_FAST,
+};
+
+export const resolveOpenRouterModel = (route = 'quality') =>
+    OPENROUTER_ROUTE_MODELS[route] || OPENROUTER_MODEL_QUALITY;
+
+const hasCloudAiKey = () =>
+    !!(OPENROUTER_API_KEY || GROQ_API_KEY || INCEPTION_API_KEY || ORCAROUTER_API_KEY);
+
+/** Prefer OpenRouter whenever the key is set (falls back to Groq/Orca/Inception). */
+const preferOpenRouterFirst = () => !!OPENROUTER_API_KEY;
 import Groq from "groq-sdk";
 export const groq = GROQ_API_KEY ? new Groq({ apiKey: GROQ_API_KEY, timeout: 20000, maxRetries: 0 }) : null;
 
@@ -48,7 +72,9 @@ console.log(`[AI Setup] Ollama URL: ${OLLAMA_URL} (enabled=${ALLOW_OLLAMA})`);
 console.log(`[AI Setup] Groq Key present: ${!!GROQ_API_KEY}`);
 console.log(`[AI Setup] Groq models: primary=${GROQ_MODEL} fast=${GROQ_FAST_MODEL}`);
 console.log(`[AI Setup] Inception Key present: ${!!INCEPTION_API_KEY} model=${INCEPTION_MODEL}`);
-console.log(`[AI Setup] Orca Router Key present: ${!!ORCAROUTER_API_KEY} model=${ORCAROUTER_MODEL} primary=${AI_PRIMARY}`);
+console.log(`[AI Setup] Orca Router Key present: ${!!ORCAROUTER_API_KEY} model=${ORCAROUTER_MODEL}`);
+console.log(`[AI Setup] OpenRouter Key present: ${!!OPENROUTER_API_KEY}`);
+console.log(`[AI Setup] OpenRouter models: quality=${OPENROUTER_MODEL_QUALITY} boardroom=${OPENROUTER_MODEL_BOARDROOM} fast=${OPENROUTER_MODEL_FAST} primary=${AI_PRIMARY}`);
 
 const MOCK_FALLBACKS = {
     mentor: [
@@ -230,6 +256,128 @@ export const callInception = async (prompt, expectJson = true, model = INCEPTION
         return JSON.parse(aiText);
     } catch (e) {
         console.warn("[AI Inception] JSON Parse Failed, attempting Repair:", e.message);
+        return parseAiJson(aiText);
+    }
+};
+
+const openRouterHeaders = () => {
+    const headers = {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+    };
+    if (OPENROUTER_HTTP_REFERER) headers['HTTP-Referer'] = OPENROUTER_HTTP_REFERER;
+    if (OPENROUTER_APP_TITLE) headers['X-Title'] = OPENROUTER_APP_TITLE;
+    return headers;
+};
+
+/**
+ * OpenRouter chat completions (OpenAI-compatible).
+ * @param {{ messages: Array, model?: string, maxTokens?: number, stream?: boolean, expectJson?: boolean }} opts
+ */
+export const callOpenRouter = async ({
+    messages,
+    model = OPENROUTER_MODEL_QUALITY,
+    maxTokens = 2048,
+    stream = false,
+    expectJson = false,
+} = {}) => {
+    if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY missing from environment");
+
+    let msgs = Array.isArray(messages) ? [...messages] : buildMessages(messages);
+    if (expectJson) {
+        const hasSystem = msgs.some((m) => m.role === 'system');
+        if (!hasSystem) {
+            msgs = [
+                { role: 'system', content: 'You are a JSON API. Always respond with valid JSON only. No markdown.' },
+                ...msgs,
+            ];
+        } else {
+            msgs = msgs.map((m) =>
+                m.role === 'system'
+                    ? { ...m, content: `${m.content}\n\nAlways respond with valid JSON only.` }
+                    : m
+            );
+        }
+    }
+
+    const tokenBudget = Math.max(maxTokens, expectJson ? 1024 : 256);
+    console.log(`[AI OpenRouter] Calling ${model} (expectJson=${expectJson}, maxTokens=${tokenBudget}, stream=${!!stream})...`);
+
+    const body = {
+        model,
+        messages: msgs,
+        temperature: 0.7,
+        max_tokens: tokenBudget,
+        stream: !!stream,
+    };
+    if (expectJson && !stream) {
+        body.response_format = { type: 'json_object' };
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), stream ? 90000 : 60000);
+
+    let response;
+    try {
+        response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+            method: 'POST',
+            headers: openRouterHeaders(),
+            body: JSON.stringify(body),
+            signal: controller.signal,
+        });
+    } finally {
+        clearTimeout(timeoutId);
+    }
+
+    if (!response.ok) {
+        const errText = await response.text().catch(() => '');
+        throw new Error(`OpenRouter HTTP ${response.status}: ${errText.slice(0, 200)}`);
+    }
+
+    if (stream) {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        return (async function* () {
+            let buffer = '';
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+                    const parts = buffer.split('\n');
+                    buffer = parts.pop() || '';
+                    for (const line of parts) {
+                        const trimmed = line.trim();
+                        if (!trimmed.startsWith('data:')) continue;
+                        const payload = trimmed.slice(5).trim();
+                        if (!payload || payload === '[DONE]') continue;
+                        try {
+                            const json = JSON.parse(payload);
+                            const content = json.choices?.[0]?.delta?.content;
+                            if (content) {
+                                yield { choices: [{ delta: { content } }] };
+                            }
+                        } catch {
+                            // ignore partial JSON lines
+                        }
+                    }
+                }
+            } finally {
+                reader.releaseLock();
+            }
+        })();
+    }
+
+    const data = await response.json();
+    const aiText = data.choices?.[0]?.message?.content;
+    if (!aiText) throw new Error("OpenRouter returned empty response");
+
+    if (!expectJson) return aiText;
+
+    try {
+        return JSON.parse(aiText);
+    } catch (e) {
+        console.warn("[AI OpenRouter] JSON Parse Failed, attempting Repair:", e.message);
         return parseAiJson(aiText);
     }
 };
@@ -427,9 +575,22 @@ const providerOrder = (preferFirst, rest) => {
     return [preferFirst, ...rest.filter((fn) => fn !== preferFirst)];
 };
 
-export const streamAI = async (prompt, model = GROQ_MODEL, maxTokens = 4096) => {
+export const streamAI = async (prompt, model = GROQ_MODEL, maxTokens = 4096, options = {}) => {
+    const route = options.route || 'fast';
     const messages = buildMessages(prompt);
-    const resolvedGroqModel = resolveGroqModel(model, GROQ_MODEL);
+    const openRouterModel = options.openRouterModel || resolveOpenRouterModel(route);
+    const resolvedGroqModel = resolveGroqModel(model || (route === 'fast' ? GROQ_FAST_MODEL : GROQ_MODEL), route === 'fast' ? GROQ_FAST_MODEL : GROQ_MODEL);
+
+    const tryOpenRouter = async () => {
+        if (!OPENROUTER_API_KEY) return null;
+        return callOpenRouter({
+            messages,
+            model: openRouterModel,
+            maxTokens,
+            stream: true,
+            expectJson: false,
+        });
+    };
 
     const tryGroq = async () => {
         if (!(process.env.GROQ_API_KEY && groq)) return null;
@@ -458,8 +619,13 @@ export const streamAI = async (prompt, model = GROQ_MODEL, maxTokens = 4096) => 
         AI_PRIMARY === 'orca' ? tryOrca
             : AI_PRIMARY === 'inception' ? tryInception
                 : AI_PRIMARY === 'groq' ? tryGroq
-                    : null;
-    const order = providerOrder(prefer, [tryGroq, tryOrca, tryInception]);
+                    : AI_PRIMARY === 'openrouter' ? tryOpenRouter
+                        : null;
+
+    let order = providerOrder(prefer, [tryGroq, tryOrca, tryInception]);
+    if (preferOpenRouterFirst() || AI_PRIMARY === 'openrouter') {
+        order = providerOrder(tryOpenRouter, order);
+    }
 
     for (const attempt of order) {
         try {
@@ -482,9 +648,8 @@ export const streamAI = async (prompt, model = GROQ_MODEL, maxTokens = 4096) => 
 
     console.warn("[AI Stream] Critical failure. Deploying Mock Stream.");
     const mockReply = getMockResponse('mentor');
-    const hasCloudKey = !!(GROQ_API_KEY || INCEPTION_API_KEY || ORCAROUTER_API_KEY);
-    const reason = !hasCloudKey
-        ? 'Set GROQ_API_KEY, ORCAROUTER_API_KEY, or INCEPTION_API_KEY on the server (Render env). Redeploy after adding it.'
+    const reason = !hasCloudAiKey()
+        ? 'Set OPENROUTER_API_KEY, GROQ_API_KEY, ORCAROUTER_API_KEY, or INCEPTION_API_KEY on the server (Render env). Redeploy after adding it.'
         : 'Cloud AI request failed. Check provider keys / models.';
     return (async function* () {
         const words = `⚠️ [EMERGENCY PROTOCOL ACTIVE] ${reason} ${mockReply}`.split(' ');
@@ -559,11 +724,27 @@ export const streamOllama = async (prompt) => {
     })();
 };
 
-// Cloud providers: Groq + Orca Router + Inception Labs. Optional local Ollama in non-production.
+// Cloud providers: OpenRouter + Groq + Orca Router + Inception Labs. Optional local Ollama in non-production.
 
-// --- FAST AI WRAPPER (Orca flash / GROQ_FAST_MODEL — for quick-response features) ---
+// --- FAST AI WRAPPER (OpenRouter fast / Orca flash / GROQ_FAST_MODEL — for quick-response features) ---
 // Use for: project eval, grading, career analysis, quiz, readiness check, goal submission
-export const callFastAI = async (prompt, expectJson = true, maxTokens = 512) => {
+export const callFastAI = async (prompt, expectJson = true, maxTokens = 512, options = {}) => {
+    const route = options.route || 'fast';
+    if (OPENROUTER_API_KEY) {
+        try {
+            const model = resolveOpenRouterModel(route);
+            console.log(`[callFastAI] Attempting OpenRouter (${model})...`);
+            const orRes = await callOpenRouter({
+                messages: buildMessages(prompt),
+                model,
+                maxTokens,
+                expectJson,
+            });
+            if (orRes) return orRes;
+        } catch (err) {
+            console.warn("[callFastAI] OpenRouter fast failed, trying fallbacks:", err.message);
+        }
+    }
     if (ORCAROUTER_API_KEY) {
         try {
             console.log(`[callFastAI] Attempting Orca flash (${ORCAROUTER_MODEL})...`);
@@ -583,12 +764,25 @@ export const callFastAI = async (prompt, expectJson = true, maxTokens = 512) => 
         }
     }
     // Fall through to full callAI if fast model fails
-    return callAI(prompt, expectJson, maxTokens);
+    return callAI(prompt, expectJson, maxTokens, { route });
 };
 
-// --- PRIMARY AI WRAPPER (Groq / Orca / Inception; optional local Ollama in non-production) ---
-export const callAI = async (prompt, expectJson = true, maxTokens = 2048) => {
+// --- PRIMARY AI WRAPPER (OpenRouter / Groq / Orca / Inception; optional local Ollama in non-production) ---
+export const callAI = async (prompt, expectJson = true, maxTokens = 2048, options = {}) => {
     let lastError = null;
+    const route = options.route || 'quality';
+
+    const tryOpenRouter = async () => {
+        if (!OPENROUTER_API_KEY) return null;
+        const model = options.openRouterModel || resolveOpenRouterModel(route);
+        console.log(`[callAI] Attempting OpenRouter protocol (${model}, route=${route})...`);
+        return callOpenRouter({
+            messages: buildMessages(prompt),
+            model,
+            maxTokens,
+            expectJson,
+        });
+    };
 
     const tryGroq = async () => {
         if (!process.env.GROQ_API_KEY) return null;
@@ -612,8 +806,13 @@ export const callAI = async (prompt, expectJson = true, maxTokens = 2048) => {
         AI_PRIMARY === 'orca' ? tryOrca
             : AI_PRIMARY === 'inception' ? tryInception
                 : AI_PRIMARY === 'groq' ? tryGroq
-                    : null;
-    const order = providerOrder(prefer, [tryGroq, tryOrca, tryInception]);
+                    : AI_PRIMARY === 'openrouter' ? tryOpenRouter
+                        : null;
+
+    let order = providerOrder(prefer, [tryGroq, tryOrca, tryInception]);
+    if (preferOpenRouterFirst() || AI_PRIMARY === 'openrouter') {
+        order = providerOrder(tryOpenRouter, order);
+    }
 
     for (const attempt of order) {
         try {
@@ -638,15 +837,14 @@ export const callAI = async (prompt, expectJson = true, maxTokens = 2048) => {
 
     console.warn("[callAI] Critical failure. Deploying Mock Protocol.");
     const mockReply = getMockResponse('mentor');
-    const hasCloudKey = !!(GROQ_API_KEY || INCEPTION_API_KEY || ORCAROUTER_API_KEY);
-    const prefix = !hasCloudKey
-        ? "⚠️ [OFFLINE MODE — set GROQ_API_KEY, ORCAROUTER_API_KEY, or INCEPTION_API_KEY on Render] "
+    const prefix = !hasCloudAiKey()
+        ? "⚠️ [OFFLINE MODE — set OPENROUTER_API_KEY, GROQ_API_KEY, ORCAROUTER_API_KEY, or INCEPTION_API_KEY on Render] "
         : `⚠️ [OFFLINE MODE — AI request failed${lastError ? `: ${lastError.slice(0, 120)}` : ''}] `;
     if (expectJson) {
         return {
             reply: prefix + mockReply,
             segments: [
-                { speaker: "host", text: "Neural link unavailable. Set ORCAROUTER_API_KEY, GROQ_API_KEY, or INCEPTION_API_KEY, then redeploy." },
+                { speaker: "host", text: "Neural link unavailable. Set OPENROUTER_API_KEY, ORCAROUTER_API_KEY, GROQ_API_KEY, or INCEPTION_API_KEY, then redeploy." },
                 { speaker: "expert", text: mockReply }
             ],
             title: "Neural Link Interrupted",

@@ -5,7 +5,7 @@
  */
 import pool from "../config/db.js";
 import { cacheGet, cacheSet, cacheKey } from "../utils/aiCache.js";
-import { callAI, groq, GROQ_MODEL } from "../utils/aiClient.js";
+import { callAI } from "../utils/aiClient.js";
 import { enqueueMasterclassJob } from "../utils/jobQueue.js";
 import { incrementStreak } from "../services/streak.service.js";
 import {
@@ -42,7 +42,7 @@ export const generateLibraryLecture = async (req, res) => {
         const LECTURE_CONTEXT_CAP = 2000;
         if (context.length > LECTURE_CONTEXT_CAP) context = context.slice(0, LECTURE_CONTEXT_CAP);
 
-        const aiData = await callAI({ system: PROFESSOR_LECTURE_PROMPT, user: `USER PROFILE:\nNAME: ${userName}\n\nSTRICT GROUNDING DATA:\n${context}\n\nTOPIC TO LECTURE ON: "${topicTitle}"` }, true, 4096);
+        const aiData = await callAI({ system: PROFESSOR_LECTURE_PROMPT, user: `USER PROFILE:\nNAME: ${userName}\n\nSTRICT GROUNDING DATA:\n${context}\n\nTOPIC TO LECTURE ON: "${topicTitle}"` }, true, 4096, { route: 'quality' });
 
         await incrementStreak(req.user.id).catch(e => console.warn("Streak increment failed:", e.message));
 
@@ -100,7 +100,7 @@ export const interactWithProfessor = async (req, res) => {
 
         const aiData = await callAI(
             `${PROFESSOR_INTERLUDE_PROMPT}\n\nUSER: ${userName}\nQUESTION: ${question}\n\nGROUNDING:\n${context}`,
-            true, 1024
+            true, 1024, { route: 'quality' }
         );
 
         const personalizedConversation = aiData.CONVERSATION?.map(turn => ({
@@ -134,7 +134,7 @@ export const generateTopicPodcast = async (req, res) => {
             }
         }
 
-        const aiData = await callAI(prompt, true, 4096);
+        const aiData = await callAI(prompt, true, 4096, { route: 'quality' });
 
         if (!aiData || !Array.isArray(aiData.segments) || aiData.segments.length === 0) {
             return res.json({ success: true, episode: buildFallbackEpisode(topicTitle) });
@@ -166,7 +166,7 @@ Student question: "${question}"
 Answer directly and technically. 2-3 paragraphs max. Return valid JSON: {"answer": "..."}`;
 
     try {
-        const aiData = await callAI(prompt, true, 1024);
+        const aiData = await callAI(prompt, true, 1024, { route: 'quality' });
         const result = { success: true, answer: aiData.answer || aiData.reply || "I couldn't process that question." };
         if (pqCk) cacheSet(pqCk, result, 30 * 60 * 1000);
         res.json(result);
@@ -332,8 +332,8 @@ export const generateInteractivePodcast = async (req, res) => {
             ...history.map(msg => ({ role: msg.role || 'user', content: msg.content }))
         ];
 
-        const completion = await groq.chat.completions.create({ messages, model: GROQ_MODEL, temperature: 0.7, max_tokens: 300 });
-        res.json({ success: true, reply: completion.choices[0].message.content });
+        const reply = await callAI(messages, false, 300, { route: 'quality' });
+        res.json({ success: true, reply: typeof reply === 'string' ? reply : (reply?.reply || '') });
     } catch (err) {
         console.error("Interactive Podcast Error:", err);
         res.status(500).json({ success: false, message: "Failed to generate interactive response" });
@@ -345,16 +345,16 @@ export const generateNovaLesson = async (req, res) => {
         const { topicTitle } = req.body;
         if (!topicTitle) return res.status(400).json({ success: false, message: "topicTitle required" });
 
-        const completion = await groq.chat.completions.create({
-            messages: [{ role: "user", content: `You are Dr. Nova, a world-class CS professor. Write a private spoken lecture on "${topicTitle}". No markdown, no formatting — only natural spoken prose. Exactly 4 paragraphs: Hook, Core Concept (with analogy), How It Works, Real World + Invitation. 2-4 sentences per paragraph. Speak directly to the student using "you".` }],
-            model: GROQ_MODEL,
-            temperature: 0.72,
-            max_tokens: 550
-        });
+        const lesson = await callAI(
+            `You are Dr. Nova, a world-class CS professor. Write a private spoken lecture on "${topicTitle}". No markdown, no formatting — only natural spoken prose. Exactly 4 paragraphs: Hook, Core Concept (with analogy), How It Works, Real World + Invitation. 2-4 sentences per paragraph. Speak directly to the student using "you".`,
+            false,
+            550,
+            { route: 'quality' }
+        );
 
-        const lesson = completion.choices[0].message.content.trim();
-        const paragraphs = lesson.split(/\n\n+/).map(p => p.trim()).filter(p => p.length > 20);
-        res.json({ success: true, lesson, paragraphs });
+        const lessonText = (typeof lesson === 'string' ? lesson : lesson?.reply || '').trim();
+        const paragraphs = lessonText.split(/\n\n+/).map(p => p.trim()).filter(p => p.length > 20);
+        res.json({ success: true, lesson: lessonText, paragraphs });
     } catch (err) {
         console.error("Nova Lesson Error:", err);
         res.status(500).json({ success: false, message: "Failed to generate lesson" });

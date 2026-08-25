@@ -28,7 +28,7 @@ export const startInterview = async (req, res) => {
 
         const aiData = await callAI(
             { system: systemPrompt, user: `Orchestrator: The candidate has selected ${targetJob}. Mode: ${mode}. Direct Panel Command: Build a professional boardroom atmosphere, set the stage, explain the protocol, and build initial rapport before opening the floor for the INTRO phase. Do not jump straight to "Tell me about yourself". Keep your reply concise — under 80 words.` },
-            true, 512
+            true, 512, { route: 'boardroom' }
         );
 
         const reply = aiData?.reply
@@ -75,7 +75,7 @@ export const chatWithInterviewer = async (req, res) => {
 
         const aiData = await callAI(
             { system: systemPrompt, user: `Candidate Output: ${message}` },
-            true, 700
+            true, 700, { route: 'boardroom' }
         );
 
         const reply = aiData?.reply
@@ -114,7 +114,7 @@ export const chatWithInterviewer = async (req, res) => {
             const evaluationPrompt = SCORECARD_PROMPT.replace('{target_job}', targetJob || 'Software Engineer');
             scorecard = await callAI(
                 { system: evaluationPrompt, user: `Interview Transcript:\n${transcriptText}` },
-                true, 1024
+                true, 1024, { route: 'boardroom' }
             );
 
             await pool.query(

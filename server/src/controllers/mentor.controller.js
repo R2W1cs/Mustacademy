@@ -118,7 +118,7 @@ export const chatWithMentor = async (req, res) => {
 
         const aiData = await callAI(
             { system: systemPrompt, user: `Student: ${message}` },
-            true, tokenBudget
+            true, tokenBudget, { route: 'quality' }
         );
 
         try {
@@ -221,7 +221,7 @@ export const chatWithMentorStream = async (req, res) => {
 
         const stream = await streamAI(
             { system: systemPrompt, user: message },
-            GROQ_MODEL, 2048
+            GROQ_MODEL, 2048, { route: 'fast' }
         );
 
         let fullContent = "";

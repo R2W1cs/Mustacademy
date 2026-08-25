@@ -31,7 +31,7 @@ const processMasterclass = async (job) => {
             .replace(/{previous_context}/g, previousContext)
             .replace(/{USER_NAME}/g, userName);
 
-        const aiData = await callAI(prompt, true, 3072);
+        const aiData = await callAI(prompt, true, 3072, { route: 'quality' });
 
         if (aiData && Array.isArray(aiData.segments) && aiData.segments.length > 0) {
             const sanitized = aiData.segments.map(seg => ({
