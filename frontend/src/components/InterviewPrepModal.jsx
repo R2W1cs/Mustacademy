@@ -878,7 +878,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                                     ) : selectedRole.branches && !selectedBranch ? (
                                         <div className="col-span-full space-y-8 py-10">
                                             <button onClick={() => setSelectedRole(null)} className="text-[10px] font-black text-indigo-500 hover:text-indigo-400 mb-4 flex items-center gap-2 tracking-[0.3em]">← RE-INITIALIZE ROLES</button>
-                                            <h3 className="text-3xl font-black text-white uppercase tracking-[0.3em] mb-10 text-center">Division Selection</h3>
+                                            <h3 className={`text-3xl font-black uppercase tracking-[0.3em] mb-10 text-center ${isDark ? 'text-white' : 'text-indigo-950'}`}>Division Selection</h3>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
                                                 {selectedRole.branches.map(branch => (
                                                     <button key={branch.id} onClick={() => setSelectedBranch(branch)} className={`p-8 rounded-2xl border transition-all text-left flex flex-col justify-between group backdrop-blur-md ${isDark ? 'bg-slate-900/40 border-slate-800 hover:border-indigo-500/50' : 'bg-white border-slate-200 hover:border-indigo-300'}`}>
@@ -897,7 +897,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                                     ) : selectedBranch && !selectedSubRole ? (
                                         <div className="col-span-full space-y-8 py-10">
                                             <button onClick={() => setSelectedBranch(null)} className="text-[10px] font-black text-indigo-500 hover:text-indigo-400 mb-4 flex items-center gap-2 tracking-[0.3em]">← RETURN TO DIVISIONS</button>
-                                            <h3 className="text-3xl font-black text-white uppercase tracking-[0.3em] mb-10 text-center">Neural Profile Selection</h3>
+                                            <h3 className={`text-3xl font-black uppercase tracking-[0.3em] mb-10 text-center ${isDark ? 'text-white' : 'text-indigo-950'}`}>Neural Profile Selection</h3>
                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                                 {selectedBranch.subRoles.map(sub => (
                                                     <button key={sub} onClick={() => setSelectedSubRole(sub)} className={`p-6 rounded-2xl border transition-all text-center relative group overflow-hidden ${isDark ? 'bg-slate-900/40 border-slate-800 hover:border-indigo-500/50' : 'bg-white border-slate-200 hover:border-indigo-300'}`}>
@@ -908,13 +908,13 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                                             </div>
                                         </div>
                                     ) : (
-                                        <div className="col-span-full py-16 px-10 rounded-[4rem] bg-indigo-600/5 border border-indigo-500/20 text-center backdrop-blur-xl">
-                                            <div className="w-16 h-16 rounded-full bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center mx-auto mb-8">
-                                                <CheckCircle2 className="text-indigo-400" size={32} />
+                                        <div className={`col-span-full py-16 px-10 rounded-[4rem] text-center backdrop-blur-xl ${isDark ? 'bg-indigo-600/5 border border-indigo-500/20' : 'bg-gradient-to-br from-indigo-50 via-violet-50 to-indigo-100/90 border border-indigo-200 shadow-xl shadow-indigo-100/40'}`}>
+                                            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-8 ${isDark ? 'bg-indigo-500/10 border border-indigo-500/30' : 'bg-white border border-indigo-200 shadow-sm'}`}>
+                                                <CheckCircle2 className={isDark ? 'text-indigo-400' : 'text-indigo-600'} size={32} />
                                             </div>
-                                            <h3 className="text-3xl font-black text-white uppercase tracking-[0.4em] mb-4">PROFILE LOCKED</h3>
-                                            <p className="text-sm font-bold text-indigo-400 uppercase tracking-[0.3em] mb-10">{selectedSubRole || selectedRole.title}</p>
-                                            <button onClick={() => { setSelectedRole(null); setSelectedBranch(null); setSelectedSubRole(null); }} className="text-[10px] font-black text-slate-500 hover:text-indigo-400 underline tracking-[0.3em] transition-all">ABORT & RE-CALIBRATE</button>
+                                            <h3 className={`text-3xl font-black uppercase tracking-[0.4em] mb-4 ${isDark ? 'text-white' : 'text-indigo-950'}`}>PROFILE LOCKED</h3>
+                                            <p className={`text-sm font-bold uppercase tracking-[0.3em] mb-10 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>{selectedSubRole || selectedRole.title}</p>
+                                            <button onClick={() => { setSelectedRole(null); setSelectedBranch(null); setSelectedSubRole(null); }} className={`text-[10px] font-black underline tracking-[0.3em] transition-all ${isDark ? 'text-slate-500 hover:text-indigo-400' : 'text-indigo-500 hover:text-indigo-700'}`}>ABORT & RE-CALIBRATE</button>
                                         </div>
                                     )}
                                 </div>
@@ -942,7 +942,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                         className={`${isDark ? 'bg-[#05070a]' : 'bg-white'} fixed top-0 right-0 bottom-0 z-[40] flex flex-col md:flex-row overflow-hidden no-scrollbar`}
                     >
                         {/* Realistic Command Center Sidebar */}
-                        <div className={`w-full md:w-[45%] h-full ${isDark ? 'bg-slate-900/10' : 'bg-slate-50/50'} p-12 flex flex-col items-center justify-between border-r ${isDark ? 'border-indigo-500/10' : 'border-gray-200'} relative shadow-2xl z-20`}>
+                        <div className={`w-full md:w-[45%] h-full p-12 flex flex-col items-center justify-between border-r relative shadow-2xl z-20 ${isDark ? 'bg-slate-900/10 border-indigo-500/10' : 'bg-gradient-to-br from-indigo-50/70 via-white to-violet-50/50 border-indigo-100'}`}>
                             {/* Boardroom LEFT PANEL — calm wave visualization */}
                             <div className="w-full flex justify-between items-start mb-6">
                                 <div className="flex flex-col gap-1.5">
@@ -954,7 +954,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                                 </div>
                                 <div className="flex items-center gap-3">
                                     {timeLeft !== null && (
-                                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/60 border border-slate-800 text-indigo-400">
+                                        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl ${isDark ? 'bg-slate-900/60 border border-slate-800 text-indigo-400' : 'bg-white border border-indigo-200 text-indigo-600 shadow-sm'}`}>
                                             <Timer size={12} className="animate-spin-slow" />
                                             <span className="text-xs font-black">{timeLeft}s</span>
                                         </div>
@@ -967,7 +967,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
 
                             {/* Phase progress — ultra-minimal */}
                             <div className="w-full mb-8">
-                                <div className="h-[2px] w-full bg-slate-900 rounded-full overflow-hidden">
+                                <div className={`h-[2px] w-full rounded-full overflow-hidden ${isDark ? 'bg-slate-900' : 'bg-indigo-100'}`}>
                                     <motion.div
                                         className="h-full rounded-full"
                                         style={{ background: 'linear-gradient(90deg, #6366f1, #818cf8)' }}
@@ -1064,10 +1064,10 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                                         }}
                                         transition={{ duration: 0.8 }}
                                         className={`px-8 py-2.5 rounded-full border text-[10px] font-black uppercase tracking-[0.4em] transition-all duration-700 ${isSpeaking
-                                            ? 'bg-indigo-600/10 text-indigo-300 border-indigo-500/30'
+                                            ? isDark ? 'bg-indigo-600/10 text-indigo-300 border-indigo-500/30' : 'bg-indigo-100 text-indigo-700 border-indigo-300 shadow-sm shadow-indigo-100'
                                             : isListening
-                                                ? 'bg-emerald-600/10 text-emerald-400 border-emerald-500/30'
-                                                : 'bg-slate-900/30 text-slate-600 border-slate-800'
+                                                ? isDark ? 'bg-emerald-600/10 text-emerald-400 border-emerald-500/30' : 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                                                : isDark ? 'bg-slate-900/30 text-slate-600 border-slate-800' : 'bg-white text-indigo-600 border-indigo-200 shadow-sm'
                                             }`}
                                     >
                                         {isSpeaking ? 'Transmitting' : isListening ? 'Listening' : 'Standby'}
@@ -1080,7 +1080,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                             </div>
 
                             {/* Bottom metadata row */}
-                            <div className="w-full flex items-center justify-between pt-6 border-t border-slate-900">
+                            <div className={`w-full flex items-center justify-between pt-6 border-t ${isDark ? 'border-slate-900' : 'border-indigo-100'}`}>
                                 <div className="flex items-center gap-2">
                                     <div className={`w-1.5 h-1.5 rounded-full ${isSpeaking ? 'bg-indigo-500 animate-ping' : 'bg-slate-800'}`} />
                                     <span className="text-[9px] font-bold text-slate-700 uppercase tracking-widest">AES-256</span>
@@ -1123,13 +1123,13 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                                 </div>
                             ) : (
                                 <>
-                                    <div className={`p-10 border-b ${isDark ? 'border-slate-800/50' : 'border-gray-100'} flex justify-between items-center bg-slate-950/20 backdrop-blur-md`}>
+                                    <div className={`p-10 border-b flex justify-between items-center backdrop-blur-md ${isDark ? 'border-slate-800/50 bg-slate-950/20' : 'border-indigo-100 bg-gradient-to-r from-indigo-50 via-violet-50 to-indigo-50'}`}>
                                         <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-xl bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center">
-                                                <UserSquare2 className="text-indigo-400" size={20} />
+                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDark ? 'bg-indigo-600/10 border border-indigo-500/20' : 'bg-white border border-indigo-200 shadow-sm'}`}>
+                                                <UserSquare2 className={isDark ? 'text-indigo-400' : 'text-indigo-600'} size={20} />
                                             </div>
                                             <div>
-                                                <h3 className="font-black text-sm uppercase tracking-[0.3em] text-white">SWAIN PANEL</h3>
+                                                <h3 className={`font-black text-sm uppercase tracking-[0.3em] ${isDark ? 'text-white' : 'text-indigo-950'}`}>SWAIN PANEL</h3>
                                                 <p className={`text-[8px] font-black uppercase tracking-widest ${isOfflineMode ? 'text-amber-500' : 'text-slate-500'}`}>
                                                     {isOfflineMode ? 'Offline Mode — AI Uplink Degraded' : 'Real-Time Behavioral Analysis Active'}
                                                 </p>
@@ -1154,8 +1154,8 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                                             const isLastAI = isAI && i === messages.length - 1;
                                             const showCursor = isLastAI && isSpeaking;
 
-                                            const userStyles = isDark ? 'bg-slate-900/60 text-white border-slate-800' : 'bg-slate-100 text-slate-900 border-gray-200';
-                                            const aiStyles = isDark ? 'bg-indigo-600/5 text-slate-200 border-indigo-500/10' : 'bg-indigo-50 text-indigo-900 border-indigo-100';
+                                            const userStyles = isDark ? 'bg-slate-900/60 text-white border-slate-800' : 'bg-gradient-to-br from-indigo-50 to-violet-50 text-indigo-950 border-indigo-100 shadow-sm';
+                                            const aiStyles = isDark ? 'bg-indigo-600/5 text-slate-200 border-indigo-500/10' : 'bg-white text-indigo-900 border-indigo-200 shadow-sm';
                                             const bubbleStyles = m.sender === 'user' ? userStyles : aiStyles;
 
                                             return (
@@ -1187,11 +1187,11 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                                             </div>
                                         )}
                                     </div>
-                                    <div className="p-12 bg-slate-950/40 border-t border-slate-900">
-                                        <div className="relative group flex items-center gap-4 bg-slate-950 p-4 rounded-[2.5rem] border border-slate-800 shadow-lg transition-all focus-within:border-indigo-500/50 focus-within:shadow-lg">
+                                    <div className={`p-12 border-t ${isDark ? 'bg-slate-950/40 border-slate-900' : 'bg-gradient-to-t from-indigo-50/90 to-white border-indigo-100'}`}>
+                                        <div className={`relative group flex items-center gap-4 p-4 rounded-[2.5rem] border shadow-lg transition-all focus-within:border-indigo-500/50 focus-within:shadow-lg ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-white border-indigo-200 focus-within:shadow-indigo-100'}`}>
                                             <button
                                                 onClick={toggleListening}
-                                                className={`p-6 rounded-[1.5rem] transition-all duration-300 ${isListening ? 'bg-red-600 text-white shadow-lg' : 'bg-slate-900 text-slate-500 hover:text-indigo-400 border border-slate-800'}`}
+                                                className={`p-6 rounded-[1.5rem] transition-all duration-300 ${isListening ? 'bg-red-600 text-white shadow-lg' : isDark ? 'bg-slate-900 text-slate-500 hover:text-indigo-400 border border-slate-800' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-200'}`}
                                             >
                                                 {isListening ? <MicOff size={24} /> : <Mic size={24} />}
                                             </button>
@@ -1201,7 +1201,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                                                 onChange={(e) => setInput(String(e.target.value))}
                                                 onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                                                 placeholder={loading ? "Analyzing telemetry..." : "Command your response..."}
-                                                className="flex-1 bg-transparent border-none focus:ring-0 text-white text-lg font-bold placeholder:text-slate-700"
+                                                className={`flex-1 bg-transparent border-none focus:ring-0 text-lg font-bold ${isDark ? 'text-white placeholder:text-slate-700' : 'text-indigo-950 placeholder:text-indigo-300'}`}
                                                 disabled={loading}
                                             />
                                             <button
