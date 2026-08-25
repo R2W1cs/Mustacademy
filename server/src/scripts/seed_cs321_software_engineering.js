@@ -6,6 +6,20 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, "../../.env") });
 
 import pool from "../config/db.js";
+import { topics as lessonTopics } from "./cs321/topics.mjs";
+
+/** Lookup enriched markdown by exact title from cs321/topics.mjs */
+function lessonContent(title) {
+    const found = lessonTopics.find((t) => t.title === title);
+    if (!found) return null;
+    return {
+        content_easy_markdown: found.content_easy_markdown,
+        content_deep_markdown: found.content_deep_markdown,
+        content_markdown: found.content_easy_markdown,
+        learning_objectives: found.learning_objectives,
+        breadcrumb_path: found.breadcrumb_path,
+    };
+}
 
 const syllabus = [
     {
@@ -1401,12 +1415,31 @@ async function seed() {
             const importance = topic.importance;
             const first_principles = JSON.stringify(topic.principles);
             const dilemma = topic.dilemma ? JSON.stringify(topic.dilemma) : null;
+            const content = lessonContent(topic.title);
 
             await pool.query(
-                "INSERT INTO topics (title, course_id, importance_level, first_principles, architectural_logic, forge_protocol, ethical_dilemma) VALUES ($1, $2, $3, $4, $5, $6, $7)",
-                [topic.title, courseId, importance, first_principles, topic.blueprint, topic.forge, dilemma]
+                `INSERT INTO topics (
+                    title, course_id, importance_level, first_principles,
+                    architectural_logic, forge_protocol, ethical_dilemma,
+                    content_easy_markdown, content_deep_markdown, content_markdown,
+                    learning_objectives, breadcrumb_path
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+                [
+                    topic.title,
+                    courseId,
+                    importance,
+                    first_principles,
+                    topic.blueprint,
+                    topic.forge,
+                    dilemma,
+                    content?.content_easy_markdown ?? null,
+                    content?.content_deep_markdown ?? null,
+                    content?.content_markdown ?? null,
+                    content ? JSON.stringify(content.learning_objectives) : null,
+                    content?.breadcrumb_path ?? null,
+                ]
             );
-            console.log(`✅ Synced: ${topic.title}`);
+            console.log(`✅ Synced: ${topic.title}${content ? " (+ markdown)" : ""}`);
         }
 
         console.log(`\n🎓 CS 321 Seeding Complete — ${syllabus.length} topics inserted.`);

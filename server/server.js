@@ -6,6 +6,7 @@ import {
   ensureCareerRoadmapSchema,
   ensureCourseCareerSeed,
 } from './src/config/ensureCareerSchema.js';
+import { ensureCourseLessonContent } from './src/config/ensureCourseLessonContent.js';
 validateEnv();
 initSentry();
 
@@ -46,6 +47,7 @@ pool.query('SELECT NOW()')
     // Always patch career columns — works without Render shell / migrate CLI
     await ensureCareerRoadmapSchema();
     await ensureCourseCareerSeed();
+    await ensureCourseLessonContent();
   })
   .catch(err => console.error('[DB] Connection FAILED:', err.message));
 
