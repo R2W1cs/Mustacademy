@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
 import api from "../api/axios";
-import { playStreamingTtsQueued } from "../utils/streamingTts";
 import { useTheme } from "../auth/ThemeContext";
 import {
     X, Mic, MicOff, Send, MoreHorizontal, CheckCircle2,
@@ -648,71 +647,68 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
     };
 
     const executeCloudTTS = async (cleanText) => {
-        if (!cleanText) return;
+        try {
+            setIsSpeaking(true);
+            isSpeakingRef.current = true;
+            setRevealedLength(0);
+            console.log("%c[Neural-Audio] Andrew Hale high-fidelity stream active.", "color: #3b82f6; font-weight: bold;");
+            // Fetch Neural TTS from Backend (Andrew — interview; Marcus/Brian reserved for podcast)
+            const response = await api.post("/tts",
+                { text: cleanText, voice: "en-US-AndrewMultilingualNeural" },
+                { responseType: 'blob' }
+            );
 
-        setIsSpeaking(true);
-        isSpeakingRef.current = true;
-        setRevealedLength(0);
+            if (!response.data || response.data.size < 500) {
+                throw new Error("Empty audio response from cloud");
+            }
 
-        const totalChars = cleanText.length;
-        const words = cleanText.split(' ').filter(w => w.trim().length > 0);
-        const wordBoundaries = [];
-        let wPos = 0;
-        for (const w of words) {
-            wPos += w.length + 1;
-            wordBoundaries.push(Math.min(wPos, totalChars));
-        }
+            const url = URL.createObjectURL(response.data);
+            const audio = new Audio(url);
+            audioRef.current = audio;
 
-        const syncToAudio = () => {
-            if (textIntervalRef.current) cancelAnimationFrame(textIntervalRef.current);
-            const sync = () => {
-                const a = audioRef.current;
-                if (!a || !a.duration || isNaN(a.duration) || a.duration <= 0 || a.paused || a.ended) return;
-                const progress = Math.min(a.currentTime / a.duration, 1);
-                const charTarget = Math.floor(progress * totalChars);
-                let reveal = 0;
-                for (const boundary of wordBoundaries) {
-                    if (boundary <= charTarget + 2) reveal = boundary;
-                    else break;
-                }
-                setRevealedLength(prev => Math.max(prev, Math.min(reveal, totalChars)));
-                setVoiceIntensity(0.6 + Math.random() * 0.4);
-                textIntervalRef.current = requestAnimationFrame(sync);
+            audio.onplay = () => syncAudioWithText(audio, cleanText);
+
+            audio.onended = () => {
+                handleSpeechEnd(cleanText);
+                URL.revokeObjectURL(url);
             };
+
+            audio.onerror = () => {
+                console.error("[Neural-Audio] Playback failure.");
+                setIsSpeaking(false);
+                isSpeakingRef.current = false;
+                URL.revokeObjectURL(url);
+            };
+
+            await audio.play();
+        } catch (err) {
+            console.error(`%c[Neural-Audio] Andrew Synthesis Failure: ${err.message}`, "color: #ef4444; font-weight: bold;");
+            setIsSpeaking(false);
+            isSpeakingRef.current = false;
+        }
+    };
+
+    const syncAudioWithText = (audio, text) => {
+        const words = text.split(' ').filter(w => w.trim().length > 0);
+        const sync = () => {
+            if (!audio || !audio.duration || audio.paused || audio.ended) return;
+            const progress = audio.currentTime / audio.duration;
+            const charTarget = Math.floor(progress * text.length);
+
+            let currentLen = 0;
+            let lastWordBoundary = 0;
+            for (const word of words) {
+                if (!word) continue;
+                if (currentLen + word.length <= charTarget + 1) {
+                    currentLen += word.length + 1;
+                    lastWordBoundary = currentLen;
+                } else break;
+            }
+            setRevealedLength(Math.min(lastWordBoundary, text.length));
+            setVoiceIntensity(0.6 + Math.random() * 0.4);
             textIntervalRef.current = requestAnimationFrame(sync);
         };
-
-        const fallbackReveal = (charsPerSec = 15) => {
-            if (textIntervalRef.current) cancelAnimationFrame(textIntervalRef.current);
-            const start = Date.now();
-            const tick = () => {
-                const charTarget = Math.min(Math.floor(((Date.now() - start) / 1000) * charsPerSec), totalChars);
-                setRevealedLength(charTarget);
-                if (charTarget >= totalChars) {
-                    textIntervalRef.current = null;
-                    return;
-                }
-                textIntervalRef.current = requestAnimationFrame(tick);
-            };
-            textIntervalRef.current = requestAnimationFrame(tick);
-        };
-
-        // Text reveals immediately while audio streams in (no full-blob wait)
-        fallbackReveal(15);
-
-        playStreamingTtsQueued(cleanText, 'en-US-AndrewMultilingualNeural', {
-            audioRef,
-            onPlay: syncToAudio,
-            onEnded: () => {
-                if (textIntervalRef.current) cancelAnimationFrame(textIntervalRef.current);
-                textIntervalRef.current = null;
-                handleSpeechEnd(cleanText);
-            },
-            onError: () => {
-                fallbackReveal(160);
-                setTimeout(() => handleSpeechEnd(cleanText), Math.max(2000, totalChars * 25));
-            },
-        });
+        textIntervalRef.current = requestAnimationFrame(sync);
     };
 
     const getAttitudeColor = (att) => {
