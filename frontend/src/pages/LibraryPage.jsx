@@ -142,7 +142,7 @@ const Courses = () => {
     }
 
     return (
-        <div className={`min-h-screen pb-48 relative overflow-hidden transition-colors duration-700 ${isDark ? 'selection:bg-cyan-500/30' : 'bg-slate-50 selection:bg-red-500/30'}`}>
+        <div className={`min-h-screen pb-8 relative overflow-hidden transition-colors duration-700 ${isDark ? 'selection:bg-cyan-500/30' : 'bg-slate-50 selection:bg-red-500/30'}`}>
 
             {/* AMBIENT CELESTIAL ELEMENTS */}
             <div className="fixed inset-0 pointer-events-none z-0">
@@ -377,12 +377,12 @@ const Courses = () => {
             </div>
 
             {/* FOOTER: TERMINAL PROTOCOL */}
-            <footer className={`max-w-full mx-auto mt-72 text-center relative border-t pt-24 pb-24 transition-colors duration-700 ${isDark ? 'border-white/5' : 'border-slate-200'}`}>
+            <footer className={`max-w-full mx-auto mt-24 text-center relative border-t pt-8 pb-6 transition-colors duration-700 ${isDark ? 'border-white/5' : 'border-slate-200'}`}>
                 <motion.div
                     whileInView={{ opacity: [0, 1] }}
                     className="relative z-10"
                 >
-                    <div className={`mt-12 flex justify-between items-center px-12 text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
+                    <div className={`flex justify-between items-center px-6 md:px-12 text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
                         <span>Celestial Navigation Protocol</span>
                         <span className="flex items-center gap-3">
                             <div className={`w-2 h-2 rounded-full ${isDark ? 'bg-cyan-500/20' : 'bg-red-500/20'}`} />
