@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
     GraduationCap, LayoutGrid, Network, BookOpen, Users, User,
     Sun, Moon, ChevronLeft, PanelLeftClose, PanelLeftOpen, Activity, Rocket,
-    Briefcase, FileText, Swords, Film, X, Shield
+    Briefcase, FileText, Swords, X, Shield
 } from "lucide-react";
 import api from "../api/axios";
 import { useTheme } from "../auth/ThemeContext";
@@ -83,7 +83,8 @@ export default function Sidebar({ isCollapsed, toggleSidebar, mobileOpen = false
         { name: "Dashboard", icon: LayoutGrid, path: "/dashboard", id: "dashboard" },
         { name: "Knowledge Map", icon: Network, path: "/knowledge-map", id: "knowledge-map", badge: "Active" },
         { name: "Library", icon: BookOpen, path: "/library", id: "library" },
-        { name: "CS Documentary", icon: Film, path: "/podcast-studio", id: "podcast-studio", badge: "AI" },
+        // CS Documentary hidden until studio catalog is ready
+        // { name: "CS Documentary", icon: Film, path: "/podcast-studio", id: "podcast-studio", badge: "AI" },
         { name: "Boardroom", icon: Briefcase, path: "/interview-boardroom", id: "interview", badge: "AI" },
         { name: "Creator Corner", icon: Rocket, path: "/creator-corner", id: "creator-corner", badge: "Elite" },
         { name: "Market Pulse", icon: Activity, path: "/market", id: "market", badge: "LIVE" },
