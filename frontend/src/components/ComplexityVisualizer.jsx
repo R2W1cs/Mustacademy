@@ -5,8 +5,11 @@ import { Activity, Zap, TrendingUp, FlaskConical, Beaker, Terminal } from 'lucid
 import 'katex/dist/katex.min.css';
 import { InlineMath, BlockMath } from 'react-katex';
 import * as math from 'mathjs';
+import { useTheme } from '../auth/ThemeContext';
 
 const ComplexityVisualizer = () => {
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
     const [view, setView] = useState('curves'); // 'curves', 'limits', or 'definitions'
     const [nValue, setNValue] = useState(15);
     const [customFunc, setCustomFunc] = useState('n * log2(n)');
@@ -57,25 +60,25 @@ const ComplexityVisualizer = () => {
     }, [nValue, customFunc]);
 
     return (
-        <div className="w-full bg-[#0a0a0c] border border-white/10 rounded-[2.5rem] overflow-hidden flex flex-col min-h-[750px] shadow-lg">
+        <div className={`w-full border rounded-[2.5rem] overflow-hidden flex flex-col min-h-[750px] shadow-lg transition-colors duration-500 ${isDark ? 'bg-[#0a0a0c] border-white/10' : 'bg-white border-slate-200'}`}>
             {/* Header - Downscaled Typography */}
-            <div className="p-8 border-b border-white/5 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 bg-gradient-to-b from-white/[0.03] to-transparent">
+            <div className={`p-8 border-b flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 ${isDark ? 'border-white/5 bg-gradient-to-b from-white/[0.03] to-transparent' : 'border-slate-200 bg-gradient-to-b from-slate-50 to-white'}`}>
                 <div className="flex items-center gap-5">
                     <div className="w-12 h-12 bg-blue-500/20 rounded-2xl flex items-center justify-center border border-blue-500/20 shadow-lg">
                         <TrendingUp size={24} className="text-blue-400" />
                     </div>
                     <div>
                         <h4 className="text-[9px] font-black uppercase tracking-[0.4em] text-blue-500 mb-0.5">Asymptotic Lab</h4>
-                        <h2 className="text-2xl font-black text-white tracking-tight uppercase italic">Growth Synthesis</h2>
+                        <h2 className={`text-2xl font-black tracking-tight uppercase italic ${isDark ? 'text-white' : 'text-slate-900'}`}>Growth Synthesis</h2>
                     </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3 p-1 bg-white/[0.03] rounded-[1.5rem] border border-white/5 backdrop-blur-3xl">
+                <div className={`flex flex-wrap items-center gap-3 p-1 rounded-[1.5rem] border backdrop-blur-3xl ${isDark ? 'bg-white/[0.03] border-white/5' : 'bg-slate-100 border-slate-200'}`}>
                     {['curves', 'limits', 'definitions'].map((v) => (
                         <button
                             key={v}
                             onClick={() => setView(v)}
-                            className={`px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${view === v ? 'bg-blue-600 text-white shadow-lg' : 'text-white/40 hover:text-white'}`}
+                            className={`px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${view === v ? 'bg-blue-600 text-white shadow-lg' : isDark ? 'text-white/40 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`}
                         >
                             {v === 'curves' ? 'Function Forge' : v === 'limits' ? 'Limit Test' : 'Logic Matrix'}
                         </button>
@@ -98,17 +101,17 @@ const ComplexityVisualizer = () => {
                                     <div className="space-y-4">
                                         <div className="flex items-center gap-2">
                                             <Beaker className="text-blue-400" size={16} />
-                                            <h3 className="text-lg font-black text-white italic uppercase tracking-tight">The Function Forge</h3>
+                                            <h3 className={`text-lg font-black italic uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>The Function Forge</h3>
                                         </div>
-                                        <div className="p-6 bg-white/[0.02] border border-white/5 rounded-3xl space-y-4">
+                                        <div className={`p-6 border rounded-3xl space-y-4 ${isDark ? 'bg-white/[0.02] border-white/5' : 'bg-slate-50 border-slate-200'}`}>
                                             <div className="flex flex-col gap-1.5">
-                                                <label className="text-[9px] font-black text-white/40 uppercase tracking-widest pl-1">Inject Custom Function f(n)</label>
+                                                <label className={`text-[9px] font-black uppercase tracking-widest pl-1 ${isDark ? 'text-white/40' : 'text-slate-500'}`}>Inject Custom Function f(n)</label>
                                                 <div className="relative">
                                                     <input
                                                         type="text"
                                                         value={customFunc}
                                                         onChange={(e) => setCustomFunc(e.target.value)}
-                                                        className={`w-full bg-black/40 border ${funcError ? 'border-red-500/40' : 'border-white/10'} rounded-2xl px-5 py-3 text-sm font-mono text-blue-400 outline-none focus:border-blue-500/30 transition-all`}
+                                                        className={`w-full border rounded-2xl px-5 py-3 text-sm font-mono text-blue-500 outline-none focus:border-blue-500/30 transition-all ${isDark ? `bg-black/40 ${funcError ? 'border-red-500/40' : 'border-white/10'}` : `bg-white ${funcError ? 'border-red-400' : 'border-slate-200'}`}`}
                                                         placeholder="e.g. n * log2(n)"
                                                     />
                                                     <Terminal className="absolute right-4 top-1/2 -translate-y-1/2 text-white/10" size={16} />
@@ -127,21 +130,21 @@ const ComplexityVisualizer = () => {
                                                         className="w-full accent-blue-600"
                                                     />
                                                 </div>
-                                                <div className="bg-blue-500/10 px-4 py-1.5 rounded-lg border border-blue-500/20">
-                                                    <span className="text-xs font-black text-white">n = {nValue}</span>
+                                                <div className={`px-4 py-1.5 rounded-lg border ${isDark ? 'bg-blue-500/10 border-blue-500/20' : 'bg-blue-50 border-blue-200'}`}>
+                                                    <span className={`text-xs font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>n = {nValue}</span>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="bg-black/40 rounded-[2rem] p-6 border border-white/5 relative min-h-[300px]">
+                                    <div className={`rounded-[2rem] p-6 border relative min-h-[300px] ${isDark ? 'bg-black/40 border-white/5' : 'bg-slate-50 border-slate-200'}`}>
                                         <ResponsiveContainer width="100%" height="100%">
                                             <LineChart data={data}>
-                                                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
-                                                <XAxis dataKey="n" stroke="#ffffff10" fontSize={9} hide />
-                                                <YAxis stroke="#ffffff10" fontSize={9} />
+                                                <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#ffffff05' : '#e2e8f0'} vertical={false} />
+                                                <XAxis dataKey="n" stroke={isDark ? '#ffffff10' : '#94a3b8'} fontSize={9} hide />
+                                                <YAxis stroke={isDark ? '#ffffff10' : '#94a3b8'} fontSize={9} />
                                                 <Tooltip
-                                                    contentStyle={{ backgroundColor: '#0a0a0c', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '1rem', color: '#fff' }}
+                                                    contentStyle={{ backgroundColor: isDark ? '#0a0a0c' : '#fff', border: isDark ? '1px solid rgba(255,255,255,0.05)' : '1px solid #e2e8f0', borderRadius: '1rem', color: isDark ? '#fff' : '#0f172a' }}
                                                     itemStyle={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase' }}
                                                 />
                                                 <Legend iconType="circle" wrapperStyle={{ paddingTop: '10px', fontSize: '9px', fontWeight: '900', letterSpacing: '0.5px' }} />

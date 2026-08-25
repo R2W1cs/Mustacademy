@@ -162,7 +162,7 @@ const TopicDetails = () => {
                         style={{ scaleX: scrollYProgress }}
                     />
 
-                    <div className="relative z-10 w-full mx-auto px-6 lg:px-20 py-16 lg:py-24 max-w-[1600px]">
+                    <div className="relative z-10 w-full mx-auto px-6 lg:px-20 py-16 lg:py-20 pb-8 max-w-[1600px]">
                         {/* CINEMATIC HERO */}
                         <motion.header 
                             style={{ opacity: headerOpacity, scale: headerScale }}
@@ -337,34 +337,27 @@ const TopicDetails = () => {
                                             <TopicContent topic={topic} mode="easy" />
                                         </section>
 
-                                        {/* Lesson navigation */}
-                                        <nav className={`pt-16 mt-8 border-t flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between ${isLight ? 'border-gray-200' : 'border-white/10'}`}>
-                                            <button
-                                                type="button"
-                                                onClick={() => navigate(`/courses/${topic.course_id}`)}
-                                                className={`inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${isLight ? 'bg-white border-gray-200 text-gray-700 hover:border-red-300' : 'bg-white/5 border-white/10 text-slate-300 hover:border-indigo-400/40'}`}
-                                            >
-                                                <ArrowLeft size={14} /> Back to course
-                                            </button>
+                                        {/* Lesson navigation — back to course lives in hero; bottom = prev / next only */}
+                                        <nav className={`pt-12 pb-6 mt-8 border-t flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between ${isLight ? 'border-gray-200' : 'border-white/10'}`}>
+                                            {topic.prev_topic_id ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => navigate(`/topics/${topic.prev_topic_id}`)}
+                                                    className={`inline-flex items-center gap-2 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all text-left ${isLight ? 'bg-white border-gray-200 text-gray-700 hover:border-red-300' : 'bg-white/5 border-white/10 text-slate-300 hover:border-indigo-400/40'}`}
+                                                >
+                                                    <ChevronLeft size={14} />
+                                                    <span className="flex flex-col items-start gap-0.5 normal-case tracking-normal font-bold">
+                                                        <span className="text-[8px] uppercase tracking-widest opacity-60">Previous</span>
+                                                        <span className="text-xs line-clamp-1 max-w-[220px]">{topic.prev_topic_title || 'Previous lesson'}</span>
+                                                    </span>
+                                                </button>
+                                            ) : <span />}
                                             <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-end flex-1">
-                                                {topic.prev_topic_id ? (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => navigate(`/topics/${topic.prev_topic_id}`)}
-                                                        className={`inline-flex items-center gap-2 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all text-left ${isLight ? 'bg-white border-gray-200 text-gray-700 hover:border-red-300' : 'bg-white/5 border-white/10 text-slate-300 hover:border-indigo-400/40'}`}
-                                                    >
-                                                        <ChevronLeft size={14} />
-                                                        <span className="flex flex-col items-start gap-0.5 normal-case tracking-normal font-bold">
-                                                            <span className="text-[8px] uppercase tracking-widest opacity-60">Previous</span>
-                                                            <span className="text-xs line-clamp-1 max-w-[220px]">{topic.prev_topic_title || 'Previous lesson'}</span>
-                                                        </span>
-                                                    </button>
-                                                ) : <span />}
                                                 {topic.next_topic_id ? (
                                                     <button
                                                         type="button"
                                                         onClick={() => navigate(`/topics/${topic.next_topic_id}`)}
-                                                        className={`inline-flex items-center gap-2 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all text-right ${isLight ? 'bg-red-600 text-white hover:bg-red-500' : 'bg-indigo-600 text-white hover:bg-indigo-500'}`}
+                                                        className={`inline-flex items-center gap-2 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all text-right sm:ml-auto ${isLight ? 'bg-red-600 text-white hover:bg-red-500' : 'bg-indigo-600 text-white hover:bg-indigo-500'}`}
                                                     >
                                                         <span className="flex flex-col items-end gap-0.5 normal-case tracking-normal font-bold">
                                                             <span className="text-[8px] uppercase tracking-widest opacity-80">Next lesson</span>
@@ -373,13 +366,9 @@ const TopicDetails = () => {
                                                         <ChevronRight size={14} />
                                                     </button>
                                                 ) : (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => navigate(`/courses/${topic.course_id}`)}
-                                                        className={`inline-flex items-center gap-2 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isLight ? 'bg-emerald-600 text-white' : 'bg-emerald-600 text-white'}`}
-                                                    >
-                                                        Course complete · Back to course
-                                                    </button>
+                                                    <p className={`text-[10px] font-black uppercase tracking-widest text-right sm:ml-auto ${isLight ? 'text-emerald-600' : 'text-emerald-400'}`}>
+                                                        Course complete
+                                                    </p>
                                                 )}
                                             </div>
                                         </nav>

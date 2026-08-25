@@ -1,9 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, Zap, TrendingUp, Layers, RefreshCcw, LayoutTemplate, Workflow, Play, RotateCcw, ArrowRight, Server, Database, Code2, ShieldCheck, CheckCircle2, FlaskConical } from 'lucide-react';
 import { useNovaVoice } from '../hooks/useNovaVoice';
+import { useTheme } from '../auth/ThemeContext';
 
 const MethodologyVisualizer = ({ type = 'waterfall' }) => {
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
+
     // Normalize type string
     const normalizedType = type.toLowerCase().includes('waterfall') ? 'waterfall'
         : type.toLowerCase().includes('spiral') ? 'spiral'
@@ -12,7 +16,11 @@ const MethodologyVisualizer = ({ type = 'waterfall' }) => {
                     : type.toLowerCase().includes('xp') || type.toLowerCase().includes('extreme') ? 'xp'
                         : 'waterfall';
 
-    // Methodology configs
+    const [step, setStep] = useState(0);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [view, setView] = useState('simulation');
+    const { speak, killAudio } = useNovaVoice();
+    const timeoutRef = useRef(null);
     const configs = {
         waterfall: {
             title: "Waterfall Protocol",
@@ -299,10 +307,11 @@ const MethodologyVisualizer = ({ type = 'waterfall' }) => {
     };
 
     const config = configs[normalizedType] || configs.waterfall;
+    const maxSteps = config.steps.length;
 
     const nextStep = () => {
         killAudio();
-        if (step < getMaxSteps(normalizedType) - 1) setStep(s => s + 1);
+        if (step < maxSteps - 1) setStep(s => s + 1);
     };
 
     const prevStep = () => {
@@ -322,7 +331,7 @@ const MethodologyVisualizer = ({ type = 'waterfall' }) => {
             clearTimeout(timeoutRef.current);
             speak(config.steps[step].desc, () => {
                 const pauseMs = 1200; // Breath between steps
-                if (step < getMaxSteps(normalizedType) - 1) {
+                if (step < maxSteps - 1) {
                     timeoutRef.current = setTimeout(() => {
                         setStep(s => s + 1);
                     }, pauseMs);
@@ -339,9 +348,9 @@ const MethodologyVisualizer = ({ type = 'waterfall' }) => {
 
 
     return (
-        <div className="w-full bg-[#0a0a0c] border border-white/10 rounded-[2.5rem] overflow-hidden flex flex-col shadow-lg">
+        <div className={`w-full border rounded-[2.5rem] overflow-hidden flex flex-col shadow-lg transition-colors duration-500 ${isDark ? 'bg-[#0a0a0c] border-white/10' : 'bg-white border-slate-200'}`}>
             {/* Header */}
-            <div className="p-8 border-b border-white/5 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 bg-gradient-to-b from-white/[0.03] to-transparent">
+            <div className={`p-8 border-b flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 ${isDark ? 'border-white/5 bg-gradient-to-b from-white/[0.03] to-transparent' : 'border-slate-200 bg-gradient-to-b from-slate-50 to-white'}`}>
                 <div className="flex items-center gap-5">
                     <div 
                         className={`w-12 h-12 bg-${config.color}-500/20 rounded-2xl flex items-center justify-center border border-${config.color}-500/20 shadow-lg`}
@@ -350,20 +359,20 @@ const MethodologyVisualizer = ({ type = 'waterfall' }) => {
                     </div>
                     <div>
                         <h4 className={`text-[9px] font-black uppercase tracking-[0.4em] text-${config.color}-500 mb-0.5`}>Process Lab</h4>
-                        <h2 className="text-2xl font-black text-white tracking-tight uppercase italic">{config.title} Visualizer</h2>
+                        <h2 className={`text-2xl font-black tracking-tight uppercase italic ${isDark ? 'text-white' : 'text-slate-900'}`}>{config.title} Visualizer</h2>
                     </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3 p-1 bg-white/[0.03] rounded-[1.5rem] border border-white/5 backdrop-blur-3xl">
+                <div className={`flex flex-wrap items-center gap-3 p-1 rounded-[1.5rem] border backdrop-blur-3xl ${isDark ? 'bg-white/[0.03] border-white/5' : 'bg-slate-100 border-slate-200'}`}>
                     <button
                         onClick={() => setView('simulation')}
-                        className={`px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${view === 'simulation' ? `bg-${config.color}-600 text-white shadow-lg` : 'text-white/40 hover:text-white'}`}
+                        className={`px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${view === 'simulation' ? `bg-${config.color}-600 text-white shadow-lg` : isDark ? 'text-white/40 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`}
                     >
                         Live Simulation
                     </button>
                     <button
                         onClick={() => setView('principles')}
-                        className={`px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${view === 'principles' ? `bg-${config.color}-600 text-white shadow-lg` : 'text-white/40 hover:text-white'}`}
+                        className={`px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${view === 'principles' ? `bg-${config.color}-600 text-white shadow-lg` : isDark ? 'text-white/40 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`}
                     >
                         Core Matrix
                     </button>
@@ -382,13 +391,13 @@ const MethodologyVisualizer = ({ type = 'waterfall' }) => {
                             </div>
 
                             {/* Controls Footer */}
-                            <div className="h-20 border-t border-white/5 bg-black/40 flex items-center justify-between px-8 backdrop-blur-md">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-white/30">
-                                    Step {step + 1} / {getMaxSteps(normalizedType)}
+                            <div className={`h-20 border-t flex items-center justify-between px-8 backdrop-blur-md ${isDark ? 'border-white/5 bg-black/40' : 'border-slate-200 bg-slate-50'}`}>
+                                <span className={`text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-white/30' : 'text-slate-400'}`}>
+                                    Step {step + 1} / {maxSteps}
                                 </span>
 
                                 <div className="flex items-center gap-4">
-                                    <button onClick={prevStep} disabled={step === 0} className="p-2 rounded-lg bg-white/5 text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/10 transition-colors">
+                                    <button onClick={prevStep} disabled={step === 0} className={`p-2 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors ${isDark ? 'bg-white/5 text-white hover:bg-white/10' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'}`}>
                                         <ArrowRight size={16} className="rotate-180" />
                                     </button>
 
@@ -404,11 +413,11 @@ const MethodologyVisualizer = ({ type = 'waterfall' }) => {
                                         {isPlaying ? "Pause" : <><Play size={12} /> Auto Play</>}
                                     </button>
 
-                                    <button onClick={nextStep} disabled={step === getMaxSteps(normalizedType) - 1} className="p-2 rounded-lg bg-white/5 text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/10 transition-colors">
+                                    <button onClick={nextStep} disabled={step === maxSteps - 1} className={`p-2 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors ${isDark ? 'bg-white/5 text-white hover:bg-white/10' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'}`}>
                                         <ArrowRight size={16} />
                                     </button>
 
-                                    <button onClick={reset} className="p-2 rounded-lg bg-white/5 text-white/50 hover:text-white hover:bg-white/10 ml-4 transition-colors">
+                                    <button onClick={reset} className={`p-2 rounded-lg ml-4 transition-colors ${isDark ? 'bg-white/5 text-white/50 hover:text-white hover:bg-white/10' : 'bg-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-300'}`}>
                                         <RotateCcw size={16} />
                                     </button>
                                 </div>
@@ -419,12 +428,12 @@ const MethodologyVisualizer = ({ type = 'waterfall' }) => {
                         <motion.div key="prin" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex-1 p-12 min-h-[600px]">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {config.steps.map((s, i) => (
-                                    <div key={i} className="p-8 rounded-[2rem] border border-white/5 bg-white/[0.02] flex flex-col gap-4 group hover:border-white/10 transition-all">
+                                    <div key={i} className={`p-8 rounded-[2rem] border flex flex-col gap-4 group transition-all ${isDark ? 'border-white/5 bg-white/[0.02] hover:border-white/10' : 'border-slate-200 bg-slate-50 hover:border-slate-300'}`}>
                                         <div className={`w-10 h-10 rounded-xl bg-${config.color}-500/10 flex items-center justify-center text-${config.color}-400 mb-2`}>
                                             <span className="font-black text-lg">{i + 1}</span>
                                         </div>
-                                        <h3 className="text-lg font-black italic uppercase text-white">{s.title}</h3>
-                                        <p className="text-[11px] text-white/60 font-medium leading-relaxed">{s.desc}</p>
+                                        <h3 className={`text-lg font-black italic uppercase ${isDark ? 'text-white' : 'text-slate-900'}`}>{s.title}</h3>
+                                        <p className={`text-[11px] font-medium leading-relaxed ${isDark ? 'text-white/60' : 'text-slate-600'}`}>{s.desc}</p>
                                     </div>
                                 ))}
                             </div>
