@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
 import api from "../api/axios";
-import { playStreamingTtsQueued } from "../utils/streamingTts";
 import { useTheme } from "../auth/ThemeContext";
 import {
     X, Mic, MicOff, Send, MoreHorizontal, CheckCircle2,
@@ -14,24 +13,24 @@ import {
 // Static Tailwind color classes — dynamic interpolation stripped by JIT
 const MODE_STYLE = {
     indigo: {
-        icon: (d) => d ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' : 'bg-indigo-50 text-indigo-600 border border-indigo-200',
-        sub: (d) => d ? 'text-indigo-400/90' : 'text-indigo-600 font-bold',
-        bar: 'group-hover:bg-indigo-500/50',
+        icon: 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20',
+        sub:  'text-indigo-400/70',
+        bar:  'group-hover:bg-indigo-500/50',
     },
     violet: {
-        icon: (d) => d ? 'bg-violet-500/10 text-violet-400 border border-violet-500/20' : 'bg-violet-50 text-violet-600 border border-violet-200',
-        sub: (d) => d ? 'text-violet-400/90' : 'text-violet-600 font-bold',
-        bar: 'group-hover:bg-violet-500/50',
+        icon: 'bg-violet-500/10 text-violet-400 border border-violet-500/20',
+        sub:  'text-violet-400/70',
+        bar:  'group-hover:bg-violet-500/50',
     },
     emerald: {
-        icon: (d) => d ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-emerald-50 text-emerald-600 border border-emerald-200',
-        sub: (d) => d ? 'text-emerald-400/90' : 'text-emerald-700 font-bold',
-        bar: 'group-hover:bg-emerald-500/50',
+        icon: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
+        sub:  'text-emerald-400/70',
+        bar:  'group-hover:bg-emerald-500/50',
     },
     amber: {
-        icon: (d) => d ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-amber-50 text-amber-700 border border-amber-200',
-        sub: (d) => d ? 'text-amber-400/90' : 'text-amber-700 font-bold',
-        bar: 'group-hover:bg-amber-500/50',
+        icon: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
+        sub:  'text-amber-400/70',
+        bar:  'group-hover:bg-amber-500/50',
     },
 };
 
@@ -648,68 +647,45 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
     };
 
     const executeCloudTTS = async (cleanText) => {
-        if (!cleanText) return;
+        try {
+            setIsSpeaking(true);
+            isSpeakingRef.current = true;
+            setRevealedLength(0);
+            console.log("%c[Neural-Audio] Andrew Hale high-fidelity stream active.", "color: #3b82f6; font-weight: bold;");
+            // Fetch Neural TTS from Backend (Andrew — interview; Marcus/Brian reserved for podcast)
+            const response = await api.post("/tts", 
+                { text: cleanText, voice: "en-US-AndrewMultilingualNeural" },
+                { responseType: 'blob' }
+            );
 
-        setIsSpeaking(true);
-        isSpeakingRef.current = true;
-        setRevealedLength(0);
+            if (!response.data || response.data.size < 500) {
+                throw new Error("Empty audio response from cloud");
+            }
 
-        const totalChars = cleanText.length;
-        const words = cleanText.split(' ').filter(w => w.trim().length > 0);
-        const wordBoundaries = [];
-        let wPos = 0;
-        for (const w of words) {
-            wPos += w.length + 1;
-            wordBoundaries.push(Math.min(wPos, totalChars));
-        }
+            const url = URL.createObjectURL(response.data);
+            const audio = new Audio(url);
+            audioRef.current = audio;
 
-        const syncToAudio = () => {
-            if (textIntervalRef.current) clearInterval(textIntervalRef.current);
-            textIntervalRef.current = setInterval(() => {
-                const a = audioRef.current;
-                if (!a || !a.duration || isNaN(a.duration) || a.duration <= 0) return;
-                const progress = Math.min(a.currentTime / a.duration, 1);
-                const charTarget = Math.floor(progress * totalChars);
-                let reveal = 0;
-                for (const boundary of wordBoundaries) {
-                    if (boundary <= charTarget + 2) reveal = boundary;
-                    else break;
-                }
-                setRevealedLength(prev => Math.max(prev, Math.min(reveal, totalChars)));
-                setVoiceIntensity(0.6 + Math.random() * 0.4);
-            }, 50);
-        };
+            audio.onplay = () => syncAudioWithText(audio, cleanText);
 
-        const fallbackReveal = (charsPerSec = 15) => {
-            if (textIntervalRef.current) clearInterval(textIntervalRef.current);
-            const start = Date.now();
-            textIntervalRef.current = setInterval(() => {
-                const charTarget = Math.min(Math.floor(((Date.now() - start) / 1000) * charsPerSec), totalChars);
-                setRevealedLength(charTarget);
-                if (charTarget >= totalChars) {
-                    clearInterval(textIntervalRef.current);
-                    textIntervalRef.current = null;
-                }
-            }, 50);
-        };
-
-        // Show text immediately while audio streams in
-        fallbackReveal(15);
-
-        playStreamingTtsQueued(cleanText, 'en-US-AndrewMultilingualNeural', {
-            audioRef,
-            onPlay: syncToAudio,
-            onEnded: () => {
-                clearInterval(textIntervalRef.current);
-                textIntervalRef.current = null;
+            audio.onended = () => {
                 handleSpeechEnd(cleanText);
-            },
-            onError: () => {
-                console.error('[Neural-Audio] Stream error — continuing with text reveal.');
-                fallbackReveal(160);
-                setTimeout(() => handleSpeechEnd(cleanText), Math.max(2000, totalChars * 25));
-            },
-        });
+                URL.revokeObjectURL(url);
+            };
+
+            audio.onerror = () => {
+                console.error("[Neural-Audio] Playback failure.");
+                setIsSpeaking(false);
+                isSpeakingRef.current = false;
+                URL.revokeObjectURL(url);
+            };
+
+            await audio.play();
+        } catch (err) {
+            console.error(`%c[Neural-Audio] Andrew Synthesis Failure: ${err.message}`, "color: #ef4444; font-weight: bold;");
+            setIsSpeaking(false);
+            isSpeakingRef.current = false;
+        }
     };
 
     const syncAudioWithText = (audio, text) => {
@@ -738,10 +714,10 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
 
     const getAttitudeColor = (att) => {
         switch (att) {
-            case 'Aggressive': return isDark ? 'text-red-400' : 'text-red-600';
-            case 'Skeptical': return isDark ? 'text-amber-400' : 'text-amber-700';
-            case 'Warm': return isDark ? 'text-green-400' : 'text-green-700';
-            default: return isDark ? 'text-indigo-400' : 'text-indigo-700';
+            case 'Aggressive': return 'text-red-500';
+            case 'Skeptical': return 'text-amber-500';
+            case 'Warm': return 'text-green-500';
+            default: return 'text-indigo-500';
         }
     };
 
@@ -762,16 +738,6 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
         }
     };
 
-    const shellClass = (started) => isPage
-        ? `relative w-full min-h-[calc(100vh-6rem)] ${started ? 'flex flex-col md:flex-row' : 'flex flex-col items-center justify-center'} ${isDark ? 'bg-[#05070a]' : 'bg-white'}`
-        : `fixed top-0 right-0 bottom-0 z-[40] no-scrollbar ${started ? 'flex flex-col md:flex-row' : 'flex flex-col items-center justify-center p-8 md:p-12'} ${isDark ? 'bg-[#05070a]' : 'bg-white'}`;
-
-    const shellStyle = isPage ? undefined : {
-        left: currentSidebarWidth,
-        width: `calc(100% - ${currentSidebarWidth}px)`,
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-    };
-
     return (
         <div onMouseMove={handleMouseMove}>
             <AnimatePresence mode="wait">
@@ -785,22 +751,21 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                         animate={openingVariant.animate}
                         exit={openingVariant.exit}
                         transition={openingVariant.transition}
-                        style={shellStyle}
-                        className={`${shellClass(false)} overflow-y-auto`}
+                        style={{ left: currentSidebarWidth, width: `calc(100% - ${currentSidebarWidth}px)`, transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}
+                        className={`fixed top-0 right-0 bottom-0 z-[40] p-12 overflow-y-auto no-scrollbar flex flex-col items-center justify-center ${isDark ? 'bg-[#05070a]' : 'bg-white'}`}
                     >
-                        {!isPage && (
                         <div className="absolute top-0 right-0 p-6">
-                            <button type="button" onClick={handleClose} aria-label="Close interview preparation" className={`transition-colors ${isDark ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-700'}`}>
+                            <button type="button" onClick={handleClose} aria-label="Close interview preparation" className="text-slate-500 hover:text-slate-300 transition-colors">
                                 <X size={24} />
                             </button>
                         </div>
-                        )}
-                        <div className="text-center mb-12 max-w-3xl w-full">
-                            <h2 className={`text-4xl md:text-5xl font-black mb-2 tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>The Boardroom</h2>
-                            <p className={`text-sm font-medium mb-6 ${isDark ? 'text-slate-500' : 'text-slate-600'}`}>AI interview practice</p>
+                        <div className="text-center mb-12">
+                            <h2 className={`text-5xl font-black mb-2 tracking-[0.2em] ${isDark ? 'text-white' : 'text-slate-900'} uppercase`}>The Boardroom</h2>
+                            <p className={`text-sm font-bold uppercase tracking-widest mb-6 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>High-Fidelity Interview Simulation</p>
                             <div className="flex justify-center mb-8">
-                                <div className={`w-28 h-28 md:w-32 md:h-32 rounded-full border-2 flex items-center justify-center relative overflow-hidden ${isDark ? 'border-indigo-500/30 bg-slate-900/50 shadow-2xl' : 'border-indigo-200 bg-indigo-50 shadow-md'}`}>
-                                    <Cpu className={`animate-pulse ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`} size={44} />
+                                <div className="w-32 h-32 rounded-full border-4 border-indigo-500/30 flex items-center justify-center bg-slate-900/50 shadow-2xl relative overflow-hidden">
+                                    <Cpu className="text-indigo-500 animate-pulse" size={48} />
+                                    <div className="absolute inset-0 bg-indigo-500/10 blur-xl" />
                                 </div>
                             </div>
                         </div>
@@ -808,27 +773,27 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                         {/* ── STEP 1: Mode Selector ── */}
                         {step === 'mode' ? (
                             <>
-                                <p className={`text-xs font-bold uppercase tracking-widest mb-8 ${isDark ? 'text-slate-500' : 'text-slate-600'}`}>Select interview format</p>
+                                <p className={`text-[10px] font-black uppercase tracking-[0.5em] mb-8 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Select Interview Format</p>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-10 w-full max-w-3xl">
                                     {INTERVIEW_MODES.map((mode) => {
                                         const s = MODE_STYLE[mode.color] || MODE_STYLE.indigo;
                                         return (
                                             <motion.button
                                                 key={mode.id}
-                                                whileHover={{ scale: 1.01 }}
-                                                whileTap={{ scale: 0.99 }}
+                                                whileHover={{ scale: 1.02 }}
+                                                whileTap={{ scale: 0.98 }}
                                                 onClick={() => { setSelectedMode(mode.id); setStep('role'); }}
-                                                className={`p-6 rounded-2xl border text-left group relative overflow-hidden transition-all ${isDark
+                                                className={`p-7 rounded-2xl border text-left group relative overflow-hidden transition-all ${isDark
                                                     ? 'bg-slate-900/40 border-slate-800 hover:border-indigo-500/40 hover:bg-slate-900/70'
-                                                    : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-lg shadow-sm'}`}
+                                                    : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-md'}`}
                                             >
-                                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${s.icon(isDark)}`}>
+                                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-5 ${s.icon}`}>
                                                     {mode.icon}
                                                 </div>
-                                                <div className={`text-[10px] font-bold uppercase tracking-wider mb-2 ${s.sub(isDark)}`}>{mode.sublabel}</div>
-                                                <h4 className={`text-base font-bold tracking-tight mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>{mode.label.replace(' Protocol', '')}</h4>
-                                                <p className={`text-sm leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{mode.description}</p>
-                                                <div className={`absolute bottom-0 left-0 right-0 h-0.5 bg-transparent ${s.bar} transition-all duration-300`} />
+                                                <div className={`text-[8px] font-black uppercase tracking-[0.5em] mb-2 ${s.sub}`}>{mode.sublabel}</div>
+                                                <h4 className={`text-base font-black tracking-tight mb-3 ${isDark ? 'text-white' : 'text-slate-900'}`}>{mode.label}</h4>
+                                                <p className={`text-[11px] leading-relaxed ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{mode.description}</p>
+                                                <div className={`absolute bottom-0 left-0 right-0 h-[2px] bg-transparent ${s.bar} transition-all duration-300`} />
                                             </motion.button>
                                         );
                                     })}
@@ -869,12 +834,12 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                         ) : (
                             /* ── STEP 2: Role Selector ── */
                             <>
-                                <div className="flex items-center gap-4 mb-8 w-full max-w-3xl mx-auto">
+                                <div className="flex items-center gap-4 mb-8 w-full max-w-3xl">
                                     <button
                                         onClick={() => { setStep('mode'); setSelectedRole(null); setSelectedBranch(null); setSelectedSubRole(null); }}
-                                        className={`text-xs font-semibold flex items-center gap-2 transition-colors ${isDark ? 'text-slate-500 hover:text-indigo-400' : 'text-slate-600 hover:text-indigo-600'}`}
+                                        className={`text-[9px] font-black uppercase tracking-[0.4em] flex items-center gap-2 transition-colors ${isDark ? 'text-slate-600 hover:text-indigo-400' : 'text-slate-400 hover:text-indigo-500'}`}
                                     >
-                                        ← Change format
+                                        ← Change Mode
                                     </button>
                                     {selectedMode && (
                                         <div className={`px-3 py-1 rounded-lg border text-[8px] font-black uppercase tracking-[0.4em] ${isDark ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400' : 'bg-indigo-50 border-indigo-200 text-indigo-600'}`}>
@@ -882,34 +847,35 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                                         </div>
                                     )}
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10 w-full max-w-5xl mx-auto">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
                                     {!selectedRole ? (
                                         ROLES.map((role) => (
                                             <button
                                                 key={role.id}
                                                 onClick={() => setSelectedRole(role)}
-                                                className={`p-5 rounded-2xl border transition-all text-left group relative overflow-hidden ${isDark
+                                                className={`p-6 rounded-2xl border transition-all text-left group relative backdrop-blur-md overflow-hidden ${isDark
                                                     ? 'bg-slate-900/40 border-slate-800 hover:border-indigo-500/50 hover:bg-slate-900/60 shadow-lg'
-                                                    : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-md shadow-sm'}`}
+                                                    : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-indigo-50'}`}
                                             >
                                                 <div className="flex flex-col h-full justify-between">
-                                                    <div className="mb-3">
-                                                        <div className={`text-[10px] font-bold uppercase tracking-wider mb-2 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
-                                                            {role.branches ? 'Specialization' : 'Role'}
+                                                    <div className="mb-4">
+                                                        <div className={`text-[10px] font-black uppercase tracking-[0.2em] mb-2 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
+                                                            {role.branches ? 'Strategic Division' : 'Standard Protocol'}
                                                         </div>
-                                                        <h4 className={`text-base font-bold leading-snug ${isDark ? 'text-white' : 'text-slate-900'}`}>{role.title}</h4>
+                                                        <h4 className={`text-base font-bold tracking-tight leading-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>{role.title}</h4>
                                                     </div>
-                                                    <div className={`flex items-center justify-between mt-auto pt-3 border-t ${isDark ? 'border-slate-800' : 'border-slate-100'}`}>
-                                                        <span className={`text-xs font-medium ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>Select</span>
-                                                        <ChevronRight size={14} className={`transition-transform group-hover:translate-x-1 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`} />
+                                                    <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-800/20">
+                                                        <span className={`text-[9px] font-bold uppercase tracking-widest ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>View Dossier</span>
+                                                        <ChevronRight size={14} className={`transition-transform group-hover:translate-x-1 ${isDark ? 'text-indigo-500' : 'text-indigo-400'}`} />
                                                     </div>
                                                 </div>
+                                                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/0 via-transparent to-indigo-500/0 group-hover:from-indigo-500/[0.03] transition-colors pointer-events-none" />
                                             </button>
                                         ))
                                     ) : selectedRole.branches && !selectedBranch ? (
                                         <div className="col-span-full space-y-8 py-10">
-                                            <button onClick={() => setSelectedRole(null)} className={`text-xs font-semibold mb-4 flex items-center gap-2 ${isDark ? 'text-indigo-400 hover:text-indigo-300' : 'text-indigo-600 hover:text-indigo-700'}`}>← Back to roles</button>
-                                            <h3 className={`text-2xl font-bold mb-8 text-center ${isDark ? 'text-white' : 'text-slate-900'}`}>Choose a division</h3>
+                                            <button onClick={() => setSelectedRole(null)} className="text-[10px] font-black text-indigo-500 hover:text-indigo-400 mb-4 flex items-center gap-2 tracking-[0.3em]">← RE-INITIALIZE ROLES</button>
+                                            <h3 className="text-3xl font-black text-white uppercase tracking-[0.3em] mb-10 text-center">Division Selection</h3>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
                                                 {selectedRole.branches.map(branch => (
                                                     <button key={branch.id} onClick={() => setSelectedBranch(branch)} className={`p-8 rounded-2xl border transition-all text-left flex flex-col justify-between group backdrop-blur-md ${isDark ? 'bg-slate-900/40 border-slate-800 hover:border-indigo-500/50' : 'bg-white border-slate-200 hover:border-indigo-300'}`}>
@@ -918,7 +884,7 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                                                             <div className={`text-xl font-black uppercase tracking-[0.4em] ${isDark ? 'text-white' : 'text-slate-900'}`}>{branch.title}</div>
                                                         </div>
                                                         <div className="flex items-center justify-between pt-4 border-t border-slate-800/10">
-                                                            <span className={`text-xs font-medium ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>Continue</span>
+                                                            <span className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Initialize Protocol</span>
                                                             <ChevronRight size={16} className={`transition-transform group-hover:translate-x-1 ${isDark ? 'text-indigo-500' : 'text-indigo-400'}`} />
                                                         </div>
                                                     </button>
@@ -927,8 +893,8 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                                         </div>
                                     ) : selectedBranch && !selectedSubRole ? (
                                         <div className="col-span-full space-y-8 py-10">
-                                            <button onClick={() => setSelectedBranch(null)} className={`text-xs font-semibold mb-4 flex items-center gap-2 ${isDark ? 'text-indigo-400 hover:text-indigo-300' : 'text-indigo-600 hover:text-indigo-700'}`}>← Back</button>
-                                            <h3 className={`text-2xl font-bold mb-8 text-center ${isDark ? 'text-white' : 'text-slate-900'}`}>Choose your level</h3>
+                                            <button onClick={() => setSelectedBranch(null)} className="text-[10px] font-black text-indigo-500 hover:text-indigo-400 mb-4 flex items-center gap-2 tracking-[0.3em]">← RETURN TO DIVISIONS</button>
+                                            <h3 className="text-3xl font-black text-white uppercase tracking-[0.3em] mb-10 text-center">Neural Profile Selection</h3>
                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                                 {selectedBranch.subRoles.map(sub => (
                                                     <button key={sub} onClick={() => setSelectedSubRole(sub)} className={`p-6 rounded-2xl border transition-all text-center relative group overflow-hidden ${isDark ? 'bg-slate-900/40 border-slate-800 hover:border-indigo-500/50' : 'bg-white border-slate-200 hover:border-indigo-300'}`}>
@@ -939,13 +905,13 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                                             </div>
                                         </div>
                                     ) : (
-                                        <div className={`col-span-full py-12 px-8 rounded-3xl text-center max-w-lg mx-auto ${isDark ? 'bg-indigo-600/10 border border-indigo-500/20' : 'bg-indigo-50 border border-indigo-200 shadow-sm'}`}>
-                                            <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-5 ${isDark ? 'bg-indigo-500/10 border border-indigo-500/30' : 'bg-white border border-indigo-200'}`}>
-                                                <CheckCircle2 className={isDark ? 'text-indigo-400' : 'text-indigo-600'} size={28} />
+                                        <div className="col-span-full py-16 px-10 rounded-[4rem] bg-indigo-600/5 border border-indigo-500/20 text-center backdrop-blur-xl">
+                                            <div className="w-16 h-16 rounded-full bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center mx-auto mb-8">
+                                                <CheckCircle2 className="text-indigo-400" size={32} />
                                             </div>
-                                            <h3 className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>Ready to start</h3>
-                                            <p className={`text-sm font-semibold mb-6 ${isDark ? 'text-indigo-400' : 'text-indigo-700'}`}>{selectedSubRole || selectedRole.title}</p>
-                                            <button onClick={() => { setSelectedRole(null); setSelectedBranch(null); setSelectedSubRole(null); }} className={`text-sm font-medium underline transition-colors ${isDark ? 'text-slate-400 hover:text-indigo-400' : 'text-slate-600 hover:text-indigo-600'}`}>Change role</button>
+                                            <h3 className="text-3xl font-black text-white uppercase tracking-[0.4em] mb-4">PROFILE LOCKED</h3>
+                                            <p className="text-sm font-bold text-indigo-400 uppercase tracking-[0.3em] mb-10">{selectedSubRole || selectedRole.title}</p>
+                                            <button onClick={() => { setSelectedRole(null); setSelectedBranch(null); setSelectedSubRole(null); }} className="text-[10px] font-black text-slate-500 hover:text-indigo-400 underline tracking-[0.3em] transition-all">ABORT & RE-CALIBRATE</button>
                                         </div>
                                     )}
                                 </div>
@@ -955,9 +921,9 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                                 <button
                                     onClick={() => startInterview(selectedSubRole || selectedRole?.title)}
                                     disabled={!selectedRole || (selectedRole.id === 9 && !customRole.trim()) || (selectedRole.branches && !selectedSubRole)}
-                                    className="w-full max-w-3xl mx-auto bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg uppercase tracking-wider text-sm disabled:opacity-40"
+                                    className="w-full max-w-3xl bg-indigo-600 hover:bg-indigo-500 text-white font-black py-5 rounded-2xl transition-all shadow-xl shadow-indigo-500/30 uppercase tracking-[0.5em] text-xs disabled:opacity-30"
                                 >
-                                    Start interview
+                                    Initialize Swain System
                                 </button>
                             </>
                         )}
@@ -969,36 +935,36 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                         animate={openingVariant.animate}
                         exit={openingVariant.exit}
                         transition={openingVariant.transition}
-                        style={shellStyle}
-                        className={shellClass(true)}
+                        style={{ left: currentSidebarWidth, width: `calc(100% - ${currentSidebarWidth}px)`, transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}
+                        className={`${isDark ? 'bg-[#05070a]' : 'bg-white'} fixed top-0 right-0 bottom-0 z-[40] flex flex-col md:flex-row overflow-hidden no-scrollbar`}
                     >
-                        {/* Left panel — wave + status */}
-                        <div className={`w-full md:w-[42%] h-full p-6 md:p-10 flex flex-col border-b md:border-b-0 md:border-r ${isDark ? 'bg-slate-900/20 border-indigo-500/10' : 'bg-slate-50 border-slate-200'}`}>
-                            <div className="w-full flex justify-between items-start mb-4">
-                                <div className="flex flex-col gap-1">
+                        {/* Realistic Command Center Sidebar */}
+                        <div className={`w-full md:w-[45%] h-full ${isDark ? 'bg-slate-900/10' : 'bg-slate-50/50'} p-12 flex flex-col items-center justify-between border-r ${isDark ? 'border-indigo-500/10' : 'border-gray-200'} relative shadow-2xl z-20`}>
+                            {/* Boardroom LEFT PANEL — calm wave visualization */}
+                            <div className="w-full flex justify-between items-start mb-6">
+                                <div className="flex flex-col gap-1.5">
                                     <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 rounded-full bg-red-500" />
-                                        <span className={`text-xs font-semibold uppercase tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Live session</span>
+                                        <div className="w-2 h-2 rounded-full bg-red-500 shadow-lg" />
+                                        <span className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-500">LIVE · SIM-01</span>
                                     </div>
-                                    <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{selectedRole?.title}</p>
+                                    <p className="text-[11px] font-bold text-slate-600 uppercase tracking-[0.2em]">{selectedRole?.title}</p>
                                 </div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-3">
                                     {timeLeft !== null && (
-                                        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${isDark ? 'bg-slate-900/60 border-slate-800 text-indigo-400' : 'bg-white border-slate-200 text-indigo-600 shadow-sm'}`}>
-                                            <Timer size={12} />
-                                            <span className="text-xs font-bold tabular-nums">{timeLeft}s</span>
+                                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/60 border border-slate-800 text-indigo-400">
+                                            <Timer size={12} className="animate-spin-slow" />
+                                            <span className="text-xs font-black">{timeLeft}s</span>
                                         </div>
                                     )}
-                                    {!isPage && (
-                                    <button onClick={handleClose} className={`p-2 rounded-lg transition-all ${isDark ? 'text-slate-400 hover:text-red-400 hover:bg-red-500/10' : 'text-slate-500 hover:text-red-600 hover:bg-red-50'}`}>
-                                        <X size={18} />
+                                    <button onClick={handleClose} className="p-2 rounded-xl text-slate-700 hover:text-red-400 hover:bg-red-500/10 transition-all">
+                                        <X size={20} />
                                     </button>
-                                    )}
                                 </div>
                             </div>
 
-                            <div className="w-full mb-6">
-                                <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}>
+                            {/* Phase progress — ultra-minimal */}
+                            <div className="w-full mb-8">
+                                <div className="h-[2px] w-full bg-slate-900 rounded-full overflow-hidden">
                                     <motion.div
                                         className="h-full rounded-full"
                                         style={{ background: 'linear-gradient(90deg, #6366f1, #818cf8)' }}
@@ -1007,8 +973,8 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                                     />
                                 </div>
                                 <div className="flex justify-between mt-2">
-                                    <span className={`text-xs font-medium ${isDark ? 'text-slate-500' : 'text-slate-600'}`}>Phase {PHASES.indexOf(phase) + 1} of 6</span>
-                                    <span className={`text-xs font-semibold capitalize ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>{phase.replace('_', ' ').toLowerCase()}</span>
+                                    <span className="text-[9px] text-slate-700 font-bold uppercase tracking-widest">Phase {PHASES.indexOf(phase) + 1}/6</span>
+                                    <span className="text-[9px] text-indigo-600 font-bold uppercase tracking-widest">{phase}</span>
                                 </div>
                             </div>
 
@@ -1094,78 +1060,90 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                                                     : 'none'
                                         }}
                                         transition={{ duration: 0.8 }}
-                                        className={`px-6 py-2 rounded-full border text-xs font-bold uppercase tracking-wide transition-all ${isSpeaking
-                                            ? isDark ? 'bg-indigo-600/15 text-indigo-300 border-indigo-500/40' : 'bg-indigo-100 text-indigo-700 border-indigo-300'
+                                        className={`px-8 py-2.5 rounded-full border text-[10px] font-black uppercase tracking-[0.4em] transition-all duration-700 ${isSpeaking
+                                            ? 'bg-indigo-600/10 text-indigo-300 border-indigo-500/30'
                                             : isListening
-                                                ? isDark ? 'bg-emerald-600/15 text-emerald-400 border-emerald-500/40' : 'bg-emerald-50 text-emerald-700 border-emerald-300'
-                                                : isDark ? 'bg-slate-800/50 text-slate-400 border-slate-700' : 'bg-white text-slate-600 border-slate-300 shadow-sm'
+                                                ? 'bg-emerald-600/10 text-emerald-400 border-emerald-500/30'
+                                                : 'bg-slate-900/30 text-slate-600 border-slate-800'
                                             }`}
                                     >
-                                        {isSpeaking ? 'Speaking' : isListening ? 'Listening' : 'Ready'}
+                                        {isSpeaking ? 'Transmitting' : isListening ? 'Listening' : 'Standby'}
                                     </motion.div>
 
-                                    <div className={`text-xs font-medium ${getAttitudeColor(attitude)}`}>
-                                        Andrew Hale · {attitude}
+                                    <div className={`text-[10px] font-bold uppercase tracking-[0.3em] transition-all duration-700 ${getAttitudeColor(attitude)}`}>
+                                        Interviewer: Andrew Hale ({attitude})
                                     </div>
                                 </div>
                             </div>
 
-                            <div className={`w-full flex items-center justify-between pt-4 border-t ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
-                                <span className={`text-[10px] font-medium ${isDark ? 'text-slate-600' : 'text-slate-500'}`}>Secure</span>
-                                <span className={`text-[10px] font-medium ${isDark ? 'text-indigo-500/70' : 'text-indigo-600'}`}>Connected</span>
-                                <span className={`text-[10px] font-medium ${isDark ? 'text-slate-600' : 'text-slate-500'}`}>Voice on</span>
+                            {/* Bottom metadata row */}
+                            <div className="w-full flex items-center justify-between pt-6 border-t border-slate-900">
+                                <div className="flex items-center gap-2">
+                                    <div className={`w-1.5 h-1.5 rounded-full ${isSpeaking ? 'bg-indigo-500 animate-ping' : 'bg-slate-800'}`} />
+                                    <span className="text-[9px] font-bold text-slate-700 uppercase tracking-widest">AES-256</span>
+                                </div>
+                                <span className="text-[9px] font-bold text-slate-700 uppercase tracking-widest">Neural Sync · 99.8%</span>
+                                <div className="flex items-center gap-2">
+                                    <div className={`w-1.5 h-1.5 rounded-full ${isListening ? 'bg-emerald-500 animate-ping' : 'bg-slate-800'}`} />
+                                    <span className="text-[9px] font-bold text-slate-700 uppercase tracking-widest">Uplink</span>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Right panel — chat */}
-                        <div className={`flex-1 flex flex-col min-h-0 ${isDark ? 'bg-[#070b14]' : 'bg-white'}`}>
+                        {/* Panoramic Chat Interface */}
+                        <div className={`flex-1 flex flex-col ${isDark ? 'bg-[#070b14]' : 'bg-white'} relative z-10 shadow-lg`}>
                             {scorecard ? (
-                                <div className={`flex-1 p-8 md:p-16 flex flex-col items-center justify-center text-center ${isDark ? '' : 'bg-slate-50'}`}>
+                                <div className="flex-1 p-24 flex flex-col items-center justify-center text-center">
                                     <motion.div
-                                        initial={{ scale: 0.9, opacity: 0 }}
-                                        animate={{ scale: 1, opacity: 1 }}
-                                        className={`w-36 h-36 rounded-full border-4 flex flex-col items-center justify-center mb-8 ${isDark ? 'bg-indigo-600/10 border-indigo-600' : 'bg-white border-indigo-500 shadow-lg'}`}
+                                        initial={{ scale: 0, rotate: -20 }}
+                                        animate={{ scale: 1, rotate: 0 }}
+                                        className="w-40 h-40 rounded-full bg-indigo-600/10 border-4 border-indigo-600 flex flex-col items-center justify-center mb-10 shadow-lg"
                                     >
-                                        <span className={`text-xs font-bold uppercase tracking-wide mb-1 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>Score</span>
-                                        <span className={`text-5xl font-black ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>{scorecard.technical_score}</span>
+                                        <span className="text-sm font-black text-indigo-400 uppercase tracking-widest">Score</span>
+                                        <span className="text-6xl font-black text-indigo-500">{scorecard.technical_score}</span>
                                     </motion.div>
-                                    <h2 className={`text-3xl md:text-4xl font-black mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>{scorecard.level} — {scorecard.verdict}</h2>
-                                    <div className="flex flex-wrap gap-8 mb-10 justify-center">
-                                        <div className="flex flex-col items-center gap-1">
-                                            <DollarSign size={20} className="text-indigo-500" />
-                                            <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-600'}`}>Salary range</span>
-                                            <span className={`font-bold text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>{scorecard.salary_band}</span>
+                                    <h2 className="text-6xl font-black mb-6 uppercase tracking-tighter text-white">{scorecard.level} - {scorecard.verdict}</h2>
+                                    <div className="flex gap-12 mb-16 justify-center">
+                                        <div className="flex flex-col items-center gap-2">
+                                            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-indigo-400 mb-2"><DollarSign size={20} /></div>
+                                            <span className="text-slate-500 font-bold uppercase tracking-widest text-[9px]">Market Valuation</span>
+                                            <span className="text-white font-black text-xs">{scorecard.salary_band}</span>
                                         </div>
-                                        <div className="flex flex-col items-center gap-1">
-                                            <TrendingUp size={20} className="text-indigo-500" />
-                                            <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-600'}`}>Growth</span>
-                                            <span className={`font-bold text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>{scorecard.promotion_readiness}</span>
+                                        <div className="flex flex-col items-center gap-2">
+                                            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-indigo-400 mb-2"><TrendingUp size={20} /></div>
+                                            <span className="text-slate-500 font-bold uppercase tracking-widest text-[9px]">Trajectory</span>
+                                            <span className="text-white font-black text-xs">{scorecard.promotion_readiness}</span>
                                         </div>
                                     </div>
-                                    <p className={`max-w-xl mb-10 italic text-left border-l-4 pl-6 ${isDark ? 'text-slate-400 border-indigo-500/50' : 'text-slate-600 border-indigo-400'}`}>"{scorecard.summary}"</p>
-                                    <button onClick={handleClose} className="bg-indigo-600 hover:bg-indigo-500 text-white px-10 py-4 rounded-xl font-bold transition-all">Done</button>
+                                    <p className="text-slate-400 max-w-xl mb-16 italic border-l-4 border-indigo-500/50 pl-10 text-lg leading-relaxed text-left">"{scorecard.summary}"</p>
+                                    <button onClick={handleClose} className="bg-indigo-600 hover:bg-indigo-500 text-white px-16 py-6 rounded-2xl font-black uppercase tracking-[0.5em] text-sm shadow-2xl transition-all hover:scale-105 active:scale-95">Secure Session & Exit</button>
                                 </div>
                             ) : (
                                 <>
-                                    <div className={`px-6 py-4 border-b flex justify-between items-center ${isDark ? 'border-slate-800 bg-slate-950/30' : 'border-slate-200 bg-slate-50'}`}>
-                                        <div className="flex items-center gap-3">
-                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDark ? 'bg-indigo-600/10 border border-indigo-500/20' : 'bg-indigo-50 border border-indigo-200'}`}>
-                                                <UserSquare2 className={isDark ? 'text-indigo-400' : 'text-indigo-600'} size={20} />
+                                    <div className={`p-10 border-b ${isDark ? 'border-slate-800/50' : 'border-gray-100'} flex justify-between items-center bg-slate-950/20 backdrop-blur-md`}>
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-xl bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center">
+                                                <UserSquare2 className="text-indigo-400" size={20} />
                                             </div>
                                             <div>
-                                                <h3 className={`font-bold text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>Interview</h3>
-                                                <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-600'}`}>
-                                                    {isOfflineMode ? 'Offline mode' : 'Live feedback enabled'}
+                                                <h3 className="font-black text-sm uppercase tracking-[0.3em] text-white">SWAIN PANEL</h3>
+                                                <p className={`text-[8px] font-black uppercase tracking-widest ${isOfflineMode ? 'text-amber-500' : 'text-slate-500'}`}>
+                                                    {isOfflineMode ? 'Offline Mode — AI Uplink Degraded' : 'Real-Time Behavioral Analysis Active'}
                                                 </p>
                                             </div>
                                         </div>
-                                        <div className={`px-3 py-1.5 rounded-lg border text-xs font-semibold ${isOfflineMode ? (isDark ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' : 'bg-amber-50 border-amber-200 text-amber-700') : (isDark ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400' : 'bg-indigo-50 border-indigo-200 text-indigo-700')}`}>
-                                            {isOfflineMode ? 'Demo mode' : 'Live'}
+                                        <div className="flex items-center gap-3">
+                                            <div className={`px-4 py-2 rounded-lg border ${isOfflineMode ? 'bg-amber-500/10 border-amber-500/30' : 'bg-indigo-500/10 border-indigo-500/20'}`}>
+                                                <span className={`text-[9px] font-black uppercase tracking-widest ${isOfflineMode ? 'text-amber-400' : 'text-indigo-400'}`}>
+                                                    {isOfflineMode ? 'Mock Protocol Active' : 'Ultra-Low Latency Mode'}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div ref={scrollRef} className={`flex-1 overflow-y-auto p-6 md:p-8 space-y-6 relative ${isDark ? '' : 'bg-white'}`}>
-                                        <div className={`absolute top-0 right-0 p-12 pointer-events-none ${isDark ? 'opacity-[0.03]' : 'opacity-[0.04]'}`}>
-                                            <Cpu size={280} className={isDark ? 'text-white' : 'text-indigo-300'} />
+                                    <div ref={scrollRef} className="flex-1 overflow-y-auto p-12 space-y-10 relative">
+                                        {/* Cinematic Background Detail */}
+                                        <div className="absolute top-0 right-0 p-20 opacity-[0.02] pointer-events-none">
+                                            <Cpu size={400} />
                                         </div>
 
                                         {messages.map((m, i) => {
@@ -1191,44 +1169,44 @@ export default function InterviewPrepModal({ onClose, isPage = false }) {
                                                         }
                                                         {showCursor && <span className="inline-block w-2 h-5 ml-2 bg-indigo-500 animate-pulse align-middle" />}
                                                     </div>
-                                                    <span className={`mt-2 text-[10px] font-medium px-2 ${isDark ? 'text-slate-600' : 'text-slate-500'}`}>{isAI ? 'Andrew' : 'You'}</span>
+                                                    <span className="mt-3 text-[8px] font-black text-slate-600 uppercase tracking-widest px-4">{isAI ? 'MARCUS STERLING' : 'CANDIDATE UPLINK'}</span>
                                                 </motion.div>
                                             );
                                         })}
                                         {loading && (
-                                            <div className={`flex items-center gap-3 text-xs font-medium ml-2 ${isDark ? 'text-slate-500' : 'text-slate-600'}`}>
+                                            <div className="flex items-center gap-4 text-slate-600 text-[9px] font-black uppercase tracking-[0.3em] ml-4">
                                                 <div className="flex gap-1">
-                                                    <motion.div animate={{ scale: [1, 1.4, 1] }} transition={{ repeat: Infinity, duration: 1 }} className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                                                    <motion.div animate={{ scale: [1, 1.4, 1] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                                                    <motion.div animate={{ scale: [1, 1.4, 1] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }} className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                                                    <motion.div animate={{ scale: [1, 1.5, 1] }} transition={{ repeat: Infinity, duration: 1 }} className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                                                    <motion.div animate={{ scale: [1, 1.5, 1] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                                                    <motion.div animate={{ scale: [1, 1.5, 1] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }} className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
                                                 </div>
-                                                Thinking…
+                                                Synthesizing Seniority Signals
                                             </div>
                                         )}
                                     </div>
-                                    <div className={`p-4 md:p-6 border-t ${isDark ? 'bg-slate-950/40 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                                        <div className={`flex items-center gap-3 p-3 rounded-2xl border transition-all focus-within:border-indigo-400 ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                                    <div className="p-12 bg-slate-950/40 border-t border-slate-900">
+                                        <div className="relative group flex items-center gap-4 bg-slate-950 p-4 rounded-[2.5rem] border border-slate-800 shadow-lg transition-all focus-within:border-indigo-500/50 focus-within:shadow-lg">
                                             <button
                                                 onClick={toggleListening}
-                                                className={`p-3 rounded-xl transition-all ${isListening ? 'bg-red-600 text-white' : isDark ? 'bg-slate-900 text-slate-400 hover:text-indigo-400 border border-slate-800' : 'bg-slate-100 text-slate-600 hover:text-indigo-600 border border-slate-200'}`}
+                                                className={`p-6 rounded-[1.5rem] transition-all duration-300 ${isListening ? 'bg-red-600 text-white shadow-lg' : 'bg-slate-900 text-slate-500 hover:text-indigo-400 border border-slate-800'}`}
                                             >
-                                                {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+                                                {isListening ? <MicOff size={24} /> : <Mic size={24} />}
                                             </button>
                                             <input
                                                 type="text"
                                                 value={input}
                                                 onChange={(e) => setInput(String(e.target.value))}
                                                 onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                                                placeholder={loading ? "Waiting for response…" : "Type your answer…"}
-                                                className={`flex-1 bg-transparent border-none focus:ring-0 text-base font-medium outline-none ${isDark ? 'text-white placeholder:text-slate-600' : 'text-slate-900 placeholder:text-slate-400'}`}
+                                                placeholder={loading ? "Analyzing telemetry..." : "Command your response..."}
+                                                className="flex-1 bg-transparent border-none focus:ring-0 text-white text-lg font-bold placeholder:text-slate-700"
                                                 disabled={loading}
                                             />
                                             <button
                                                 onClick={() => handleSendMessage()}
                                                 disabled={!String(input || "").trim() || loading}
-                                                className="bg-indigo-600 hover:bg-indigo-500 text-white p-3 rounded-xl transition-all disabled:opacity-30"
+                                                className="bg-indigo-600 hover:bg-indigo-500 text-white p-6 rounded-[1.5rem] shadow-2xl transition-all disabled:opacity-20 hover:scale-105 active:scale-95"
                                             >
-                                                <Send size={20} />
+                                                <Send size={24} />
                                             </button>
                                         </div>
                                     </div>
