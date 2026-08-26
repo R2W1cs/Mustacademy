@@ -240,7 +240,7 @@ function SampleSpaceLab({ isDark }) {
         })}
       </svg>
       <p className={`text-xs font-mono ${isDark ? "text-slate-400" : "text-neutral-500"}`}>
-        Ω={{`{1..6}`}} · event even highlighted · empirical P(even)={faces.length ? (even / faces.length).toFixed(2) : "—"} (theory 0.50)
+        Ω = {"{1..6}"} · event even highlighted · empirical P(even)={faces.length ? (even / faces.length).toFixed(2) : "—"} (theory 0.50)
       </p>
     </div>
   );
