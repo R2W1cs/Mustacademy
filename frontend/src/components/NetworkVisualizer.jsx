@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Play, RotateCcw, Network, Layers, Route, Server, Smartphone,
+    Play, Pause, RotateCcw, Network, Layers, Route, Server, Smartphone,
     Globe, Search, Activity, ArrowRight, Wifi, Timer, Gauge, Shield, Lock, Radio
 } from 'lucide-react';
 import { useTheme } from '../auth/ThemeContext';
@@ -199,11 +199,11 @@ const NetworkVisualizer = ({ type = 'packet', config = null }) => {
         return 0;
     })();
 
-    // Reset when lesson lab config changes (title, hops, or steps)
+    // Reset when lesson lab config changes — stay paused until user hits Play
     useEffect(() => {
         setStep(0);
         setSelectedLayer(0);
-        setPlaying(true);
+        setPlaying(false);
     }, [mode, meta.title, meta.subtitle, customSteps?.length, customHops?.length]);
 
     useEffect(() => {
@@ -262,11 +262,10 @@ const NetworkVisualizer = ({ type = 'packet', config = null }) => {
                 <div className="flex items-center gap-2">
                     <button
                         type="button"
-                        onClick={() => setPlaying(true)}
-                        disabled={playing}
-                        className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-2 disabled:opacity-40"
+                        onClick={() => setPlaying((p) => !p)}
+                        className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-2"
                     >
-                        <Play size={14} /> Play
+                        {playing ? <><Pause size={14} /> Pause</> : <><Play size={14} /> Play</>}
                     </button>
                     <button
                         type="button"

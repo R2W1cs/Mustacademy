@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, MicOff, Send, Square, ChevronRight, BookOpen, MessageSquare } from 'lucide-react';
+import { Mic, MicOff, Send, Square, Pause, Play, ChevronRight, BookOpen, MessageSquare } from 'lucide-react';
 import api from '../api/axios';
 import { useTheme } from '../auth/ThemeContext';
 import { playStreamingTtsQueued, prefetchTts } from '../utils/streamingTts';
@@ -21,6 +21,7 @@ export default function InteractivePodcastPlayer({ topic }) {
     const [isListening, setIsListening] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const [isSpeaking, setIsSpeaking] = useState(false);
+    const [isPaused, setIsPaused] = useState(false);
     const [isLoadingLesson, setIsLoadingLesson] = useState(false);
     const [error, setError] = useState(null);
     const [phaseOffset, setPhaseOffset] = useState(0);
@@ -30,6 +31,8 @@ export default function InteractivePodcastPlayer({ topic }) {
     const transcriptEndRef = useRef(null);
     const abortControllerRef = useRef(null);
     const animFrameRef = useRef(null);
+    const pausedRef = useRef(false);
+    const ttsControlRef = useRef(null);
 
     // Wave animation loop
     useEffect(() => {
@@ -64,7 +67,11 @@ export default function InteractivePodcastPlayer({ topic }) {
     }, [transcript, isGenerating]);
 
     const stopAudio = useCallback(() => {
+        pausedRef.current = false;
+        setIsPaused(false);
         if (abortControllerRef.current) abortControllerRef.current.abort();
+        ttsControlRef.current?.stop?.();
+        ttsControlRef.current = null;
         if (audioRef.current) {
             audioRef.current.pause();
             audioRef.current.removeAttribute('src');
@@ -76,20 +83,53 @@ export default function InteractivePodcastPlayer({ topic }) {
         setIsSpeaking(false);
     }, []);
 
+    const pauseAudio = useCallback(() => {
+        if (!audioRef.current && !ttsControlRef.current) return;
+        pausedRef.current = true;
+        ttsControlRef.current?.pause?.();
+        audioRef.current?.pause();
+        setIsSpeaking(false);
+        setIsPaused(true);
+    }, []);
+
+    const resumeAudio = useCallback(async () => {
+        if (!audioRef.current && !ttsControlRef.current) return;
+        pausedRef.current = false;
+        setIsPaused(false);
+        setIsSpeaking(true);
+        try {
+            if (ttsControlRef.current?.resume) {
+                ttsControlRef.current.resume();
+            } else if (audioRef.current) {
+                await audioRef.current.play();
+            }
+        } catch {
+            setIsSpeaking(false);
+            setIsPaused(true);
+            pausedRef.current = true;
+        }
+    }, []);
+
     const playText = useCallback(async (text, onEnd, nextText = null) => {
         stopAudio();
         abortControllerRef.current = new AbortController();
+        pausedRef.current = false;
+        setIsPaused(false);
         setIsSpeaking(true);
         if (nextText) prefetchTts(nextText, NOVA_VOICE);
 
-        playStreamingTtsQueued(text, NOVA_VOICE, {
+        ttsControlRef.current = playStreamingTtsQueued(text, NOVA_VOICE, {
             audioRef,
             signal: abortControllerRef.current.signal,
             onEnded: () => {
+                if (pausedRef.current) return;
+                ttsControlRef.current = null;
                 setIsSpeaking(false);
                 if (onEnd) onEnd();
             },
             onError: () => {
+                if (pausedRef.current) return;
+                ttsControlRef.current = null;
                 setIsSpeaking(false);
                 if (onEnd) onEnd();
             },
@@ -457,18 +497,33 @@ export default function InteractivePodcastPlayer({ topic }) {
                                     </button>
                                 </div>
 
-                                {isSpeaking ? (
-                                    <button
-                                        type="button"
-                                        onClick={stopAudio}
-                                        className={`p-3 rounded-xl border transition-all ${
-                                            isLight
-                                                ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
-                                                : 'bg-red-600/20 text-red-400 border-red-600/30 hover:bg-red-600/30'
-                                        }`}
-                                    >
-                                        <Square size={16} fill="currentColor" />
-                                    </button>
+                                {isSpeaking || isPaused ? (
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={isPaused ? resumeAudio : pauseAudio}
+                                            className={`p-3 rounded-xl border transition-all ${
+                                                isLight
+                                                    ? 'bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100'
+                                                    : 'bg-indigo-600/20 text-indigo-300 border-indigo-500/30 hover:bg-indigo-600/30'
+                                            }`}
+                                            title={isPaused ? 'Resume from where you left off' : 'Pause'}
+                                        >
+                                            {isPaused ? <Play size={16} fill="currentColor" /> : <Pause size={16} />}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={stopAudio}
+                                            className={`p-3 rounded-xl border transition-all ${
+                                                isLight
+                                                    ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
+                                                    : 'bg-red-600/20 text-red-400 border-red-600/30 hover:bg-red-600/30'
+                                            }`}
+                                            title="Stop"
+                                        >
+                                            <Square size={16} fill="currentColor" />
+                                        </button>
+                                    </div>
                                 ) : (
                                     <button
                                         type="submit"

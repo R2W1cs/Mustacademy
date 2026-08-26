@@ -235,7 +235,7 @@ const TopicNotebook = ({ topic, isDark }) => {
     const [uploading, setUploading] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [activeMission, setActiveMission] = useState(null);
-    const [voiceEnabled, setVoiceEnabled] = useState(false);
+    const [voiceEnabled, setVoiceEnabled] = useState(true);
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [isListening, setIsListening] = useState(false);
     const [sessionStatus, setSessionStatus] = useState("idle");
@@ -276,13 +276,13 @@ const TopicNotebook = ({ topic, isDark }) => {
         return () => { window.removeEventListener('click', prime); window.removeEventListener('keydown', prime); };
     }, [sessionStatus]);
 
-    // ── Auto-speak short AI answers only (skip greeting / long dumps) ──
+    // ── Auto-speak AI answers when voice is on (default); mute stops reading ──
     useEffect(() => {
         if (!messages.length || !voiceEnabled) return;
         const last = messages[messages.length - 1];
         if (last.sender !== 'ai' || lastSpokenRef.current >= messages.length - 1) return;
         const plain = String(last.text || '').replace(/[#*`]/g, '');
-        if (plain.length < 40 || plain.length > 900 || last.id?.includes('-greet')) {
+        if (plain.length < 20 || plain.length > 1200) {
             lastSpokenRef.current = messages.length - 1;
             return;
         }
@@ -324,7 +324,7 @@ const TopicNotebook = ({ topic, isDark }) => {
             } catch { /* silent */ }
 
             if (!cancelled) {
-                lastSpokenRef.current = 0;
+                lastSpokenRef.current = -1;
                 setMessages([{
                     sender: 'ai',
                     text: buildTutorGreeting(topic),
@@ -357,8 +357,16 @@ const TopicNotebook = ({ topic, isDark }) => {
     const killAudio = useCallback(() => {
         audioRef.current?.pause();
         if (audioRef.current) audioRef.current.src = "";
+        try { synthesisRef.current?.cancel(); } catch { /* ignore */ }
         setIsSpeaking(false);
     }, []);
+
+    const toggleVoice = useCallback(() => {
+        setVoiceEnabled((v) => {
+            if (v) killAudio();
+            return !v;
+        });
+    }, [killAudio]);
 
     const speakResponse = useCallback(async (text) => {
         if (!text || !voiceEnabled) return;
@@ -525,7 +533,7 @@ const TopicNotebook = ({ topic, isDark }) => {
                         <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${isDark ? 'bg-indigo-400' : 'bg-red-500'}`} />
                         Practice Session
                     </div>
-                    <button onClick={() => setVoiceEnabled(v => !v)} className={`p-2 rounded-xl transition-all ${voiceEnabled ? c.accentText : c.sub} hover:bg-white/5`} title={voiceEnabled ? 'Voice on (short answers)' : 'Voice off'}>
+                    <button onClick={toggleVoice} className={`p-2 rounded-xl transition-all ${voiceEnabled ? c.accentText : c.sub} hover:bg-white/5`} title={voiceEnabled ? 'Voice on — click to stop reading' : 'Voice off — click to enable reading'}>
                         {isSpeaking ? (
                             <span className="flex gap-0.5 items-end h-4 w-4 justify-center">
                                 {[1, 2, 3].map((j) => (

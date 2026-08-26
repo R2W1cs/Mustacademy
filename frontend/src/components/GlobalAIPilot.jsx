@@ -522,9 +522,12 @@ function GlobalAIPilot() {
                             <div className="flex items-center gap-2">
                                 <div className={`flex p-1 rounded-xl shrink-0 ${isDark ? 'bg-white/5' : 'bg-slate-100'}`}>
                                     <button
-                                        onClick={() => setVoiceEnabled(!voiceEnabled)}
+                                        onClick={() => {
+                                            if (voiceEnabled) killAudio();
+                                            setVoiceEnabled(!voiceEnabled);
+                                        }}
                                         className={`px-2 py-1.5 rounded-lg transition-all ${voiceEnabled ? (isDark ? 'text-indigo-400' : 'text-red-500') : 'text-slate-500'}`}
-                                        title={voiceEnabled ? "Voice Enabled" : "Voice Disabled"}
+                                        title={voiceEnabled ? "Voice on — click to stop" : "Voice off"}
                                     >
                                         {voiceEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
                                     </button>

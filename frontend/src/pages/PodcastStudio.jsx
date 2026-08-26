@@ -172,6 +172,12 @@ export default function CsPodcastStudio() {
     const audioRef = useRef(null);
     const autoPlayedIdRef = useRef(null);
     const prevVideoUrlRef = useRef(null);
+    const isPlayingRef = useRef(false);
+    const segmentKeyRef = useRef(null);
+
+    useEffect(() => {
+        isPlayingRef.current = isPlaying;
+    }, [isPlaying]);
 
     // Q&A state
     const [qaMessages, setQaMessages] = useState([]);
@@ -248,117 +254,122 @@ export default function CsPodcastStudio() {
         prevVideoUrlRef.current = url;
     }, [episode?.video_url]);
 
-    // Audio Playback Engine (Upgraded to Neural Backend with Pre-fetching)
+    // Audio engine: create a new Audio only when the segment/episode changes.
+    // Pause keeps the same element so resume continues from currentTime.
     useEffect(() => {
-        const stopAudio = () => {
+        if (!episode || (episode.video_url && !videoFailed)) return undefined;
+
+        const segments = episode.segments || [];
+        const currentIdx = activeSegment;
+        const segment = segments[currentIdx];
+        if (!segment) return undefined;
+
+        const key = `${episode.id || episode.title || 'ep'}-${currentIdx}`;
+        let cancelled = false;
+
+        const teardown = () => {
             if (audioRef.current) {
+                audioRef.current.onended = null;
+                audioRef.current.onerror = null;
                 audioRef.current.pause();
                 audioRef.current = null;
             }
         };
 
-        if (!isPlaying || !episode) { stopAudio(); return; }
+        const loadSegment = async () => {
+            teardown();
+            segmentKeyRef.current = key;
 
-        const playSegment = async () => {
-            if (!episode) return;
-            
-            // If it's a video episode, we don't handle neural segments. 
-            // The video component handles its own playback.
-            if (episode.video_url && !videoFailed) {
-                return;
+            const apiBase = getApiOrigin();
+            const speaker = segment.speaker;
+            const nextIdx = currentIdx + 1;
+            if (nextIdx < segments.length) {
+                const nextSeg = segments[nextIdx];
+                const nextUrl = `${apiBase}/api/ai/podcast/speech?text=${encodeURIComponent(nextSeg.text)}&speaker=${nextSeg.speaker}`;
+                const preFetchAudio = new Audio();
+                preFetchAudio.preload = "auto";
+                preFetchAudio.src = nextUrl;
+                window._podcastAudioCache = window._podcastAudioCache || {};
+                window._podcastAudioCache[nextIdx] = nextUrl;
             }
 
-            const currentIdx = activeSegment;
-            const segments = episode.segments || [];
-            const segment = segments[currentIdx];
-            if (!segment) return;
+            let url;
+            if (window._podcastAudioCache && window._podcastAudioCache[currentIdx]) {
+                url = window._podcastAudioCache[currentIdx];
+            } else {
+                url = `${apiBase}/api/ai/podcast/speech?text=${encodeURIComponent(segment.text)}&speaker=${speaker}`;
+            }
 
-            const speaker = segment.speaker; // 'host' or 'expert'
-            
-            try {
-                const apiBase = getApiOrigin();
-                
-                const nextIdx = currentIdx + 1;
-                if (nextIdx < episode.segments.length) {
-                    const nextSeg = episode.segments[nextIdx];
-                    const nextUrl = `${apiBase}/api/ai/podcast/speech?text=${encodeURIComponent(nextSeg.text)}&speaker=${nextSeg.speaker}`;
-                    
-                    // Simple pre-fetch: Create a background audio element to start buffering
-                    const preFetchAudio = new Audio();
-                    preFetchAudio.preload = "auto";
-                    preFetchAudio.src = nextUrl;
-                    
-                    window._podcastAudioCache = window._podcastAudioCache || {};
-                    window._podcastAudioCache[nextIdx] = nextUrl;
-                }
+            const audio = new Audio(url);
+            audio.preload = "auto";
+            audioRef.current = audio;
 
-                // Play current segment
-                let url;
-                if (window._podcastAudioCache && window._podcastAudioCache[currentIdx]) {
-                    url = window._podcastAudioCache[currentIdx];
-                } else {
-                    url = `${apiBase}/api/ai/podcast/speech?text=${encodeURIComponent(segment.text)}&speaker=${speaker}`;
-                }
-
-                const audio = new Audio(url);
-                audioRef.current = audio;
-
-                const fallbackToServerTTS = async () => {
-                    console.warn(`[Podcast-Audio] Neural fallback triggered for ${speaker}. Using streaming TTS.`);
-                    try {
-                        const voice = speaker === 'host' ? 'en-US-JennyNeural' : 'en-US-BrianNeural';
-                        const streamUrl = buildTtsUrl(segment.text, voice);
-                        const fallbackAudio = new Audio(streamUrl);
-                        fallbackAudio.preload = 'auto';
-                        audioRef.current = fallbackAudio;
-                        fallbackAudio.onended = () => {
-                            if (activeSegment < episode.segments.length - 1) setActiveSegment(prev => prev + 1);
-                            else setIsPlaying(false);
-                        };
-                        fallbackAudio.onerror = () => {
-                            if (activeSegment < episode.segments.length - 1) setActiveSegment(prev => prev + 1);
-                            else setIsPlaying(false);
-                        };
-                        await fallbackAudio.play();
-                    } catch (ttsErr) {
-                        console.error("[Podcast-Audio] Server TTS fallback failed:", ttsErr);
-                        if (activeSegment < episode.segments.length - 1) setActiveSegment(prev => prev + 1);
+            const fallbackToServerTTS = async () => {
+                if (cancelled) return;
+                console.warn(`[Podcast-Audio] Neural fallback triggered for ${speaker}. Using streaming TTS.`);
+                try {
+                    const voice = speaker === 'host' ? 'en-US-JennyNeural' : 'en-US-BrianNeural';
+                    const streamUrl = buildTtsUrl(segment.text, voice);
+                    const fallbackAudio = new Audio(streamUrl);
+                    fallbackAudio.preload = 'auto';
+                    audioRef.current = fallbackAudio;
+                    fallbackAudio.onended = () => {
+                        if (window._podcastAudioCache) delete window._podcastAudioCache[currentIdx];
+                        if (currentIdx < segments.length - 1) setActiveSegment((prev) => prev + 1);
                         else setIsPlaying(false);
-                    }
-                };
+                    };
+                    fallbackAudio.onerror = () => {
+                        if (currentIdx < segments.length - 1) setActiveSegment((prev) => prev + 1);
+                        else setIsPlaying(false);
+                    };
+                    if (isPlayingRef.current && !cancelled) await fallbackAudio.play();
+                } catch (ttsErr) {
+                    console.error("[Podcast-Audio] Server TTS fallback failed:", ttsErr);
+                    if (currentIdx < segments.length - 1) setActiveSegment((prev) => prev + 1);
+                    else setIsPlaying(false);
+                }
+            };
 
-                audio.onended = () => {
-                    if (window._podcastAudioCache) delete window._podcastAudioCache[currentIdx];
-                    if (activeSegment < episode.segments.length - 1) {
-                        setActiveSegment(prev => prev + 1);
-                    } else {
-                        setIsPlaying(false);
-                    }
-                };
+            audio.onended = () => {
+                if (window._podcastAudioCache) delete window._podcastAudioCache[currentIdx];
+                if (currentIdx < segments.length - 1) setActiveSegment((prev) => prev + 1);
+                else setIsPlaying(false);
+            };
+            audio.onerror = () => { fallbackToServerTTS(); };
 
-                audio.onerror = () => {
-                    fallbackToServerTTS();
-                };
-
+            if (isPlayingRef.current && !cancelled) {
                 try {
                     await audio.play();
                 } catch (err) {
-                    if (err.name === 'AbortError' || err.message.includes('interrupted')) {
+                    if (err.name === 'AbortError' || String(err.message || '').includes('interrupted')) {
                         console.warn("[Podcast-Audio] Playback aborted intentionally.");
                     } else {
                         console.error("[Podcast-Audio] Neural Synthesis Failure:", err.message);
                         fallbackToServerTTS();
                     }
                 }
-            } catch (generalErr) {
-                console.error("[Podcast-Audio] General segment error:", generalErr.message);
             }
         };
 
-        playSegment();
+        loadSegment();
 
-        return stopAudio;
-    }, [isPlaying, activeSegment, episode, videoFailed]);
+        return () => {
+            cancelled = true;
+            teardown();
+            segmentKeyRef.current = null;
+        };
+    }, [activeSegment, episode, videoFailed]);
+
+    // Pause / resume without recreating audio (preserves currentTime)
+    useEffect(() => {
+        const audio = audioRef.current;
+        if (!audio || !episode || (episode.video_url && !videoFailed)) return;
+        if (isPlaying) {
+            audio.play().catch(() => {});
+        } else {
+            audio.pause();
+        }
+    }, [isPlaying, episode, videoFailed]);
 
     const generateStory = async (topic) => {
         setLoading(true);
@@ -374,7 +385,7 @@ export default function CsPodcastStudio() {
                 topicTitle: topic.title
             });
             setEpisode({ ...res.data.episode, topicImage: getTopicCoverImage(topic) });
-            setIsPlaying(true);
+            setIsPlaying(false);
         } catch (err) {
             setError(err.response?.data?.message || "Failed to generate story.");
         } finally {
@@ -478,7 +489,7 @@ export default function CsPodcastStudio() {
             const res = await api.get(`/ai/masterclass/episode/${ep.id}`);
             setEpisode(res.data);
             setActiveSegment(0);
-            setIsPlaying(true);
+            setIsPlaying(false);
         } catch {
             autoPlayedIdRef.current = null;
             setError("Failed to load archived episode.");
@@ -682,7 +693,7 @@ export default function CsPodcastStudio() {
                                                         }
                                                     </div>
                                                     <span className="font-bold uppercase text-[10px] tracking-widest">
-                                                        {isPlaying ? "Neural Engine Streaming" : "Paused"}
+                                                        {isPlaying ? "Playing — tap pause anytime" : "Paused — tap play to resume"}
                                                     </span>
                                                 </div>
 

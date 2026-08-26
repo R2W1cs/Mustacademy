@@ -98,6 +98,12 @@ export function playStreamingTts(text, voice, {
             audio.removeAttribute('src');
             audio.load();
         },
+        pause: () => {
+            audio.pause();
+        },
+        resume: () => {
+            audio.play().catch(() => {});
+        },
     };
 }
 
@@ -113,9 +119,13 @@ export function playStreamingTtsQueued(text, voice, {
     const chunks = splitSpeechChunks(text);
     let idx = 0;
     let stopped = false;
+    let paused = false;
+    let continueAfterPause = false;
 
     const stop = () => {
         stopped = true;
+        paused = false;
+        continueAfterPause = false;
         if (audioRef?.current) {
             audioRef.current.pause();
             audioRef.current.removeAttribute('src');
@@ -123,12 +133,34 @@ export function playStreamingTtsQueued(text, voice, {
         }
     };
 
+    const pause = () => {
+        if (stopped) return;
+        paused = true;
+        audioRef?.current?.pause();
+    };
+
+    const resume = () => {
+        if (stopped || !paused) return;
+        paused = false;
+        if (continueAfterPause) {
+            continueAfterPause = false;
+            playNext();
+            return;
+        }
+        audioRef?.current?.play().catch((err) => onError?.(err));
+    };
+
     if (signal) {
         signal.addEventListener('abort', stop, { once: true });
     }
 
     const playNext = () => {
-        if (stopped || idx >= chunks.length) {
+        if (stopped) return;
+        if (paused) {
+            continueAfterPause = true;
+            return;
+        }
+        if (idx >= chunks.length) {
             onEnded?.();
             return;
         }
@@ -142,7 +174,13 @@ export function playStreamingTtsQueued(text, voice, {
         playStreamingTts(chunk, voice, {
             audioRef,
             onPlay: chunkIdx === 0 ? onPlay : undefined,
-            onEnded: playNext,
+            onEnded: () => {
+                if (paused) {
+                    continueAfterPause = true;
+                    return;
+                }
+                playNext();
+            },
             onError: (err) => onError?.(err),
         });
 
@@ -150,7 +188,7 @@ export function playStreamingTtsQueued(text, voice, {
     };
 
     playNext();
-    return { stop };
+    return { stop, pause, resume };
 }
 
 export function browserSpeechFallback(text, onEnd) {
