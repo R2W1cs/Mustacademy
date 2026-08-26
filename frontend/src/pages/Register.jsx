@@ -148,11 +148,13 @@ const Register = () => {
           id: user.id,
           name: user.name || name,
           role: user.role || "student",
+          email: user.email,
+          profile_complete: Boolean(user.profile_complete),
         },
         res.data.accessToken
       );
       setSuccess(true);
-      setTimeout(() => navigate("/dashboard"), 1500);
+      setTimeout(() => navigate("/profile/setup"), 1500);
     } catch (err) {
       setError(err.response?.data?.message || "Registration failed. Please try again.");
       setIsLoading(false);
@@ -247,7 +249,7 @@ const Register = () => {
                       exit={{ opacity: 0, y: -10 }}
                       className={`border px-4 py-3 rounded-xl text-sm font-medium ${isDark ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}
                     >
-                      ✓ Account Created Successfully
+                      ✓ Account created — next, complete your profile
                     </motion.div>
                   )}
                 </AnimatePresence>

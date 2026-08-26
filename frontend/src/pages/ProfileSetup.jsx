@@ -4,6 +4,7 @@ import { getMyProfile, updateProfile } from "../api/profile";
 import api from "../api/axios";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../auth/ThemeContext";
+import { useAuth } from "../auth/AuthContext";
 import {
     User, Briefcase, BookOpen, Zap, ChevronDown, Target, Activity,
     CheckCircle, AlertCircle, Camera, ArrowLeft, Sparkles, UserCircle2
@@ -90,7 +91,9 @@ const Section = ({ title, subtitle, icon: Icon, children, isDark }) => (
 export default function ProfileSetup() {
     const navigate = useNavigate();
     const { theme } = useTheme();
+    const { profileComplete, markProfileComplete, refreshUser } = useAuth();
     const isDark = theme === "dark";
+    const mustComplete = !profileComplete;
     const fileRef = useRef(null);
 
     const [profile, setProfile] = useState({
@@ -185,6 +188,18 @@ export default function ProfileSetup() {
 
     const saveProfile = async () => {
         setSaving(true); setSaved(false); setError("");
+
+        if (!String(profile.dream_job || "").trim()) {
+            setError("Pick your dream career path so we can personalize your roadmap.");
+            setSaving(false);
+            return;
+        }
+        if (profile.year == null || profile.year === "" || profile.semester == null || profile.semester === "") {
+            setError("Set your academic year and semester to continue.");
+            setSaving(false);
+            return;
+        }
+
         try {
             await updateProfile({
                 avatar_url: profile.avatar_url,
@@ -197,8 +212,14 @@ export default function ProfileSetup() {
                 target_company: profile.target_company,
                 technical_pillar: profile.technical_pillar,
             });
+            markProfileComplete();
+            try {
+                await refreshUser();
+            } catch {
+                // local flag already set
+            }
             setSaved(true);
-            setTimeout(() => navigate("/library"), 1400);
+            setTimeout(() => navigate("/dashboard"), 1400);
         } catch (err) {
             const apiMsg = err.response?.data?.message || err.message;
             setError(apiMsg || "Could not save profile. Check your connection and try again.");
@@ -225,32 +246,55 @@ export default function ProfileSetup() {
                 {/* ── Page header ── */}
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-16 gap-6">
                     <div className="flex items-center gap-6">
-                        <button
-                            onClick={() => navigate(-1)}
-                            className={`p-3 rounded-2xl border transition-all ${isDark ? "bg-white/5 border-white/10 text-white/40 hover:text-white hover:bg-white/10" : "bg-white border-indigo-100 text-indigo-400 hover:text-indigo-600 hover:border-indigo-300 shadow-sm"}`}
-                        >
-                            <ArrowLeft size={22} />
-                        </button>
+                        {!mustComplete && (
+                            <button
+                                onClick={() => navigate(-1)}
+                                className={`p-3 rounded-2xl border transition-all ${isDark ? "bg-white/5 border-white/10 text-white/40 hover:text-white hover:bg-white/10" : "bg-white border-indigo-100 text-indigo-400 hover:text-indigo-600 hover:border-indigo-300 shadow-sm"}`}
+                            >
+                                <ArrowLeft size={22} />
+                            </button>
+                        )}
                         <div>
                             <div className="flex items-center gap-2 mb-2">
                                 <Sparkles size={14} className={isDark ? "text-indigo-400" : "text-indigo-600"} />
                                 <span className={`text-[10px] font-black uppercase tracking-[0.3em] ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>
-                                    Build your Identity
+                                    {mustComplete ? "Required to continue" : "Build your Identity"}
                                 </span>
                             </div>
                             <h1 className={`text-4xl md:text-5xl font-black tracking-tighter ${isDark ? "text-white" : "text-slate-900"}`}>
-                                SCHOLAR <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-500 italic">PROFILE</span>
+                                {mustComplete ? (
+                                    <>COMPLETE YOUR <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-500 italic">PROFILE</span></>
+                                ) : (
+                                    <>SCHOLAR <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-500 italic">PROFILE</span></>
+                                )}
                             </h1>
+                            {mustComplete && (
+                                <p className={`mt-3 max-w-xl text-sm font-medium ${isDark ? "text-white/50" : "text-slate-500"}`}>
+                                    Set your year, semester, and dream career path so we can personalize your dashboard and roadmaps.
+                                </p>
+                            )}
                         </div>
                     </div>
 
-                    <div className={`hidden md:flex items-center gap-4 px-6 py-3 rounded-2xl border backdrop-blur-sm ${isDark ? 'bg-[#0f1729]/80 border-emerald-500/30 shadow-lg' : 'bg-emerald-50 border-emerald-200'}`}>
+                    <div className={`hidden md:flex items-center gap-4 px-6 py-3 rounded-2xl border backdrop-blur-sm ${mustComplete
+                        ? (isDark ? 'bg-[#0f1729]/80 border-amber-500/30 shadow-lg' : 'bg-amber-50 border-amber-200')
+                        : (isDark ? 'bg-[#0f1729]/80 border-emerald-500/30 shadow-lg' : 'bg-emerald-50 border-emerald-200')
+                        }`}>
                         <div className="text-right">
-                            <p className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-emerald-500/50' : 'text-emerald-600/60'}`}>Clearance</p>
-                            <p className={`text-xs font-black uppercase tracking-widest ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>Verified</p>
+                            <p className={`text-[9px] font-black uppercase tracking-widest ${mustComplete
+                                ? (isDark ? 'text-amber-500/50' : 'text-amber-600/60')
+                                : (isDark ? 'text-emerald-500/50' : 'text-emerald-600/60')
+                                }`}>Clearance</p>
+                            <p className={`text-xs font-black uppercase tracking-widest ${mustComplete
+                                ? (isDark ? 'text-amber-400' : 'text-amber-600')
+                                : (isDark ? 'text-emerald-400' : 'text-emerald-600')
+                                }`}>{mustComplete ? "Pending" : "Verified"}</p>
                         </div>
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-100 text-emerald-600'}`}>
-                            <CheckCircle size={20} />
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${mustComplete
+                            ? (isDark ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-100 text-amber-600')
+                            : (isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-100 text-emerald-600')
+                            }`}>
+                            {mustComplete ? <AlertCircle size={20} /> : <CheckCircle size={20} />}
                         </div>
                     </div>
                 </div>
@@ -429,7 +473,7 @@ export default function ProfileSetup() {
                         {/* Academic */}
                         <Section title="Academic Parameters" subtitle="Current chronological location" icon={BookOpen} isDark={isDark}>
                             <div className="grid grid-cols-2 gap-6">
-                                <Field label="Year Level" icon={null} isDark={isDark}>
+                                <Field label="Year Level (required)" icon={null} isDark={isDark}>
                                     <div className="relative">
                                         <select value={profile.year || 1} onChange={e => set("year", Number(e.target.value))} className={selectCls(isDark)}>
                                             <option value={1} className={isDark ? "bg-[#0f1729] text-white" : "bg-white text-slate-900"}>Year 01</option>
@@ -440,7 +484,7 @@ export default function ProfileSetup() {
                                         <ChevronDown size={16} className={`absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none ${isDark ? "text-white/40" : "text-slate-400"}`} />
                                     </div>
                                 </Field>
-                                <Field label="Semester" icon={null} isDark={isDark}>
+                                <Field label="Semester (required)" icon={null} isDark={isDark}>
                                     <div className="relative">
                                         <select value={profile.semester || 1} onChange={e => set("semester", Number(e.target.value))} className={selectCls(isDark)}>
                                             <option value={1} className={isDark ? "bg-[#0f1729] text-white" : "bg-white text-slate-900"}>Semester 01</option>
@@ -454,7 +498,7 @@ export default function ProfileSetup() {
 
                         {/* Career */}
                         <Section title="Engineering Directive" subtitle="Configures your AI-generated curriculum" icon={Briefcase} isDark={isDark}>
-                            <Field label="Ultimate Designation" isDark={isDark}>
+                            <Field label="Ultimate Designation (required)" isDark={isDark}>
                                 <div className="relative">
                                     <select value={profile.dream_job || ""} onChange={e => set("dream_job", e.target.value)} className={selectCls(isDark)}>
                                         {CAREER_OPTIONS.map(o => (
@@ -516,7 +560,7 @@ export default function ProfileSetup() {
                                     initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                                     className="flex items-center gap-3 p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-black uppercase tracking-widest shadow-lg"
                                 >
-                                    <CheckCircle size={18} /> Changes Saved. Rerouting...
+                                    <CheckCircle size={18} /> {mustComplete ? "Profile complete. Opening dashboard..." : "Changes Saved. Rerouting..."}
                                 </motion.div>
                             )}
                             {error && (
@@ -554,7 +598,7 @@ export default function ProfileSetup() {
                                     <>
                                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-[150%] group-hover:translate-x-[150%] transition-transform duration-700 ease-out" />
                                         <Zap size={20} fill="currentColor" className="group-hover:rotate-12 transition-transform" />
-                                        Save Changes
+                                        {mustComplete ? "Complete Profile & Continue" : "Save Changes"}
                                     </>
                                 )}
                             </motion.button>

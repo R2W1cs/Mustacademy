@@ -1,8 +1,8 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 
-export function RequireAuth({ children, roles }) {
-  const { user, role, bootstrapped } = useAuth();
+export function RequireAuth({ children, roles, allowIncompleteProfile = false }) {
+  const { user, role, bootstrapped, profileComplete } = useAuth();
 
   if (!bootstrapped) {
     return (
@@ -18,6 +18,16 @@ export function RequireAuth({ children, roles }) {
 
   if (roles?.length && !roles.includes(role)) {
     return <Navigate to="/dashboard" replace />;
+  }
+
+  const needsProfile =
+    !allowIncompleteProfile &&
+    !profileComplete &&
+    role !== "admin" &&
+    role !== "professor";
+
+  if (needsProfile) {
+    return <Navigate to="/profile/setup" replace />;
   }
 
   return children;

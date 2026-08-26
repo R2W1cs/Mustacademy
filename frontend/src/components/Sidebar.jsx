@@ -54,7 +54,7 @@ const StarParticles = () => {
 
 export default function Sidebar({ isCollapsed, toggleSidebar, mobileOpen = false, onMobileClose }) {
     const { theme, toggleTheme } = useTheme();
-    const { logout } = useAuth();
+    const { logout, profileComplete } = useAuth();
     const isDark = theme === 'dark';
     const navigate = useNavigate();
     const location = useLocation();
@@ -79,19 +79,21 @@ export default function Sidebar({ isCollapsed, toggleSidebar, mobileOpen = false
 
     const role = localStorage.getItem("role");
 
-    const navItems = [
-        { name: "Dashboard", icon: LayoutGrid, path: "/dashboard", id: "dashboard" },
-        { name: "Knowledge Map", icon: Network, path: "/knowledge-map", id: "knowledge-map", badge: "Active" },
-        { name: "Library", icon: BookOpen, path: "/library", id: "library" },
-        // CS Documentary hidden until studio catalog is ready
-        // { name: "CS Documentary", icon: Film, path: "/podcast-studio", id: "podcast-studio", badge: "AI" },
-        { name: "Boardroom", icon: Briefcase, path: "/interview-boardroom", id: "interview", badge: "AI" },
-        { name: "Creator Corner", icon: Rocket, path: "/creator-corner", id: "creator-corner", badge: "Elite" },
-        { name: "Market Pulse", icon: Activity, path: "/market", id: "market", badge: "LIVE" },
-        { name: "Neural Clash", icon: Swords, path: "/neural-clash", id: "neural-clash", badge: "ARENA" },
-        { name: "Career Profile", icon: User, path: "/profile", id: "profile" },
-        ...( ["admin", "professor"].includes(role) ? [{ name: "Admin Panel", icon: Shield, path: "/admin", id: "admin", badge: "STAFF" }] : [] ),
-    ];
+    const navItems = profileComplete
+        ? [
+            { name: "Dashboard", icon: LayoutGrid, path: "/dashboard", id: "dashboard" },
+            { name: "Knowledge Map", icon: Network, path: "/knowledge-map", id: "knowledge-map", badge: "Active" },
+            { name: "Library", icon: BookOpen, path: "/library", id: "library" },
+            { name: "Boardroom", icon: Briefcase, path: "/interview-boardroom", id: "interview", badge: "AI" },
+            { name: "Creator Corner", icon: Rocket, path: "/creator-corner", id: "creator-corner", badge: "Elite" },
+            { name: "Market Pulse", icon: Activity, path: "/market", id: "market", badge: "LIVE" },
+            { name: "Neural Clash", icon: Swords, path: "/neural-clash", id: "neural-clash", badge: "ARENA" },
+            { name: "Career Profile", icon: User, path: "/profile", id: "profile" },
+            ...( ["admin", "professor"].includes(role) ? [{ name: "Admin Panel", icon: Shield, path: "/admin", id: "admin", badge: "STAFF" }] : [] ),
+        ]
+        : [
+            { name: "Complete Profile", icon: Settings, path: "/profile/setup", id: "profile-setup", badge: "Required" },
+        ];
 
     const sidebarClass = isDark ? "glass-morphism border-r border-white/5 shadow-lg" : "bg-white border-r border-gray-200/50 shadow-lg";
     const headingColor = isDark ? "text-white" : "text-gray-900";
@@ -132,7 +134,7 @@ export default function Sidebar({ isCollapsed, toggleSidebar, mobileOpen = false
             </button>
 
             {/* Logo */}
-            <div className={`p-6 border-b cursor-pointer ${isDark ? 'border-gray-800' : 'border-gray-100'} h-[89px] flex items-center overflow-hidden relative z-10`} onClick={() => navigate('/dashboard')}>
+            <div className={`p-6 border-b cursor-pointer ${isDark ? 'border-gray-800' : 'border-gray-100'} h-[89px] flex items-center overflow-hidden relative z-10`} onClick={() => navigate(profileComplete ? '/dashboard' : '/profile/setup')}>
                 <div className="flex items-center space-x-3 shrink-0">
                     <img
                         src={mustLogo}

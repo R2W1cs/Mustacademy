@@ -49,14 +49,14 @@ const withSuspense = (Component) => (
 
 const publicPage = (Component) => withSuspense(Component);
 
-const protectedPage = (Component, { roles } = {}) => (
-  <RequireAuth roles={roles}>
+const protectedPage = (Component, { roles, allowIncompleteProfile } = {}) => (
+  <RequireAuth roles={roles} allowIncompleteProfile={allowIncompleteProfile}>
     {withSuspense(Component)}
   </RequireAuth>
 );
 
-const protectedLayout = (Component, { roles } = {}) => (
-  <RequireAuth roles={roles}>
+const protectedLayout = (Component, { roles, allowIncompleteProfile } = {}) => (
+  <RequireAuth roles={roles} allowIncompleteProfile={allowIncompleteProfile}>
     <MainLayout>{withSuspense(Component)}</MainLayout>
   </RequireAuth>
 );
@@ -82,7 +82,7 @@ export default function AppRoutes() {
       <Route path="/neural-clash" element={protectedLayout(NeuralClashPage)} />
       <Route path="/arena" element={protectedLayout(NeuralClashPage)} />
       <Route path="/exams/session" element={protectedLayout(ExamSession)} />
-      <Route path="/profile/setup" element={protectedLayout(ProfileSetup)} />
+      <Route path="/profile/setup" element={protectedLayout(ProfileSetup, { allowIncompleteProfile: true })} />
       <Route path="/profile" element={protectedLayout(Profile)} />
       <Route path="/career/roadmap" element={protectedLayout(CareerRoadmap)} />
       <Route path="/career" element={protectedLayout(CareerRoadmap)} />

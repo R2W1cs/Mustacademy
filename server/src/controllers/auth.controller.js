@@ -10,6 +10,7 @@ import {
   revokeRefreshToken,
   revokeAllUserRefreshTokens,
 } from '../services/refreshToken.service.js';
+import { isProfileComplete } from '../utils/profileComplete.js';
 
 const BCRYPT_ROUNDS = 12;
 const ACCESS_TOKEN_TTL = '15m';
@@ -29,7 +30,10 @@ const signAccessToken = (user) =>
 
 const sanitizeUser = (user) => {
   const { password_hash, failed_login_attempts, locked_until, ...safe } = user;
-  return safe;
+  return {
+    ...safe,
+    profile_complete: isProfileComplete(user),
+  };
 };
 
 const issueAuthSession = async (user, res) => {
@@ -76,7 +80,7 @@ export const register = async (req, res) => {
   const result = await pool.query(
     `INSERT INTO users (name, email, password_hash)
      VALUES ($1,$2,$3)
-     RETURNING id, name, email, role, token_version`,
+     RETURNING id, name, email, role, token_version, dream_job, year, semester`,
     [name, email, hash]
   );
 
@@ -98,7 +102,8 @@ export const login = async (req, res) => {
 
     const result = await pool.query(
       `SELECT id, name, email, role, password_hash, token_version,
-              failed_login_attempts, locked_until
+              failed_login_attempts, locked_until,
+              dream_job, year, semester
        FROM users WHERE email=$1`,
       [email]
     );
@@ -146,7 +151,8 @@ export const refresh = async (req, res) => {
     }
 
     const { rows } = await pool.query(
-      'SELECT id, name, email, role, token_version FROM users WHERE id = $1',
+      `SELECT id, name, email, role, token_version, dream_job, year, semester
+       FROM users WHERE id = $1`,
       [claimed.user_id]
     );
 
@@ -172,13 +178,14 @@ export const logout = async (req, res) => {
 
 export const getSession = async (req, res) => {
   const { rows } = await pool.query(
-    'SELECT id, name, email, role, plan FROM users WHERE id = $1',
+    `SELECT id, name, email, role, plan, dream_job, year, semester
+     FROM users WHERE id = $1`,
     [req.user.id]
   );
   if (!rows.length) {
     return res.status(401).json({ message: 'Invalid token' });
   }
-  res.json({ user: rows[0] });
+  res.json({ user: sanitizeUser(rows[0]) });
 };
 
 /** Short-lived JWT for Socket.IO (cookies often miss cross-origin WS handshakes). */

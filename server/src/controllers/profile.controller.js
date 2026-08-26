@@ -1,6 +1,7 @@
 import pool from "../config/db.js";
 import { addContribution } from "../services/contribution.service.js";
 import { getCareerAlignment } from "../services/vocation.service.js";
+import { isProfileComplete } from "../utils/profileComplete.js";
 
 /* ---------------- GET MY PROFILE ---------------- */
 export const getMyProfile = async (req, res) => {
@@ -33,6 +34,7 @@ export const getMyProfile = async (req, res) => {
 
     res.json({
       ...profile,
+      profile_complete: isProfileComplete(profile),
       careerOracle
     });
   } catch (err) {
@@ -58,6 +60,13 @@ export const updateProfile = async (req, res) => {
       technical_pillar = null,
     } = req.body;
 
+    const dreamJob = String(dream_job || "").trim();
+    if (!dreamJob || year == null || year === "" || semester == null || semester === "") {
+      return res.status(400).json({
+        message: "Please set your year, semester, and dream career path to complete your profile.",
+      });
+    }
+
     // Update profile
     await pool.query(
       `
@@ -73,7 +82,7 @@ export const updateProfile = async (req, res) => {
           technical_pillar=$9
       WHERE id=$10
       `,
-      [avatar_url, bio, passion, year, semester, status, dream_job, target_company, technical_pillar, userId]
+      [avatar_url, bio, passion, year, semester, status, dreamJob, target_company, technical_pillar, userId]
     );
 
     /**
@@ -98,7 +107,10 @@ export const updateProfile = async (req, res) => {
       });
     }
 
-    res.json({ message: "Profile updated successfully" });
+    res.json({
+      message: "Profile updated successfully",
+      profile_complete: true,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Failed to update profile" });

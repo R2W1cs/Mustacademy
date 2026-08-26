@@ -18,7 +18,7 @@ const Navbar = () => {
     const [notifications, setNotifications] = useState([]);
     const [isSocketConnected, setIsSocketConnected] = useState(false);
     const { theme, toggleTheme } = useTheme();
-    const { logout } = useAuth();
+    const { logout, profileComplete } = useAuth();
     const isDark = theme === 'dark';
 
     const menuRef = useRef(null);
@@ -107,7 +107,7 @@ const Navbar = () => {
                     <motion.div
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => navigate("/")}
+                        onClick={() => navigate(profileComplete ? "/" : "/profile/setup")}
                         className="cursor-pointer group relative"
                     >
                         <div className="absolute -inset-2 bg-gradient-to-r from-cyan-500 to-nebula rounded-full opacity-20 blur-lg group-hover:opacity-40 transition-opacity duration-500"></div>
@@ -119,14 +119,17 @@ const Navbar = () => {
 
                 {/* CENTER — NAV LINKS */}
                 <nav className={`flex gap-2 justify-center p-1.5 rounded-full border backdrop-blur-md transition-colors ${isDark ? 'bg-white/5 border-white/10' : 'bg-white/60 border-gray-100 shadow-sm'}`}>
-                    {[
-                        { tag: "Home", path: "/dashboard" },
-                        { tag: "Library", path: "/library" },
-                        { tag: "Arena", path: "/arena" },
-                        { tag: "Career", path: "/career" },
-                        { tag: "Boardroom", path: "/interview-boardroom" },
-                        { tag: "Market", path: "/market" },
-                    ].map((link) => (
+                    {(profileComplete
+                        ? [
+                            { tag: "Home", path: "/dashboard" },
+                            { tag: "Library", path: "/library" },
+                            { tag: "Arena", path: "/arena" },
+                            { tag: "Career", path: "/career" },
+                            { tag: "Boardroom", path: "/interview-boardroom" },
+                            { tag: "Market", path: "/market" },
+                        ]
+                        : [{ tag: "Profile", path: "/profile/setup" }]
+                    ).map((link) => (
                         <NavLink
                             key={link.path}
                             to={link.path}

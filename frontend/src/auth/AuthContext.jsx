@@ -1,20 +1,32 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import api from "../api/axios";
 import { clearSocketToken, setSocketToken } from "../utils/socketAuth";
 
 const AuthContext = createContext(null);
+
+const normalizeUser = (user) => {
+  if (!user) return null;
+  return {
+    ...user,
+    profile_complete: Boolean(user.profile_complete),
+  };
+};
 
 const persistUser = (user) => {
   if (!user) return;
   if (user.id != null) localStorage.setItem("userId", String(user.id));
   if (user.name) localStorage.setItem("userName", user.name);
   if (user.role) localStorage.setItem("role", user.role);
+  if (user.profile_complete != null) {
+    localStorage.setItem("profileComplete", user.profile_complete ? "1" : "0");
+  }
 };
 
 const clearUserStorage = () => {
   localStorage.removeItem("userId");
   localStorage.removeItem("userName");
   localStorage.removeItem("role");
+  localStorage.removeItem("profileComplete");
   clearSocketToken();
 };
 
@@ -25,8 +37,9 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     api.get("/auth/session")
       .then((res) => {
-        setUser(res.data.user);
-        persistUser(res.data.user);
+        const next = normalizeUser(res.data.user);
+        setUser(next);
+        persistUser(next);
       })
       .catch(() => {
         setUser(null);
@@ -36,10 +49,28 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = (userData, accessToken) => {
-    persistUser(userData);
+    const next = normalizeUser(userData);
+    persistUser(next);
     if (accessToken) setSocketToken(accessToken);
-    setUser(userData);
+    setUser(next);
   };
+
+  const refreshUser = useCallback(async () => {
+    const res = await api.get("/auth/session");
+    const next = normalizeUser(res.data.user);
+    setUser(next);
+    persistUser(next);
+    return next;
+  }, []);
+
+  const markProfileComplete = useCallback(() => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, profile_complete: true };
+      persistUser(next);
+      return next;
+    });
+  }, []);
 
   const logout = async () => {
     try {
@@ -57,9 +88,12 @@ export const AuthProvider = ({ children }) => {
         user,
         role: user?.role,
         isAuthenticated: !!user,
+        profileComplete: Boolean(user?.profile_complete),
         bootstrapped,
         login,
         logout,
+        refreshUser,
+        markProfileComplete,
       }}
     >
       {children}

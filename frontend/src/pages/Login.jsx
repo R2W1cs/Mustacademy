@@ -150,11 +150,20 @@ const Login = () => {
           id: user.id,
           name: user.name || "Scholar",
           role: user.role || "student",
+          email: user.email,
+          plan: user.plan,
+          profile_complete: Boolean(user.profile_complete),
         },
         res.data.accessToken
       );
       const role = user.role;
-      navigate(role === "admin" ? "/admin" : role === "professor" ? "/admin" : "/dashboard");
+      if (role === "admin" || role === "professor") {
+        navigate("/admin");
+      } else if (!user.profile_complete) {
+        navigate("/profile/setup");
+      } else {
+        navigate("/dashboard");
+      }
     } catch (err) {
       if (err.response?.status === 401) {
         setError("Incorrect email or password. Please check your credentials and try again.");
