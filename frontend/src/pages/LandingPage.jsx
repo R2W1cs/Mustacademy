@@ -9,100 +9,130 @@ import {
     Menu,
     X,
     Swords,
-    BookOpen,
     GitBranch,
     Users,
     Library,
-    Radio,
     Layers,
     ChevronDown,
+    CheckCircle2,
+    FileText,
+    BarChart3,
+    Map,
+    Star,
+    GitMerge,
+    Code2,
+    Rocket,
+    Brain,
+    Trophy,
+    Zap,
+    TrendingUp,
 } from "lucide-react";
 import { useTheme } from "../auth/ThemeContext";
 import mustLogo from "../assets/must_logo.png";
 
-/** Nav — short labels that mean something, not SaaS placeholders */
 const NAV = [
     { id: "learn", label: "Learn" },
     { id: "compete", label: "Compete" },
     { id: "launch", label: "Launch" },
 ];
 
-const PILLARS = [
+const HERO_PILLARS = [
+    { icon: Users, title: "Collaborate & form teams", desc: "Join projects, form squads, and ship things that matter." },
+    { icon: Code2, title: "Battle with your friends", desc: "Neural Clash arenas — compete and level up every day." },
+    { icon: Rocket, title: "Real-world experience", desc: "Build a portfolio of work employers actually care about." },
+];
+
+const FEATURES = [
+    { icon: GitBranch, title: "Structured roadmaps", desc: "Curated paths from fundamentals to job-ready skills." },
+    { icon: Brain, title: "1-on-1 AI Tutor", desc: "Ask questions, get examples, practice on every topic." },
+    { icon: Zap, title: "Neural Clash Arena", desc: "Live quiz battles with classmates under real pressure." },
+    { icon: Mic, title: "Interview Boardroom", desc: "Voice mocks with AI feedback and scorecards." },
+    { icon: Trophy, title: "Project Corner", desc: "Implement ideas with guidance from idea to deploy." },
+    { icon: TrendingUp, title: "Market trends", desc: "Stay current with live tech industry insights." },
+];
+
+const TECHS_ROW1 = [
+    { name: "Python", color: "#3b82f6" },
+    { name: "JavaScript", color: "#ca8a04" },
+    { name: "React", color: "#0891b2" },
+    { name: "Node.js", color: "#16a34a" },
+    { name: "TypeScript", color: "#2563eb" },
+    { name: "Java", color: "#c2410c" },
+    { name: "SQL", color: "#db2777" },
+    { name: "Docker", color: "#0284c7" },
+    { name: "AWS", color: "#d97706" },
+    { name: "Firebase", color: "#ea580c" },
+];
+
+const TECHS_ROW2 = [
+    { name: "Git", color: "#dc2626" },
+    { name: "Linux", color: "#a16207" },
+    { name: "REST APIs", color: "#7c3aed" },
+    { name: "GraphQL", color: "#c026d3" },
+    { name: "Redis", color: "#e11d48" },
+    { name: "MongoDB", color: "#15803d" },
+    { name: "C++", color: "#1d4ed8" },
+    { name: "Cloud", color: "#0e7490" },
+    { name: "Security", color: "#be123c" },
+    { name: "Algorithms", color: "#6d28d9" },
+    { name: "System Design", color: "#b45309" },
+];
+
+const TEAM_BULLETS = [
+    "Find teammates with complementary skills",
+    "Collaborate on real open-source projects",
+    "Build from idea to deployment",
+    "Learn version control and team workflows",
+    "Show employers team-based accomplishments",
+];
+
+const INTERVIEW_ITEMS = [
+    { icon: Mic, title: "Mock interviews", desc: "Timed voice sessions that feel like the real room." },
+    { icon: Brain, title: "AI analysis", desc: "Breakdowns of answers, tone, and confidence." },
+    { icon: FileText, title: "Question bank", desc: "Curated questions by topic and difficulty." },
+    { icon: BarChart3, title: "Performance tracking", desc: "See improvement across sessions over time." },
+];
+
+const JOURNEY_STEPS = [
     {
-        n: "01",
-        title: "Roadmaps that mean something",
-        body: "Weekly modules, labs, and checkpoints — not a random YouTube queue.",
+        step: "01", icon: Map, title: "Pick your track",
+        desc: "Web, AI/ML, cybersecurity, systems — matched to your goals.",
+        detail: "Answer a short quiz or browse specializations. Each track shows what to learn, why it matters, and which skills employers expect.",
     },
     {
-        n: "02",
-        title: "Practice that sticks",
-        body: "1-on-1 AI Tutor on every topic. Ask, quiz yourself, keep notes.",
+        step: "02", icon: GitBranch, title: "Follow the roadmap",
+        desc: "Weekly modules with clear deliverables — no guesswork.",
+        detail: "Curated resources, labs, progress checkpoints, and AI summaries. The roadmap adapts as you go.",
     },
     {
-        n: "03",
-        title: "Pressure you can use",
-        body: "Neural Clash arenas and Boardroom voice mocks — rehearse before it counts.",
+        step: "03", icon: GitMerge, title: "Build & compete",
+        desc: "Mini-projects, team work, and live arena rounds.",
+        detail: "Apply skills through labs and Neural Clash sessions that make revision stick under pressure.",
+    },
+    {
+        step: "04", icon: Mic, title: "Ace interviews",
+        desc: "Practice out loud before it counts.",
+        detail: "Boardroom voice mocks with scorecards on technical depth, clarity, and confidence — not typed fantasies.",
+    },
+    {
+        step: "05", icon: Star, title: "Show your work",
+        desc: "A portfolio of projects and proof.",
+        detail: "Completed topics, shipped projects, and session history. Walk into interviews with something real to talk about.",
     },
 ];
 
-const TOOLKIT = [
-    { icon: BookOpen, name: "Interactive lessons", desc: "Labs, visualizers, and topic notebooks on every module." },
-    { icon: BrainIcon, name: "1-on-1 AI Tutor", desc: "Practice Q&A without sitting through a full lecture first." },
-    { icon: GitBranch, name: "Career roadmaps", desc: "See skills mapped to real roles — frontend, ML, SRE, and more." },
-    { icon: Library, name: "Course library", desc: "Structured CS courses with progress that actually tracks." },
-    { icon: Users, name: "Team projects", desc: "Form squads, ship work, build something linkable on your profile." },
-    { icon: Radio, name: "Podcast studio", desc: "Turn topics into audio — study while you commute." },
-];
-
-const TRACKS = [
-    "Web & Frontend", "Backend & APIs", "AI / Machine Learning",
-    "Cybersecurity", "Data Engineering", "Systems & OS",
-    "Mobile Development", "Cloud & DevOps",
-];
-
-const PATH = [
+const TESTIMONIALS = [
     {
-        step: "01",
-        label: "Pick your track",
-        detail: "Answer a short quiz or browse specializations. We suggest where to start based on your background.",
+        quote: "Neural Clash makes studying fun. I picked up algorithms faster competing with classmates than reading alone.",
+        name: "Ahmed K.", role: "CS Student, Year 3", avatar: "A",
     },
     {
-        step: "02",
-        label: "Work the roadmap",
-        detail: "Weekly sprints with lessons, labs, and checkpoints. AI summaries when you need a fast recap.",
+        quote: "The AI Tutor explained recursion with examples I could follow step by step. Better than rewatching lectures.",
+        name: "Sara M.", role: "Software Engineering Intern", avatar: "S",
     },
     {
-        step: "03",
-        label: "Build & compete",
-        detail: "Mini-projects after modules. Join Neural Clash rounds with classmates when you need to stress-test knowledge.",
-    },
-    {
-        step: "04",
-        label: "Interview out loud",
-        detail: "Boardroom voice mocks with scorecards — technical depth, clarity, and confidence, not typed answers.",
-    },
-    {
-        step: "05",
-        label: "Show your work",
-        detail: "Portfolio of completed topics, projects, and session history. Walk in with proof, not just a CV line.",
-    },
-];
-
-const VOICES = [
-    {
-        quote: "Neural Clash turned revision into something I'd actually show up for. I stopped rereading slides and started winning rounds.",
-        name: "Ahmed K.",
-        tag: "CS · Year 3",
-    },
-    {
-        quote: "The tutor on binary trees answered follow-ups like a patient TA — except at 2am before my exam.",
-        name: "Sara M.",
-        tag: "SWE intern",
-    },
-    {
-        quote: "Three Boardroom sessions and I stopped freezing on system design. Speaking out loud was the missing piece.",
-        name: "Omar L.",
-        tag: "Final year",
+        quote: "After a few Boardroom sessions I felt ready for my technical interview. Speaking out loud made the difference.",
+        name: "Omar L.", role: "Final-year CS student", avatar: "O",
     },
 ];
 
@@ -121,18 +151,11 @@ const FAQ = [
     },
 ];
 
-function BrainIcon(props) {
-    return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...props}>
-            <path d="M12 4.5c-2 0-3.5 1.5-3.5 3.5 0 .8.3 1.5.8 2-1.2.5-2 1.7-2 3.1 0 1.2.6 2.2 1.5 2.8-.3.6-.5 1.3-.5 2.1 0 2.2 1.8 4 4 4h.4c.3 1.2 1.4 2 2.6 2s2.3-.8 2.6-2H17c2.2 0 4-1.8 4-4 0-.8-.2-1.5-.5-2.1.9-.6 1.5-1.6 1.5-2.8 0-1.4-.8-2.6-2-3.1.5-.5.8-1.2.8-2C15.5 6 14 4.5 12 4.5z" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-    );
-}
-
 export default function LandingPage() {
     const { theme, toggleTheme } = useTheme();
     const isDark = theme === "dark";
     const [menuOpen, setMenuOpen] = useState(false);
+    const [openStep, setOpenStep] = useState(null);
     const [openFaq, setOpenFaq] = useState(null);
 
     const scrollTo = (id) => {
@@ -140,15 +163,11 @@ export default function LandingPage() {
         document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
     };
 
-    const fade = (delay = 0) => ({
-        initial: { opacity: 0, y: 20 },
-        animate: { opacity: 1, y: 0 },
-        transition: { duration: 0.55, delay, ease: [0.22, 1, 0.36, 1] },
-    });
-
     const muted = isDark ? "text-slate-400" : "text-neutral-600";
     const border = isDark ? "border-white/[0.06]" : "border-black/[0.06]";
     const panel = isDark ? "border-white/10 bg-[#0a0e14]" : "border-neutral-200 bg-white";
+    const accent = isDark ? "text-[#00f2ff]" : "text-[#c01636]";
+    const accentSoft = isDark ? "text-[#00f2ff]/80" : "text-[#c01636]";
 
     return (
         <div className={`landing-page min-h-screen ${isDark ? "mesh-bg text-[#f1f5f9]" : "bg-[#fafafa] text-[#141414]"}`}>
@@ -159,50 +178,54 @@ export default function LandingPage() {
                 .landing-mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
                 .landing-grid-bg {
                     background-image:
-                        linear-gradient(${isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.06)"} 1px, transparent 1px),
-                        linear-gradient(90deg, ${isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.06)"} 1px, transparent 1px);
+                        linear-gradient(${isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.05)"} 1px, transparent 1px),
+                        linear-gradient(90deg, ${isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.05)"} 1px, transparent 1px);
                     background-size: 48px 48px;
                 }
                 .landing-btn-primary { background: #c01636; color: #fff; }
                 .landing-btn-primary:hover { background: #9b1c2e; }
                 .landing-accent-line { background: ${isDark ? "#00f2ff" : "#c01636"}; }
+                @keyframes marquee-left  { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+                @keyframes marquee-right { from { transform: translateX(-50%); } to { transform: translateX(0); } }
+                .marquee-track-left  { animation: marquee-left  32s linear infinite; }
+                .marquee-track-right { animation: marquee-right 30s linear infinite; }
+                .marquee-track-left:hover, .marquee-track-right:hover { animation-play-state: paused; }
+                .step-detail { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.35s ease; }
+                .step-detail.open { grid-template-rows: 1fr; }
+                .step-detail-inner { overflow: hidden; }
                 .faq-panel { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.3s ease; }
                 .faq-panel.open { grid-template-rows: 1fr; }
                 .faq-panel-inner { overflow: hidden; }
             `}</style>
 
-            <header className={`relative z-50 border-b ${border} ${isDark ? "bg-[#050810]/90 backdrop-blur-md" : "bg-[#fafafa]/90 backdrop-blur-md"}`}>
+            {/* Header */}
+            <header className={`relative z-50 border-b sticky top-0 ${border} ${isDark ? "bg-[#050810]/90 backdrop-blur-md" : "bg-[#fafafa]/90 backdrop-blur-md"}`}>
                 <div className="max-w-[1200px] mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
                     <Link to="/" className="flex items-center gap-2.5 shrink-0">
                         <img src={mustLogo} alt="MustAcademy" className="h-9 w-auto" />
                         <span className="font-semibold text-[15px] tracking-tight">MustAcademy</span>
                     </Link>
-
                     <nav className="hidden md:flex items-center gap-1">
                         {NAV.map(({ id, label }) => (
-                            <button
-                                key={id}
-                                type="button"
-                                onClick={() => scrollTo(id)}
-                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isDark ? "text-slate-400 hover:text-white hover:bg-white/5" : "text-neutral-500 hover:text-neutral-900 hover:bg-black/[0.04]"}`}
-                            >
+                            <button key={id} type="button" onClick={() => scrollTo(id)}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isDark ? "text-slate-400 hover:text-white hover:bg-white/5" : "text-neutral-500 hover:text-neutral-900 hover:bg-black/[0.04]"}`}>
                                 {label}
                             </button>
                         ))}
                     </nav>
-
                     <div className="flex items-center gap-2">
-                        <button type="button" onClick={toggleTheme} aria-label="Toggle theme" className={`p-2 rounded-lg transition-colors ${isDark ? "text-slate-400 hover:text-white hover:bg-white/5" : "text-neutral-500 hover:text-neutral-900 hover:bg-black/[0.04]"}`}>
+                        <button type="button" onClick={toggleTheme} aria-label="Toggle theme"
+                            className={`p-2 rounded-lg ${isDark ? "text-slate-400 hover:text-white hover:bg-white/5" : "text-neutral-500 hover:text-neutral-900 hover:bg-black/[0.04]"}`}>
                             {isDark ? <Sun size={18} /> : <Moon size={18} />}
                         </button>
                         <Link to="/login" className={`hidden sm:inline-flex text-sm font-medium px-3 py-2 ${isDark ? "text-slate-300 hover:text-white" : "text-neutral-600 hover:text-neutral-900"}`}>Log in</Link>
                         <Link to="/register" className="landing-btn-primary hidden sm:inline-flex text-sm font-semibold px-4 py-2 rounded-lg transition-colors">Sign up</Link>
-                        <button type="button" aria-label="Menu" onClick={() => setMenuOpen((v) => !v)} className={`md:hidden p-2 rounded-lg ${isDark ? "hover:bg-white/5" : "hover:bg-black/[0.04]"}`}>
+                        <button type="button" aria-label="Menu" onClick={() => setMenuOpen((v) => !v)}
+                            className={`md:hidden p-2 rounded-lg ${isDark ? "hover:bg-white/5" : "hover:bg-black/[0.04]"}`}>
                             {menuOpen ? <X size={22} /> : <Menu size={22} />}
                         </button>
                     </div>
                 </div>
-
                 {menuOpen && (
                     <div className={`md:hidden border-t px-5 py-4 space-y-1 ${border} ${isDark ? "bg-[#050810]" : "bg-white"}`}>
                         {NAV.map(({ id, label }) => (
@@ -216,13 +239,13 @@ export default function LandingPage() {
                 )}
             </header>
 
-            {/* Hero */}
+            {/* Hero — editorial + original 3 pillars */}
             <section className="relative overflow-hidden">
                 <div className="landing-grid-bg absolute inset-0 opacity-40 pointer-events-none" />
-                <div className="max-w-[1200px] mx-auto px-5 sm:px-8 pt-16 pb-20 lg:pt-24 lg:pb-28 relative">
-                    <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-12 lg:gap-16 items-end">
-                        <motion.div {...fade(0)}>
-                            <p className={`landing-mono text-[11px] uppercase tracking-[0.2em] mb-6 ${isDark ? "text-[#00f2ff]/80" : "text-[#c01636]"}`}>
+                <div className="max-w-[1200px] mx-auto px-5 sm:px-8 pt-16 pb-16 lg:pt-24 lg:pb-20 relative">
+                    <div className="grid lg:grid-cols-[1.05fr_0.95fr] gap-12 lg:gap-16 items-end mb-14 lg:mb-16">
+                        <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55 }}>
+                            <p className={`landing-mono text-[11px] uppercase tracking-[0.2em] mb-6 ${accentSoft}`}>
                                 CS learning · built at MUST
                             </p>
                             <h1 className="landing-display text-[2.75rem] sm:text-[3.5rem] lg:text-[4rem] leading-[1.05] tracking-[-0.02em] mb-6">
@@ -230,7 +253,7 @@ export default function LandingPage() {
                                 <br />
                                 shouldn't feel like
                                 <br />
-                                <em className={isDark ? "text-[#00f2ff]" : "text-[#c01636]"}>a playlist.</em>
+                                <em className={accent}>a playlist.</em>
                             </h1>
                             <p className={`text-lg leading-relaxed max-w-md mb-9 ${muted}`}>
                                 Structured roadmaps, hands-on labs, live quiz arenas, and voice mock interviews — one place to actually get good.
@@ -239,14 +262,29 @@ export default function LandingPage() {
                                 <Link to="/register" className="landing-btn-primary inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-colors">
                                     Start free <ArrowRight size={16} />
                                 </Link>
-                                <button type="button" onClick={() => scrollTo("learn")} className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold border transition-colors ${isDark ? "border-white/15 text-slate-200 hover:bg-white/5" : "border-neutral-300 text-neutral-800 hover:bg-neutral-100"}`}>
+                                <button type="button" onClick={() => scrollTo("learn")}
+                                    className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold border transition-colors ${isDark ? "border-white/15 text-slate-200 hover:bg-white/5" : "border-neutral-300 text-neutral-800 hover:bg-neutral-100"}`}>
                                     See how it works
                                 </button>
                             </div>
                         </motion.div>
-                        <motion.div {...fade(0.12)} className="relative lg:mb-2">
+                        <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.1 }}>
                             <BentoStack isDark={isDark} />
                         </motion.div>
+                    </div>
+
+                    <div className="grid sm:grid-cols-3 gap-6 lg:gap-10">
+                        {HERO_PILLARS.map((p, i) => (
+                            <div key={p.title} className="relative">
+                                <span className={`landing-mono text-xs block mb-3 ${isDark ? "text-slate-500" : "text-neutral-400"}`}>0{i + 1}</span>
+                                <div className="landing-accent-line w-6 h-[2px] mb-4" />
+                                <div className="flex items-center gap-2 mb-2">
+                                    <p.icon size={16} className={accentSoft} strokeWidth={1.75} />
+                                    <h3 className="font-semibold text-[15px]">{p.title}</h3>
+                                </div>
+                                <p className={`text-sm leading-relaxed ${muted}`}>{p.desc}</p>
+                            </div>
+                        ))}
                     </div>
                 </div>
             </section>
@@ -254,63 +292,42 @@ export default function LandingPage() {
             {/* ── LEARN ── */}
             <section id="learn" className={`border-y ${border} ${isDark ? "bg-[#080c12]/80" : "bg-white"}`}>
                 <div className="max-w-[1200px] mx-auto px-5 sm:px-8 py-20 lg:py-28">
-                    <div className="grid lg:grid-cols-[1fr_1.4fr] gap-12 lg:gap-20 mb-20 lg:mb-28">
-                        <div>
-                            <p className={`landing-mono text-[11px] uppercase tracking-[0.15em] mb-4 ${isDark ? "text-[#00f2ff]/70" : "text-[#c01636]"}`}>Learn</p>
-                            <h2 className="landing-display text-3xl sm:text-4xl lg:text-[2.65rem] leading-tight mb-5">
-                                Structure beats scrolling
-                            </h2>
-                            <p className={`text-[15px] leading-relaxed ${muted}`}>
-                                Most students don't lack content — they lack a sequence. MustAcademy gives you weekly modules, labs on every topic, and a tutor when you're stuck.
-                            </p>
-                        </div>
-                        <div className="grid sm:grid-cols-3 gap-10 lg:gap-12">
-                            {PILLARS.map((p) => (
-                                <article key={p.n} className="relative">
-                                    <span className={`landing-mono text-xs block mb-3 ${isDark ? "text-slate-500" : "text-neutral-400"}`}>{p.n}</span>
-                                    <div className="landing-accent-line w-6 h-[2px] mb-4" />
-                                    <h3 className="landing-display text-xl mb-2 leading-snug">{p.title}</h3>
-                                    <p className={`text-sm leading-relaxed ${muted}`}>{p.body}</p>
-                                </article>
-                            ))}
-                        </div>
+                    <div className="text-center max-w-2xl mx-auto mb-14">
+                        <p className={`landing-mono text-[11px] uppercase tracking-[0.15em] mb-4 ${accentSoft}`}>Learn</p>
+                        <h2 className="landing-display text-3xl sm:text-4xl lg:text-[2.75rem] leading-tight mb-4">
+                            Master CS with structure — not chaos
+                        </h2>
+                        <p className={`text-[15px] leading-relaxed ${muted}`}>
+                            Your personalized journey from fundamentals to mastery. Roadmaps, labs, and a tutor when you're stuck.
+                        </p>
                     </div>
 
-                    {/* Tutor + roadmap deep dive */}
-                    <div className="grid lg:grid-cols-2 gap-10 lg:gap-14 mb-20 lg:mb-28">
-                        <TutorPanel isDark={isDark} muted={muted} panel={panel} />
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-16">
+                        {FEATURES.map((f) => (
+                            <div key={f.title} className={`p-6 rounded-xl border transition-colors ${panel} ${isDark ? "hover:bg-white/[0.03]" : "hover:border-neutral-300"}`}>
+                                <f.icon size={20} strokeWidth={1.5} className={`mb-4 ${accentSoft}`} />
+                                <h3 className="font-semibold text-[15px] mb-2">{f.title}</h3>
+                                <p className={`text-sm leading-relaxed ${muted}`}>{f.desc}</p>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="grid lg:grid-cols-2 gap-10 lg:gap-14 mb-16">
+                        <TutorPanel isDark={isDark} muted={muted} />
                         <RoadmapPanel isDark={isDark} muted={muted} panel={panel} />
                     </div>
 
-                    {/* Toolkit grid */}
-                    <div className="mb-16">
-                        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-10">
-                            <h3 className="landing-display text-2xl sm:text-3xl">Everything else in the box</h3>
-                            <p className={`text-sm max-w-xs ${muted}`}>Not bolted-on extras — part of the same loop.</p>
-                        </div>
-                        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-px rounded-2xl overflow-hidden border border-inherit bg-inherit">
-                            {TOOLKIT.map(({ icon: Icon, name, desc }) => (
-                                <div key={name} className={`p-6 sm:p-7 ${isDark ? "bg-[#0a0e14] border-white/[0.04]" : "bg-[#fafafa] border-neutral-100"}`}>
-                                    <Icon size={20} strokeWidth={1.5} className={`mb-4 ${isDark ? "text-slate-500" : "text-neutral-400"}`} />
-                                    <h4 className="font-semibold text-[15px] mb-2">{name}</h4>
-                                    <p className={`text-sm leading-relaxed ${muted}`}>{desc}</p>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Tracks */}
                     <div className={`rounded-2xl border p-8 sm:p-10 ${panel}`}>
                         <div className="flex items-start gap-3 mb-6">
                             <Layers size={22} className={`shrink-0 mt-0.5 ${isDark ? "text-slate-500" : "text-neutral-400"}`} strokeWidth={1.5} />
                             <div>
                                 <h3 className="landing-display text-2xl mb-2">Pick a specialization</h3>
-                                <p className={`text-sm ${muted}`}>Eight tracks — each with a visual roadmap, weekly deliverables, and role context.</p>
+                                <p className={`text-sm ${muted}`}>Eight tracks — each with a visual roadmap and weekly deliverables.</p>
                             </div>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                            {TRACKS.map((t) => (
-                                <span key={t} className={`landing-mono text-xs px-3 py-1.5 rounded-md border ${isDark ? "border-white/10 bg-white/[0.03] text-slate-300" : "border-neutral-200 bg-white text-neutral-700"}`}>
+                            {["Web & Frontend", "Backend & APIs", "AI / Machine Learning", "Cybersecurity", "Data Engineering", "Systems & OS", "Mobile Development", "Cloud & DevOps"].map((t) => (
+                                <span key={t} className={`landing-mono text-xs px-3 py-1.5 rounded-md border ${isDark ? "border-white/10 bg-white/[0.03] text-slate-300" : "border-neutral-200 bg-[#fafafa] text-neutral-700"}`}>
                                     {t}
                                 </span>
                             ))}
@@ -319,98 +336,114 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            {/* ── COMPETE ── */}
-            <section id="compete" className="max-w-[1200px] mx-auto px-5 sm:px-8 py-20 lg:py-28">
-                <div className="grid lg:grid-cols-[0.9fr_1.1fr] gap-10 lg:gap-16 mb-14 lg:mb-16 items-end">
-                    <div>
-                        <p className={`landing-mono text-[11px] uppercase tracking-[0.15em] mb-4 ${isDark ? "text-[#ff4d6d]/90" : "text-[#c01636]"}`}>Compete</p>
-                        <h2 className="landing-display text-3xl sm:text-4xl lg:text-[2.65rem] leading-tight">
-                            Study hard.
-                            <br />
-                            <em className={isDark ? "text-[#00f2ff]" : "text-[#c01636]"}>Spar harder.</em>
-                        </h2>
-                    </div>
-                    <p className={`text-[15px] leading-relaxed lg:pb-1 ${muted}`}>
-                        Reading passively doesn't prepare you for a whiteboard or a mic. Neural Clash and the Boardroom add the kind of pressure you'll actually face — with feedback after every round.
-                    </p>
+            {/* Tech marquee — from original */}
+            <section className="relative py-16 lg:py-20 overflow-hidden">
+                <div className="max-w-[1200px] mx-auto px-5 sm:px-8 mb-10 text-center">
+                    <h2 className="landing-display text-2xl sm:text-3xl mb-3">Technologies you'll master</h2>
+                    <p className={`text-sm max-w-lg mx-auto ${muted}`}>From foundational languages to tools companies actually hire for.</p>
                 </div>
-
-                <div className="grid lg:grid-cols-12 gap-4 lg:gap-5 mb-10">
-                    <ArenaPanel isDark={isDark} muted={muted} />
-                    <BoardroomPanel isDark={isDark} muted={muted} />
-                </div>
-
-                <div className={`grid sm:grid-cols-2 gap-6 rounded-2xl border p-8 sm:p-10 ${panel}`}>
-                    <div>
-                        <h4 className="font-semibold mb-3 flex items-center gap-2">
-                            <Swords size={18} className={isDark ? "text-[#00f2ff]/80" : "text-[#c01636]"} />
-                            Neural Clash — when you host
-                        </h4>
-                        <ul className={`space-y-2 text-sm ${muted}`}>
-                            <li>· AI questions on any topic and difficulty</li>
-                            <li>· PIN rooms — classmates join from their phones</li>
-                            <li>· Live leaderboard and in-match chat</li>
-                            <li>· Wrong answers get memorable feedback (yes, sounds included)</li>
-                        </ul>
+                <div className="relative mb-3 overflow-hidden" style={{ maskImage: "linear-gradient(to right, transparent, black 8%, black 92%, transparent)" }}>
+                    <div className="flex w-max marquee-track-left gap-2.5">
+                        {[...TECHS_ROW1, ...TECHS_ROW1].map((t, i) => <TechBadge key={`a-${i}`} t={t} isDark={isDark} />)}
                     </div>
-                    <div>
-                        <h4 className="font-semibold mb-3 flex items-center gap-2">
-                            <Mic size={18} className={isDark ? "text-[#ff4d6d]/90" : "text-[#c01636]"} />
-                            Boardroom — when you rehearse
-                        </h4>
-                        <ul className={`space-y-2 text-sm ${muted}`}>
-                            <li>· Voice mock with an AI interviewer (Marcus Sterling)</li>
-                            <li>· Behavioral and technical phases</li>
-                            <li>· Scorecard: technical depth, clarity, salary band estimate</li>
-                            <li>· Session history so you can track improvement</li>
-                        </ul>
+                </div>
+                <div className="relative overflow-hidden" style={{ maskImage: "linear-gradient(to right, transparent, black 8%, black 92%, transparent)" }}>
+                    <div className="flex w-max marquee-track-right gap-2.5">
+                        {[...TECHS_ROW2, ...TECHS_ROW2].map((t, i) => <TechBadge key={`b-${i}`} t={t} isDark={isDark} />)}
                     </div>
                 </div>
             </section>
 
-            {/* Voices */}
-            <section className={`py-20 lg:py-28 ${isDark ? "bg-white/[0.02]" : "bg-neutral-100/80"}`}>
-                <div className="max-w-[1200px] mx-auto px-5 sm:px-8">
-                    <p className={`landing-mono text-[11px] uppercase tracking-[0.15em] mb-10 ${isDark ? "text-slate-500" : "text-neutral-400"}`}>From students</p>
-                    <div className="grid lg:grid-cols-3 gap-10 lg:gap-12">
-                        {VOICES.map((v, i) => (
-                            <blockquote key={v.name} className={i === 0 ? "lg:col-span-1" : ""}>
-                                <p className={`leading-relaxed mb-5 ${i === 0 ? "landing-display text-xl sm:text-2xl italic" : "text-[15px]"}`}>
-                                    "{v.quote}"
-                                </p>
-                                <footer className={`flex items-center gap-2 text-sm ${muted}`}>
-                                    <span className={`landing-mono text-[10px] px-2 py-0.5 rounded ${isDark ? "bg-white/5" : "bg-white border border-neutral-200"}`}>{v.tag}</span>
-                                    {v.name}
-                                </footer>
-                            </blockquote>
+            {/* ── COMPETE ── */}
+            <section id="compete" className={`border-y ${border} ${isDark ? "bg-[#080c12]/50" : "bg-white"}`}>
+                <div className="max-w-[1200px] mx-auto px-5 sm:px-8 py-20 lg:py-28">
+                    <div className="grid lg:grid-cols-[0.9fr_1.1fr] gap-10 lg:gap-16 mb-14 items-end">
+                        <div>
+                            <p className={`landing-mono text-[11px] uppercase tracking-[0.15em] mb-4 ${isDark ? "text-[#ff4d6d]/90" : "text-[#c01636]"}`}>Compete</p>
+                            <h2 className="landing-display text-3xl sm:text-4xl lg:text-[2.65rem] leading-tight">
+                                Study hard.
+                                <br />
+                                <em className={accent}>Spar harder.</em>
+                            </h2>
+                        </div>
+                        <p className={`text-[15px] leading-relaxed ${muted}`}>
+                            Reading passively doesn't prepare you for a whiteboard or a mic. Neural Clash and the Boardroom add the pressure you'll actually face.
+                        </p>
+                    </div>
+
+                    <div className="grid lg:grid-cols-12 gap-4 lg:gap-5 mb-12">
+                        <ArenaPanel isDark={isDark} muted={muted} />
+                        <BoardroomPanel isDark={isDark} muted={muted} />
+                    </div>
+
+                    {/* Interview prep grid — from original */}
+                    <div className="mb-4">
+                        <h3 className="landing-display text-2xl sm:text-3xl mb-2">Crack any interview</h3>
+                        <p className={`text-sm mb-8 max-w-lg ${muted}`}>Land your role with mock sessions, curated questions, and real-time analysis.</p>
+                    </div>
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
+                        {INTERVIEW_ITEMS.map((item) => (
+                            <div key={item.title} className={`p-6 rounded-xl border ${panel}`}>
+                                <item.icon size={18} className={`mb-3 ${accentSoft}`} strokeWidth={1.5} />
+                                <h4 className="font-semibold text-[15px] mb-2">{item.title}</h4>
+                                <p className={`text-sm leading-relaxed ${muted}`}>{item.desc}</p>
+                            </div>
                         ))}
                     </div>
+
+                    {/* Teams — from original */}
+                    <div className={`grid lg:grid-cols-2 gap-10 lg:gap-16 items-center rounded-2xl border p-8 sm:p-10 ${panel}`}>
+                        <div>
+                            <p className={`landing-mono text-[10px] uppercase tracking-[0.15em] mb-3 ${accentSoft}`}>Collaboration</p>
+                            <h3 className="landing-display text-2xl sm:text-3xl mb-4">Form teams & ship together</h3>
+                            <p className={`text-sm leading-relaxed mb-6 ${muted}`}>
+                                Connect with classmates, share ideas, and deliver projects that showcase teamwork — not just solo coursework.
+                            </p>
+                            <ul className="space-y-2.5 mb-8">
+                                {TEAM_BULLETS.map((b) => (
+                                    <li key={b} className={`flex items-start gap-2.5 text-sm ${muted}`}>
+                                        <CheckCircle2 size={16} className={`mt-0.5 shrink-0 ${accentSoft}`} />
+                                        {b}
+                                    </li>
+                                ))}
+                            </ul>
+                            <Link to="/register" className="landing-btn-primary inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors">
+                                Start collaborating <ArrowRight size={14} />
+                            </Link>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            {[
+                                { icon: GitMerge, label: "Open-source PRs", sub: "Real workflows" },
+                                { icon: Users, label: "Active teams", sub: "Peer matching" },
+                                { icon: Library, label: "Projects shipped", sub: "Portfolio ready" },
+                                { icon: Star, label: "Employer signals", sub: "Show your work" },
+                            ].map((c) => (
+                                <div key={c.label} className={`p-5 rounded-xl border text-center ${isDark ? "border-white/8 bg-white/[0.02]" : "border-neutral-100 bg-[#fafafa]"}`}>
+                                    <c.icon size={18} className={`mx-auto mb-2 ${accentSoft}`} strokeWidth={1.5} />
+                                    <div className="text-sm font-semibold">{c.label}</div>
+                                    <div className={`text-xs mt-1 ${muted}`}>{c.sub}</div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
             </section>
 
-            {/* ── LAUNCH ── */}
-            <section id="launch" className="max-w-[1200px] mx-auto px-5 sm:px-8 py-20 lg:py-28">
-                <div className="grid lg:grid-cols-[1fr_1.2fr] gap-12 lg:gap-20">
-                    <div>
-                        <p className={`landing-mono text-[11px] uppercase tracking-[0.15em] mb-4 ${isDark ? "text-[#00f2ff]/70" : "text-[#c01636]"}`}>Launch</p>
-                        <h2 className="landing-display text-3xl sm:text-4xl lg:text-[2.65rem] leading-tight mb-5">
-                            From first login to first offer
-                        </h2>
-                        <p className={`text-[15px] leading-relaxed mb-8 ${muted}`}>
-                            No vague "learning journeys." Five concrete stages — each with something to show for it.
-                        </p>
-                        <Link to="/register" className="landing-btn-primary inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-colors">
-                            Start stage 01 <ArrowRight size={16} />
-                        </Link>
-                    </div>
-
-                    <div className="space-y-0">
-                        {PATH.map((item, i) => (
-                            <div key={item.step} className={`flex gap-6 py-6 ${i < PATH.length - 1 ? `border-b ${border}` : ""}`}>
-                                <span className={`landing-mono text-sm shrink-0 pt-0.5 ${isDark ? "text-[#00f2ff]/70" : "text-[#c01636]"}`}>{item.step}</span>
-                                <div>
-                                    <h3 className="font-semibold mb-1.5">{item.label}</h3>
-                                    <p className={`text-sm leading-relaxed ${muted}`}>{item.detail}</p>
+            {/* Testimonials */}
+            <section className={`py-20 lg:py-24 ${isDark ? "bg-white/[0.02]" : "bg-neutral-100/70"}`}>
+                <div className="max-w-[1200px] mx-auto px-5 sm:px-8">
+                    <p className={`landing-mono text-[11px] uppercase tracking-[0.15em] mb-4 text-center ${isDark ? "text-slate-500" : "text-neutral-400"}`}>From students</p>
+                    <h2 className="landing-display text-3xl sm:text-4xl text-center mb-12">Early feedback</h2>
+                    <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
+                        {TESTIMONIALS.map((t) => (
+                            <div key={t.name} className={`p-6 rounded-xl border flex flex-col ${panel}`}>
+                                <p className={`text-[15px] leading-relaxed mb-6 flex-1 ${muted}`}>"{t.quote}"</p>
+                                <div className={`flex items-center gap-3 pt-4 border-t ${border}`}>
+                                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold ${isDark ? "bg-[#c01636]/80" : "bg-[#c01636]"}`}>{t.avatar}</div>
+                                    <div>
+                                        <div className="font-semibold text-sm">{t.name}</div>
+                                        <div className={`text-xs ${muted}`}>{t.role}</div>
+                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -418,20 +451,63 @@ export default function LandingPage() {
                 </div>
             </section>
 
+            {/* ── LAUNCH — journey accordion from original ── */}
+            <section id="launch" className="max-w-[1200px] mx-auto px-5 sm:px-8 py-20 lg:py-28">
+                <div className="grid lg:grid-cols-[0.85fr_1.15fr] gap-12 lg:gap-16">
+                    <div>
+                        <p className={`landing-mono text-[11px] uppercase tracking-[0.15em] mb-4 ${accentSoft}`}>Launch</p>
+                        <h2 className="landing-display text-3xl sm:text-4xl lg:text-[2.65rem] leading-tight mb-5">
+                            From first login to first offer
+                        </h2>
+                        <p className={`text-[15px] leading-relaxed mb-8 ${muted}`}>
+                            Five concrete stages. Expand any step for the details.
+                        </p>
+                        <Link to="/register" className="landing-btn-primary inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-colors">
+                            Start stage 01 <ArrowRight size={16} />
+                        </Link>
+                    </div>
+
+                    <div className="space-y-3">
+                        {JOURNEY_STEPS.map((s, i) => {
+                            const isOpen = openStep === i;
+                            return (
+                                <div key={s.step} className={`rounded-xl border overflow-hidden transition-colors ${isOpen ? (isDark ? "border-[#00f2ff]/30 bg-white/[0.04]" : "border-[#c01636]/30 bg-white shadow-sm") : panel}`}>
+                                    <button type="button" onClick={() => setOpenStep(isOpen ? null : i)} className="w-full flex items-center gap-4 p-5 text-left">
+                                        <span className={`landing-mono text-sm shrink-0 ${accentSoft}`}>{s.step}</span>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 mb-0.5">
+                                                <s.icon size={14} className={accentSoft} />
+                                                <span className="font-semibold text-[15px]">{s.title}</span>
+                                            </div>
+                                            <p className={`text-sm ${muted}`}>{s.desc}</p>
+                                        </div>
+                                        <ChevronDown size={18} className={`shrink-0 transition-transform ${isOpen ? "rotate-180" : ""} ${isDark ? "text-slate-500" : "text-neutral-400"}`} />
+                                    </button>
+                                    <div className={`step-detail${isOpen ? " open" : ""}`}>
+                                        <div className="step-detail-inner">
+                                            <p className={`px-5 pb-5 pl-[3.75rem] text-sm leading-relaxed border-l-2 ml-5 ${muted} ${isDark ? "border-[#00f2ff]/25" : "border-[#c01636]/20"}`}>
+                                                {s.detail}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            </section>
+
             {/* FAQ */}
             <section className={`border-t ${border} ${isDark ? "bg-[#080c12]/50" : "bg-white"}`}>
-                <div className="max-w-[720px] mx-auto px-5 sm:px-8 py-20 lg:py-24">
+                <div className="max-w-[720px] mx-auto px-5 sm:px-8 py-20">
                     <h2 className="landing-display text-2xl sm:text-3xl mb-10">Common questions</h2>
                     <div className="space-y-2">
                         {FAQ.map((item, i) => {
                             const open = openFaq === i;
                             return (
                                 <div key={item.q} className={`rounded-xl border overflow-hidden ${isDark ? "border-white/10" : "border-neutral-200"}`}>
-                                    <button
-                                        type="button"
-                                        onClick={() => setOpenFaq(open ? null : i)}
-                                        className={`w-full flex items-center justify-between gap-4 px-5 py-4 text-left text-sm font-semibold ${isDark ? "hover:bg-white/[0.03]" : "hover:bg-neutral-50"}`}
-                                    >
+                                    <button type="button" onClick={() => setOpenFaq(open ? null : i)}
+                                        className={`w-full flex items-center justify-between gap-4 px-5 py-4 text-left text-sm font-semibold ${isDark ? "hover:bg-white/[0.03]" : "hover:bg-neutral-50"}`}>
                                         {item.q}
                                         <ChevronDown size={18} className={`shrink-0 transition-transform ${open ? "rotate-180" : ""} ${isDark ? "text-slate-500" : "text-neutral-400"}`} />
                                     </button>
@@ -451,27 +527,62 @@ export default function LandingPage() {
             <section className={`border-t ${border}`}>
                 <div className="max-w-[1200px] mx-auto px-5 sm:px-8 py-20 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
                     <div>
-                        <h2 className="landing-display text-3xl sm:text-4xl mb-3">Ready when you are.</h2>
+                        <h2 className="landing-display text-3xl sm:text-4xl mb-3">Ready to start your journey?</h2>
                         <p className={`text-[15px] ${muted}`}>Free to join. Pick a track and open your first lesson.</p>
                     </div>
                     <Link to="/register" className="landing-btn-primary inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-lg text-sm font-semibold shrink-0 transition-colors">
-                        Create account <ArrowRight size={16} />
+                        Get started free <ArrowRight size={16} />
                     </Link>
                 </div>
             </section>
 
             <footer className={`border-t text-sm ${border} ${isDark ? "text-slate-500" : "text-neutral-500"}`}>
-                <div className="max-w-[1200px] mx-auto px-5 sm:px-8 py-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <span>© {new Date().getFullYear()} MustAcademy</span>
-                    <div className="flex flex-wrap gap-6">
-                        {NAV.map(({ id, label }) => (
-                            <button key={id} type="button" onClick={() => scrollTo(id)} className="hover:underline underline-offset-4">{label}</button>
-                        ))}
-                        <Link to="/login" className="hover:underline underline-offset-4">Log in</Link>
+                <div className="max-w-[1200px] mx-auto px-5 sm:px-8 py-10 grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <div className="sm:col-span-2">
+                        <div className="flex items-center gap-2 mb-3">
+                            <img src={mustLogo} alt="" className="h-8 w-auto" />
+                            <span className={`font-semibold ${isDark ? "text-slate-300" : "text-neutral-800"}`}>MustAcademy</span>
+                        </div>
+                        <p className={`text-sm max-w-sm leading-relaxed ${muted}`}>
+                            A CS learning platform for students who want roadmaps, practice, and proof of work — not another playlist.
+                        </p>
                     </div>
+                    <div>
+                        <div className={`landing-mono text-[10px] uppercase tracking-widest mb-3 ${isDark ? "text-slate-600" : "text-neutral-400"}`}>Explore</div>
+                        <ul className="space-y-2">
+                            {NAV.map(({ id, label }) => (
+                                <li key={id}><button type="button" onClick={() => scrollTo(id)} className="hover:underline underline-offset-4">{label}</button></li>
+                            ))}
+                        </ul>
+                    </div>
+                    <div>
+                        <div className={`landing-mono text-[10px] uppercase tracking-widest mb-3 ${isDark ? "text-slate-600" : "text-neutral-400"}`}>Account</div>
+                        <ul className="space-y-2">
+                            <li><Link to="/login" className="hover:underline underline-offset-4">Log in</Link></li>
+                            <li><Link to="/register" className="hover:underline underline-offset-4">Sign up</Link></li>
+                        </ul>
+                    </div>
+                </div>
+                <div className={`max-w-[1200px] mx-auto px-5 sm:px-8 pb-8 text-xs ${isDark ? "text-slate-600" : "text-neutral-400"}`}>
+                    © {new Date().getFullYear()} MustAcademy. Built for CS students.
                 </div>
             </footer>
         </div>
+    );
+}
+
+function TechBadge({ t, isDark }) {
+    return (
+        <span
+            className="inline-flex items-center px-4 py-2 rounded-full text-xs font-semibold border whitespace-nowrap"
+            style={{
+                color: t.color,
+                backgroundColor: isDark ? `${t.color}18` : `${t.color}12`,
+                borderColor: isDark ? `${t.color}40` : `${t.color}35`,
+            }}
+        >
+            {t.name}
+        </span>
     );
 }
 
@@ -520,7 +631,7 @@ function TutorPanel({ isDark, muted }) {
         <div>
             <h3 className="landing-display text-2xl mb-4">Open a topic. Get a tutor.</h3>
             <p className={`text-sm leading-relaxed mb-6 ${muted}`}>
-                Every lesson includes a 1-on-1 AI Tutor — ask follow-ups, request examples, run a quick quiz. Built for the moment you're stuck, not for replacing the whole course.
+                Every lesson includes a 1-on-1 AI Tutor — ask follow-ups, request examples, run a quick quiz.
             </p>
             <div className={`rounded-2xl border overflow-hidden ${isDark ? "border-white/10" : "border-neutral-200 shadow-sm"}`}>
                 <div className={`px-4 py-2.5 border-b flex items-center gap-2 ${isDark ? "bg-[#0d1222] border-white/5" : "bg-neutral-800 border-neutral-700"}`}>
@@ -531,12 +642,8 @@ function TutorPanel({ isDark, muted }) {
                 </div>
                 <div className={`p-5 space-y-4 ${isDark ? "bg-[#0a0e14]" : "bg-slate-900"}`}>
                     <p className="text-white/90 text-sm">Why do balanced BSTs matter if unbalanced trees still work?</p>
-                    <div className={`rounded-xl p-4 text-sm leading-relaxed ${isDark ? "bg-white/[0.04] text-slate-300 border border-white/5" : "bg-white/5 text-slate-200 border border-white/10"}`}>
-                        Unbalanced trees degrade to O(n) height — search becomes linear. AVL and Red-Black trees re-balance after inserts so height stays O(log n).
-                    </div>
-                    <div className="flex gap-2">
-                        <span className="landing-mono text-[10px] px-2.5 py-1 rounded-md bg-white/5 text-white/50">follow-up</span>
-                        <span className="landing-mono text-[10px] px-2.5 py-1 rounded-md bg-[#c01636]/30 text-white/80">quick quiz</span>
+                    <div className="rounded-xl p-4 text-sm leading-relaxed bg-white/[0.04] text-slate-300 border border-white/5">
+                        Unbalanced trees degrade to O(n) height — search becomes linear. AVL and Red-Black trees keep height O(log n).
                     </div>
                 </div>
             </div>
@@ -556,7 +663,7 @@ function RoadmapPanel({ isDark, muted, panel }) {
         <div>
             <h3 className="landing-display text-2xl mb-4">See the whole path</h3>
             <p className={`text-sm leading-relaxed mb-6 ${muted}`}>
-                Career roadmaps show what's done, what's next, and how each skill connects to the role you're aiming for.
+                Career roadmaps show what's done, what's next, and how each skill connects to your target role.
             </p>
             <div className={`rounded-2xl border p-6 ${panel}`}>
                 <div className="mb-5">
@@ -587,9 +694,14 @@ function ArenaPanel({ isDark, muted }) {
             <div className="p-6 sm:p-8">
                 <span className={`landing-mono text-[10px] uppercase tracking-[0.15em] ${isDark ? "text-[#00f2ff]/80" : "text-[#c01636]"}`}>Neural Clash</span>
                 <h3 className="landing-display text-2xl sm:text-3xl mt-2 mb-4">Study like a game night</h3>
-                <p className={`text-sm leading-relaxed max-w-md ${muted}`}>
-                    Host a room with a PIN. AI-generated questions, live leaderboard, classmates trash-talking your Big-O answer — the good kind of stress.
+                <p className={`text-sm leading-relaxed max-w-md mb-4 ${muted}`}>
+                    Host a room with a PIN. AI-generated questions, live leaderboard — the good kind of stress.
                 </p>
+                <ul className={`space-y-1.5 text-sm mb-2 ${muted}`}>
+                    {["AI questions on any topic", "Real-time multiplayer with a PIN", "Live leaderboard & match chat"].map((b) => (
+                        <li key={b} className="flex items-center gap-2"><CheckCircle2 size={14} className={isDark ? "text-[#00f2ff]/70" : "text-[#c01636]"} />{b}</li>
+                    ))}
+                </ul>
             </div>
             <div className="border-t border-inherit mx-6 sm:mx-8 mb-6 sm:mb-8 rounded-xl overflow-hidden">
                 <div className="bg-[#0f0a1a] px-5 py-4 text-center border-b border-white/5">
@@ -612,7 +724,7 @@ function BoardroomPanel({ isDark, muted }) {
             <span className={`landing-mono text-[10px] uppercase tracking-[0.15em] ${isDark ? "text-[#ff4d6d]" : "text-[#c01636]"}`}>The Boardroom</span>
             <h3 className="landing-display text-2xl sm:text-3xl mt-2 mb-4">Interview out loud</h3>
             <p className={`text-sm leading-relaxed mb-6 flex-1 ${muted}`}>
-                Voice mock sessions with an AI interviewer. You speak, it pushes back, you get a scorecard — not a textarea fantasy.
+                Voice mock sessions with an AI interviewer. You speak, it pushes back, you get a scorecard.
             </p>
             <div className={`rounded-xl border p-4 space-y-3 ${isDark ? "border-white/8 bg-black/25" : "border-neutral-200 bg-white"}`}>
                 <div className="flex items-center gap-2">
