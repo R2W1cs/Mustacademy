@@ -25,6 +25,7 @@ import MethodologyVisualizer from "../components/MethodologyVisualizer";
 import UMLDiagramVisualizer from "../components/UMLDiagramVisualizer";
 import DataWarehouseVisualizer from "../components/DataWarehouseVisualizer";
 import NetworkVisualizer from "../components/NetworkVisualizer";
+import ProbabilityVisualizer from "../components/ProbabilityVisualizer";
 import { resolveLessonVisualizers } from "../utils/lessonVisualizers";
 
 import api from "../api/axios";
@@ -41,6 +42,7 @@ function renderLessonViz(lab, key) {
         case 'uml': return <UMLDiagramVisualizer key={key} type={p.type || 'class'} />;
         case 'warehouse': return <DataWarehouseVisualizer key={key} type="comparison" />;
         case 'network': return <NetworkVisualizer key={key} type={p.type} config={p.config} />;
+        case 'probability': return <ProbabilityVisualizer key={key} type={p.type} config={p.config} />;
         default: return null;
     }
 }

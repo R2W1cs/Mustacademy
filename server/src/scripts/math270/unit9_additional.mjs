@@ -1,0 +1,130 @@
+import { buildLesson } from "./helper.mjs";
+
+const PART = "Part 9: Additional Topics";
+
+export const topics = [
+  buildLesson({
+    title: "Non-Parametric Tests",
+    partLabel: PART,
+    importance: "Recommended",
+    principles: [
+      "Fewer distributional assumptions than t-tests",
+      "Rank-based methods resist outliers",
+      "Mann–Whitney: two independent samples",
+      "Wilcoxon signed-rank: paired data",
+    ],
+    objectives: [
+      "Know when to prefer non-parametrics",
+      "Describe Mann–Whitney vs two-sample t",
+      "Describe Wilcoxon vs paired t",
+      "Trade power vs robustness",
+    ],
+    why: "Skewed scores, ordinal data, outliers — classical t assumptions fail; ranks still work.",
+    idea: "Replace raw values with ranks; test whether one group tends to outrank the other.",
+    steps: [
+      { title: "Check if normality is hopeless", body: "Plots." },
+      { title: "Choose paired vs independent", body: "Design." },
+      { title: "Apply rank test", body: "Software / tables." },
+    ],
+    example: "Likert satisfaction scores between two apps — Mann–Whitney often more appropriate than t.",
+    labCue: "**hypothesis** lab — compare t vs rank logic on skewed draws.",
+    check: ["Do non-parametrics assume zero assumptions?", "Paired non-parametric name?"],
+    formal: "Mann–Whitney U / Wilcoxon rank-sum; Wilcoxon signed-rank for paired.",
+    formulas: "- Rank all values\n- U statistic from rank sums (details in software)",
+    pitfalls: ["Using ranks then interpreting like means without care", "Tiny n → discrete p-values"],
+  }),
+
+  buildLesson({
+    title: "Multiple Linear Regression Intro",
+    partLabel: PART,
+    importance: "Recommended",
+    principles: [
+      "Y ≈ β₀ + β₁X₁ + … + β_p X_p + error",
+      "Each slope is adjusted for other predictors",
+      "Collinearity inflates SEs",
+      "Same residual diagnostics apply in higher dimensions",
+    ],
+    objectives: [
+      "Write an MLR model",
+      "Interpret adjusted slopes",
+      "Warn about multicollinearity",
+      "Preview overfitting / adjusted R²",
+    ],
+    why: "Real outcomes have many drivers — marketing, engineering metrics, grades.",
+    idea: "β_j: change in Y for +1 X_j holding other X's fixed (in the model).",
+    steps: [
+      { title: "List predictors", body: "Domain-driven." },
+      { title: "Fit least squares", body: "Software." },
+      { title: "Interpret & check residuals", body: "Same habits as SLR." },
+    ],
+    example: "Salary ~ experience + education: experience slope is 'holding education fixed.'",
+    labCue: "**regression** lab — conceptual multi-predictor note; residual checks still rule.",
+    check: ["What does 'holding fixed' mean?", "Symptom of collinearity?"],
+    formal: "β̂=(XᵀX)⁻¹Xᵀy when X full rank.",
+    formulas: "- ŷ=β̂₀+Σ β̂_j x_j\n- Adjusted R² penalizes extra predictors",
+    pitfalls: ["Kitchen-sink predictors", "Interpreting coefficients under heavy collinearity"],
+  }),
+
+  buildLesson({
+    title: "Bayesian Statistics Intro",
+    partLabel: PART,
+    importance: "Recommended",
+    principles: [
+      "Parameters have posterior distributions after data",
+      "Posterior ∝ likelihood × prior",
+      "Beta–Binomial is the friendly conjugate example",
+      "Credible intervals ≠ frequentist CIs philosophically",
+    ],
+    objectives: [
+      "Update a Beta prior with Bernoulli data",
+      "Contrast prior/posterior/predictive",
+      "State Bayes' theorem for parameters",
+      "Read a credible interval carefully",
+    ],
+    why: "Modern ML, A/B tooling, and scientific modeling increasingly speak Bayesian.",
+    idea: "Start with belief (prior), multiply by how well each belief explains data (likelihood), renormalize (posterior).",
+    steps: [
+      { title: "Choose prior", body: "e.g. Beta(α,β)." },
+      { title: "Likelihood", body: "Binomial/Bernoulli." },
+      { title: "Posterior", body: "Beta(α+#succ, β+#fail)." },
+    ],
+    example: "Prior Beta(1,1); 7 successes 3 failures → Beta(8,4); posterior mean 0.67.",
+    labCue: "**bayes** lab — prior to posterior animation for coin bias.",
+    check: ["Conjugate meaning?", "Posterior mean vs MLE?"],
+    formal: "π(θ|x) = f(x|θ)π(θ)/m(x).",
+    formulas: "- Beta–Binomial update\n- MAP = mode of posterior",
+    pitfalls: ["Hiding strong priors", "Mixing credible and confidence language"],
+  }),
+
+  buildLesson({
+    title: "Bootstrapping and Resampling",
+    partLabel: PART,
+    importance: "Recommended",
+    principles: [
+      "Bootstrap resamples the sample with replacement",
+      "Approximates sampling distributions without heavy formulas",
+      "Great for SEs and CIs of weird statistics",
+      "Still assumes sample represents the population process",
+    ],
+    objectives: [
+      "Describe nonparametric bootstrap algorithm",
+      "Build a bootstrap CI (percentile)",
+      "Know limitations (dependence, tiny n)",
+      "Contrast with parametric assumptions",
+    ],
+    why: "Median CI? Fancy metric SE? Bootstrap when theory is painful.",
+    idea: "Treat the sample as a mini-population; resample many times; look at the spread of the statistic.",
+    steps: [
+      { title: "Draw bootstrap sample", body: "Size n with replacement." },
+      { title: "Compute statistic", body: "θ̂*." },
+      { title: "Repeat B times", body: "Histogram of θ̂*." },
+      { title: "Percentile CI", body: "e.g. 2.5% and 97.5%." },
+    ],
+    example: "Bootstrap the median of 40 salaries — percentile interval without assuming normality.",
+    labCue: "**bootstrap** lab — animate resamples; show bootstrap distribution of the mean/median.",
+    check: ["With or without replacement?", "What does B control?"],
+    formal: "Bootstrap principle: sampling variability ≈ resampling variability from empirical DF.",
+    formulas: "- Percentile CI: [θ̂*_{α/2}, θ̂*_{1−α/2}]\n- SE* ≈ SD of bootstrap replicates",
+    pitfalls: ["Bootstrapping highly dependent time series naively", "B too small"],
+  }),
+];

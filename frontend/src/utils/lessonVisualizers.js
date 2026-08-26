@@ -3,6 +3,7 @@
  * Returns [{ viz, props? }] — always at least one entry.
  */
 import { resolveNetworkLabs } from './networkLabs';
+import { resolveProbStatsLabs } from './probStatsLabs';
 
 const tl = (title, subtitle, steps) => ({
     viz: 'network',
@@ -234,6 +235,11 @@ export function resolveLessonVisualizers(title) {
     // CS 411 network labs (timeline/delivery/etc.)
     for (const net of resolveNetworkLabs(title)) {
         out.push({ viz: 'network', props: { type: net.type, config: net.config } });
+    }
+
+    // MATH 270 probability & statistics labs
+    for (const lab of resolveProbStatsLabs(title)) {
+        out.push({ viz: 'probability', props: { type: lab.type, config: lab.config } });
     }
 
     if (out.length === 0) out.push(genericLab(title));

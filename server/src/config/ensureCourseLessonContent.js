@@ -1,9 +1,10 @@
 /**
- * Idempotent lesson markdown sync for CS 342 + CS 321 (no Render shell required).
+ * Idempotent lesson markdown sync for CS 342 + CS 321 + MATH 270 (no Render shell required).
  */
 import pool from './db.js';
 import { topics as cs342Topics } from '../scripts/cs342/topics.mjs';
 import { topics as cs321Topics } from '../scripts/cs321/topics.mjs';
+import { topics as math270Topics } from '../scripts/enrich_math270.mjs';
 
 async function resolveCourseId(patterns) {
   const res = await pool.query(
@@ -87,6 +88,11 @@ export async function ensureCourseLessonContent() {
     const cs321 = await resolveCourseId(['%CS 321%', '%Principles of Software Engineering%']);
     if (cs321) {
       await syncTopics(cs321.id, cs321Topics, `CS 321 (${cs321.name})`);
+    }
+
+    const math270 = await resolveCourseId(['%MATH 270%', '%Probability%statistic%']);
+    if (math270) {
+      await syncTopics(math270.id, math270Topics, `MATH 270 (${math270.name})`);
     }
   } catch (err) {
     console.warn('[Content] Lesson sync skipped:', err.message);
