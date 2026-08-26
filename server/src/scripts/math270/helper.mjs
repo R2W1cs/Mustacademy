@@ -1,5 +1,6 @@
 /**
  * Lesson factory for MATH 270 Probability & Statistics.
+ * Builds long-form, student-friendly dual-track markdown.
  */
 export function lesson({
   title,
@@ -53,8 +54,22 @@ export function lesson({
   };
 }
 
+function bullets(items, fallback = []) {
+  const list = (items && items.length ? items : fallback) || [];
+  return list.map((x) => `- ${x}`).join("\n");
+}
+
+function stepsBlock(steps) {
+  return (steps || [])
+    .map((s, i) => `### Step ${i + 1}: ${s.title || `Part ${i + 1}`}\n${s.body}`)
+    .join("\n\n");
+}
+
 /**
- * Build dual-track markdown from structured fields (keeps pedagogy consistent).
+ * Build dual-track markdown — detailed explanations + gentle math.
+ *
+ * Extra optional fields:
+ *   story, mathSimple, walkthrough, example2, practice (array of {q,a}), bridge, derivation
  */
 export function buildLesson({
   title,
@@ -72,54 +87,87 @@ export function buildLesson({
   formulas,
   pitfalls,
   interview,
+  story,
+  mathSimple,
+  walkthrough,
+  example2,
+  practice,
+  bridge,
+  derivation,
 }) {
   const breadcrumb_path = `MATH 270 > ${partLabel}`;
   const titleMatch = `${title}%`;
 
-  const stepList = (steps || [])
-    .map((s, i) => `${i + 1}. **${s.title || `Step ${i + 1}`}** — ${s.body}`)
-    .join("\n");
+  const practiceBlock = (practice || [])
+    .map(
+      (p, i) =>
+        `**Practice ${i + 1}.** ${p.q}\n\n<details><summary>Show answer</summary>\n\n${p.a}\n\n</details>`
+    )
+    .join("\n\n");
 
   const content_easy_markdown = `# ${title}
 
-## Why it matters
+## Why this lesson exists
 ${why}
 
-## The simple idea
+${story ? `## A concrete picture\n${story}\n` : ""}
+## The idea in plain language
 ${idea}
 
-## Step by step
-${stepList}
+## How to do it (step by step)
+${stepsBlock(steps)}
 
-## Worked example
+## Math, explained gently
+${mathSimple || "We will introduce symbols only after the idea is clear. Every formula below is just a shortcut for something you can say in words."}
+
+${walkthrough ? `## Walk through the numbers\n${walkthrough}\n` : ""}
+## Worked example 1
 ${example}
 
+${example2 ? `## Worked example 2\n${example2}\n` : ""}
 ## Try the Interactive lab
 ${labCue}
 
-## Check yourself
-${(check || []).map((c) => `- ${c}`).join("\n")}
+Read the lesson, then use the lab until the **picture** matches the **formula**. If they disagree, re-read the step that defines the quantity you are looking at.
 
-## Common mistakes
-${(pitfalls || ["Confusing population with sample", "Mixing up parameters and statistics"]).map((p) => `- ${p}`).join("\n")}
+## What you should be able to say out loud
+${bullets(check, ["Explain the main idea without looking at notes.", "Solve a small numeric example from scratch."])}
+
+${practiceBlock ? `## Practice (try before peeking)\n${practiceBlock}\n` : ""}
+## Common mistakes (and how to avoid them)
+${bullets(pitfalls, ["Rushing to a formula before naming the quantity you want.", "Mixing up population vs sample, or parameter vs statistic."])}
+
+## Mini summary
+- **Core idea:** ${idea.split(".")[0].replace(/\*\*/g, "")}.
+- **Do this next:** ${bridge || "Open the lab, change one control, and predict what should happen before you move it."}
 `;
 
   const content_deep_markdown = `# ${title} — Deep track
 
-## Formal view
+## Formal statement
 ${formal}
 
-## Key formulas
+## Key formulas (with meaning)
 ${formulas}
 
-## Edge cases & caveats
-${(pitfalls || []).map((p) => `- ${p}`).join("\n")}
+${derivation ? `## Where the formula comes from\n${derivation}\n` : ""}
+## Connection to the easy track
+Everything above is the same story as the Essential tab — only written with precise symbols. If a line feels opaque, translate it back:
 
-## Interview / exam tip
-${interview || "State assumptions (independence, identical distribution, known variance) before applying a formula."}
+| Symbol move | In words |
+|---|---|
+| Sum / average | Add pieces, divide by how many |
+| Probability of a set | Total weight of outcomes in that set |
+| Conditioning | Rebuild the weights using only the outcomes you now know happened |
 
-## Connect forward
-Use the Interactive lab until the motion matches the formula, then restate the result in one sentence without symbols.
+## Edge cases & assumptions
+${bullets(pitfalls)}
+
+## Exam / interview tip
+${interview || "Before computing, write one sentence: what is random, what is fixed, and what question you are answering. Then pick the formula."}
+
+## Bridge to the next lesson
+${bridge || "Keep the lab open while you skim the next topic — most of MATH 270 reuses the same vocabulary: experiment, distribution, mean, variance, and conditioning."}
 `;
 
   return lesson({
