@@ -1,10 +1,40 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import api from "../api/axios";
 import { useTheme } from "../auth/ThemeContext";
 import { ChevronLeft, AlertTriangle } from "lucide-react";
 import KnowledgeExchange from "../components/KnowledgeExchange";
+
+const DEFAULT_USEFULNESS = {
+  useful_for:
+    "This course builds durable technical foundations that transfer into engineering roles across the industry.",
+  necessity:
+    "Focus here to close a core competency gap—the concepts recur in interviews, internships, and production work.",
+  careers: ["Software Engineer"],
+};
+
+const resolveCareerUsefulness = (course) => {
+  const fromApi = course?.career_usefulness;
+  if (fromApi?.useful_for && fromApi?.necessity) {
+    return {
+      useful_for: fromApi.useful_for,
+      necessity: fromApi.necessity,
+      careers: fromApi.careers?.length
+        ? fromApi.careers
+        : (course?.careers || []).map((c) => c.name || c).filter(Boolean),
+    };
+  }
+  const linked = (course?.careers || []).map((c) => c.name || c).filter(Boolean);
+  return {
+    ...DEFAULT_USEFULNESS,
+    useful_for:
+      course?.description && !/^Credits:\s*\d+/i.test(course.description)
+        ? course.description
+        : DEFAULT_USEFULNESS.useful_for,
+    careers: linked.length ? linked : DEFAULT_USEFULNESS.careers,
+  };
+};
 
 const CourseDetails = () => {
   const { id } = useParams();
