@@ -140,7 +140,28 @@ export const generateTopicPodcast = async (req, res) => {
             return res.json({ success: true, episode: buildFallbackEpisode(topicTitle) });
         }
 
-        res.json({ success: true, episode: aiData });
+        const normalizeSpeaker = (raw, index) => {
+            const s = String(raw || '').toLowerCase();
+            if (s === 'host' || s === 'aria' || s === 'leo' || s.includes('aria') || s.includes('pragmatist')) return 'host';
+            if (s === 'expert' || s === 'nova' || s === 'aris' || s.includes('nova') || s.includes('theorist')) return 'expert';
+            // Alternate if the model used unknown labels
+            return index % 2 === 0 ? 'host' : 'expert';
+        };
+
+        const sanitized = {
+            ...aiData,
+            segments: aiData.segments.map((seg, i) => ({
+                ...seg,
+                speaker: normalizeSpeaker(seg.speaker, i),
+                text: String(seg.text || '').trim(),
+            })).filter((seg) => seg.text),
+        };
+
+        if (!sanitized.segments.length) {
+            return res.json({ success: true, episode: buildFallbackEpisode(topicTitle) });
+        }
+
+        res.json({ success: true, episode: sanitized });
     } catch (err) {
         console.error('[generateTopicPodcast] Critical error:', err.message);
         res.status(500).json({ message: 'Podcast Generation Failure', error: err.message });
@@ -178,17 +199,31 @@ Answer directly and technically. 2-3 paragraphs max. Return valid JSON: {"answer
 
 // --- TTS ---
 
+const HOST_VOICE = "en-US-JennyNeural";   // Dr. Aria — female host
+const EXPERT_VOICE = "en-US-BrianNeural"; // Dr. Nova — male expert
+
+function setPodcastAudioHeaders(res, extra = {}) {
+    const origin = res.req?.headers?.origin;
+    res.set({
+        'Content-Type': 'audio/mpeg',
+        'Cross-Origin-Resource-Policy': 'cross-origin',
+        ...(origin ? { 'Access-Control-Allow-Origin': origin, 'Access-Control-Allow-Credentials': 'true' } : {}),
+        ...extra,
+    });
+}
+
 export const generatePodcastSpeech = async (req, res) => {
     const text = req.body.text || req.query.text;
-    const speaker = req.body.speaker || req.query.speaker;
+    const rawSpeaker = String(req.body.speaker || req.query.speaker || "expert").toLowerCase();
+    const speaker = rawSpeaker === "host" || rawSpeaker === "aria" ? "host" : "expert";
     const topicTitle = req.body.topicTitle || req.query.topicTitle;
-    const index = req.body.index || req.query.index;
     const interactive = req.body.interactive || req.query.interactive;
 
     if (!text) return res.status(400).json({ message: 'Text required' });
 
-    // Pre-rendered file lookup
-    if (topicTitle && interactive !== 'true') {
+    // Never serve a single studio WAV for multi-speaker segments — that makes both voices identical.
+    // Only allow pre-rendered files when explicitly requesting a full non-interactive topic dump.
+    if (topicTitle && interactive !== 'true' && !req.body.speaker && !req.query.speaker) {
         try {
             const studioDir = path.join(path.resolve(), '..', 'tts-service', 'podcasts', 'google_studio_explanations');
             if (fs.existsSync(studioDir)) {
@@ -201,6 +236,7 @@ export const generatePodcastSpeech = async (req, res) => {
                 });
                 if (bestMatch) {
                     res.setHeader('Content-Type', 'audio/wav');
+                    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
                     res.setHeader('X-Studio-Source', 'Google-AI-Studio');
                     return fs.createReadStream(path.join(studioDir, bestMatch)).pipe(res);
                 }
@@ -210,65 +246,59 @@ export const generatePodcastSpeech = async (req, res) => {
         }
     }
 
-    const ttsCacheKey = `${speaker}:${text}`;
+    const voice = speaker === "host" ? HOST_VOICE : EXPERT_VOICE;
+    const ttsCacheKey = `${speaker}:${voice}:${text}`;
     if (ttsCache.has(ttsCacheKey)) {
         const cached = ttsCache.get(ttsCacheKey);
-        res.set({ 'Content-Type': 'audio/mpeg', 'Content-Length': cached.length });
+        setPodcastAudioHeaders(res, {
+            'Content-Length': cached.length,
+            'X-Neural-Voice': voice,
+            'X-Podcast-Speaker': speaker,
+            'X-TTS-Cache': 'HIT',
+        });
         return res.send(cached);
     }
 
-    const hostVoices = ["en-US-JennyNeural", "en-US-AriaNeural"];
-    // Marcus Sterling (Brian) leads podcast expert; Andrew reserved for interview
-    const expertVoices = ["en-US-BrianNeural", "en-US-ChristopherNeural", "en-US-AndrewMultilingualNeural"];
-
-    const trySynthesize = async (voices, text) => {
-        for (const voice of voices) {
-            try {
-                const tts = new MsEdgeTTS();
-                await tts.setMetadata(voice, OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3);
-                const buffer = await Promise.race([
-                    tts.toBuffer(text),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error("Synthesis Timeout")), 30000))
-                ]);
-                if (buffer && buffer.length > 500) return { buffer, voice };
-            } catch (e) {
-                console.warn(`[Neural-TTS] Voice ${voice} failed: ${e.message}`);
-            }
-        }
-        throw new Error("All neural voices failed.");
+    const trySynthesize = async (chosenVoice, chunkText) => {
+        const tts = new MsEdgeTTS();
+        await tts.setMetadata(chosenVoice, OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3);
+        const buffer = await Promise.race([
+            tts.toBuffer(chunkText),
+            new Promise((_, reject) => setTimeout(() => reject(new Error("Synthesis Timeout")), 30000))
+        ]);
+        if (buffer && buffer.length > 500) return buffer;
+        throw new Error(`Empty audio for ${chosenVoice}`);
     };
 
     try {
-        const voicesToUse = speaker === "host" ? hostVoices : expertVoices;
         const maxChunk = 1000;
         let finalBuffer = Buffer.alloc(0);
-        let selectedVoice = voicesToUse[0];
 
         if (text.length > maxChunk) {
             const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
             let currentChunk = "";
             for (const sentence of sentences) {
-                if ((currentChunk + sentence).length > maxChunk) {
-                    const { buffer, voice } = await trySynthesize(voicesToUse, currentChunk);
-                    finalBuffer = Buffer.concat([finalBuffer, buffer]);
-                    selectedVoice = voice;
+                if ((currentChunk + sentence).length > maxChunk && currentChunk) {
+                    finalBuffer = Buffer.concat([finalBuffer, await trySynthesize(voice, currentChunk)]);
                     currentChunk = sentence;
                 } else {
                     currentChunk += sentence;
                 }
             }
             if (currentChunk) {
-                const { buffer, voice } = await trySynthesize(voicesToUse, currentChunk);
-                finalBuffer = Buffer.concat([finalBuffer, buffer]);
-                selectedVoice = voice;
+                finalBuffer = Buffer.concat([finalBuffer, await trySynthesize(voice, currentChunk)]);
             }
         } else {
-            const { buffer, voice } = await trySynthesize(voicesToUse, text);
-            finalBuffer = buffer;
-            selectedVoice = voice;
+            finalBuffer = await trySynthesize(voice, text);
         }
 
-        res.set({ 'Content-Type': 'audio/mpeg', 'Content-Length': finalBuffer.length, 'X-Neural-Voice': selectedVoice, 'Cache-Control': 'public, max-age=3600' });
+        setPodcastAudioHeaders(res, {
+            'Content-Length': finalBuffer.length,
+            'X-Neural-Voice': voice,
+            'X-Podcast-Speaker': speaker,
+            'Cache-Control': 'public, max-age=3600',
+            'X-TTS-Cache': 'MISS',
+        });
         if (ttsCache.size < 500) ttsCache.set(ttsCacheKey, finalBuffer);
         res.send(finalBuffer);
     } catch (err) {

@@ -56,7 +56,12 @@ import adminRoutes from './routes/admin.routes.js';
 
 const app = express();
 
-app.use(helmet({ contentSecurityPolicy: false }));
+app.use(helmet({
+  contentSecurityPolicy: false,
+  // Allow <audio src> / media from the frontend origin to load API TTS bytes.
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  crossOriginEmbedderPolicy: false,
+}));
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
 app.use(cors({

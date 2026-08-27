@@ -1,17 +1,13 @@
 /**
- * Fast TTS playback — GET streaming so audio starts before synthesis finishes.
- * Avoid responseType: 'blob' POST which waits for the entire MP3 (~20–30s on long text).
+ * Neural TTS playback via authenticated POST → blob URL.
+ * Avoids cross-origin <audio src="/tts?..."> which Chrome blocks with
+ * ERR_BLOCKED_BY_RESPONSE.NotSameOrigin under CORP/same-origin policies.
  */
 
-function getApiBase() {
-    const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
-    const base = import.meta.env.VITE_API_URL
-        || (isProduction ? 'https://mustacademy-backend.onrender.com/api' : 'http://localhost:5000/api');
-    return base.replace(/\/$/, '');
-}
+import api from '../api/axios';
 
-/** Safe max chars for GET URL after encoding */
-const MAX_URL_CHARS = 1100;
+/** Safe max chars per request */
+const MAX_CHUNK = 900;
 
 export function cleanSpeechText(text) {
     return String(text || '')
@@ -25,19 +21,22 @@ export function cleanSpeechText(text) {
         .trim();
 }
 
-function trimForUrl(text) {
-    if (text.length <= MAX_URL_CHARS) return text;
-    const cut = text.slice(0, MAX_URL_CHARS);
+function trimForChunk(text) {
+    if (text.length <= MAX_CHUNK) return text;
+    const cut = text.slice(0, MAX_CHUNK);
     const lastStop = Math.max(cut.lastIndexOf('.'), cut.lastIndexOf('!'), cut.lastIndexOf('?'));
     return lastStop > 60 ? cut.slice(0, lastStop + 1) : cut;
 }
 
+/** @deprecated kept for callers that still build GET URLs — prefer fetchTtsObjectUrl */
 export function buildTtsUrl(text, voice) {
-    const payload = trimForUrl(cleanSpeechText(text));
-    return `${getApiBase()}/tts?text=${encodeURIComponent(payload)}&voice=${encodeURIComponent(voice)}`;
+    const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+    const base = import.meta.env.VITE_API_URL
+        || (isProduction ? 'https://mustacademy-backend.onrender.com/api' : 'http://localhost:5000/api');
+    const payload = trimForChunk(cleanSpeechText(text));
+    return `${base.replace(/\/$/, '')}/tts?text=${encodeURIComponent(payload)}&voice=${encodeURIComponent(voice)}`;
 }
 
-/** Split long replies into sentence chunks — first chunk plays in ~2–5s instead of 30s */
 export function splitSpeechChunks(text, maxLen = 320) {
     const clean = cleanSpeechText(text);
     if (clean.length <= maxLen) return [clean];
@@ -58,19 +57,39 @@ export function splitSpeechChunks(text, maxLen = 320) {
     return chunks.length ? chunks : [clean.slice(0, maxLen)];
 }
 
-export function prefetchTts(text, voice) {
-    try {
-        const audio = new Audio(buildTtsUrl(text, voice));
-        audio.preload = 'auto';
-        audio.load();
-        return audio;
-    } catch {
-        return null;
+const blobUrlCache = new Map();
+
+export async function fetchTtsObjectUrl(text, voice) {
+    const clean = trimForChunk(cleanSpeechText(text));
+    const key = `${voice}:${clean}`;
+    if (blobUrlCache.has(key)) return blobUrlCache.get(key);
+
+    const res = await api.post(
+        '/tts',
+        { text: clean, voice },
+        { responseType: 'blob', timeout: 60000 }
+    );
+    if (!(res.data instanceof Blob) || res.data.size < 200) {
+        throw new Error('Empty TTS audio');
     }
+    const url = URL.createObjectURL(res.data);
+    if (blobUrlCache.size > 40) {
+        const oldest = blobUrlCache.keys().next().value;
+        const oldUrl = blobUrlCache.get(oldest);
+        blobUrlCache.delete(oldest);
+        try { URL.revokeObjectURL(oldUrl); } catch { /* ignore */ }
+    }
+    blobUrlCache.set(key, url);
+    return url;
+}
+
+export function prefetchTts(text, voice) {
+    fetchTtsObjectUrl(text, voice).catch(() => null);
+    return null;
 }
 
 /**
- * Stream TTS via GET. Audio element starts playback as soon as enough bytes arrive.
+ * Play one TTS clip via blob URL (same-origin object URL → no CORP block).
  */
 export function playStreamingTts(text, voice, {
     audioRef,
@@ -79,32 +98,49 @@ export function playStreamingTts(text, voice, {
     onError,
     playbackRate = 1,
 } = {}) {
-    const url = buildTtsUrl(text, voice);
-    const audio = new Audio(url);
-    audio.preload = 'auto';
-    audio.playbackRate = playbackRate;
-    if (audioRef) audioRef.current = audio;
+    let stopped = false;
+    let audio = null;
+    let objectUrl = null;
 
-    audio.onplay = () => onPlay?.(audio);
-    audio.onended = () => onEnded?.(audio);
-    audio.onerror = (e) => onError?.(e, audio);
+    const cleanupSrc = () => {
+        if (objectUrl && !blobUrlCache.has(`${voice}:${trimForChunk(cleanSpeechText(text))}`)) {
+            try { URL.revokeObjectURL(objectUrl); } catch { /* ignore */ }
+        }
+    };
 
-    audio.play().catch((err) => onError?.(err, audio));
-
-    return {
-        audio,
-        stop: () => {
+    const stop = () => {
+        stopped = true;
+        if (audio) {
             audio.pause();
             audio.removeAttribute('src');
-            audio.load();
-        },
-        pause: () => {
-            audio.pause();
-        },
-        resume: () => {
-            audio.play().catch(() => {});
-        },
+            try { audio.load(); } catch { /* ignore */ }
+        }
     };
+
+    const pause = () => { audio?.pause(); };
+    const resume = () => { audio?.play().catch(() => {}); };
+
+    (async () => {
+        try {
+            objectUrl = await fetchTtsObjectUrl(text, voice);
+            if (stopped) return;
+
+            audio = new Audio(objectUrl);
+            audio.preload = 'auto';
+            audio.playbackRate = playbackRate;
+            if (audioRef) audioRef.current = audio;
+
+            audio.onplay = () => onPlay?.(audio);
+            audio.onended = () => onEnded?.(audio);
+            audio.onerror = (e) => onError?.(e, audio);
+
+            await audio.play();
+        } catch (err) {
+            if (!stopped) onError?.(err, audio);
+        }
+    })();
+
+    return { stop, pause, resume, get audio() { return audio; } };
 }
 
 /** Play long text as sequential chunks; prefetches the next chunk while current plays */
@@ -121,21 +157,24 @@ export function playStreamingTtsQueued(text, voice, {
     let stopped = false;
     let paused = false;
     let continueAfterPause = false;
+    let currentControl = null;
 
     const stop = () => {
         stopped = true;
         paused = false;
         continueAfterPause = false;
+        currentControl?.stop?.();
         if (audioRef?.current) {
             audioRef.current.pause();
             audioRef.current.removeAttribute('src');
-            audioRef.current.load();
+            try { audioRef.current.load(); } catch { /* ignore */ }
         }
     };
 
     const pause = () => {
         if (stopped) return;
         paused = true;
+        currentControl?.pause?.();
         audioRef?.current?.pause();
     };
 
@@ -147,6 +186,7 @@ export function playStreamingTtsQueued(text, voice, {
             playNext();
             return;
         }
+        currentControl?.resume?.();
         audioRef?.current?.play().catch((err) => onError?.(err));
     };
 
@@ -171,7 +211,7 @@ export function playStreamingTtsQueued(text, voice, {
 
         if (idx < chunks.length) prefetchTts(chunks[idx], voice);
 
-        playStreamingTts(chunk, voice, {
+        currentControl = playStreamingTts(chunk, voice, {
             audioRef,
             onPlay: chunkIdx === 0 ? onPlay : undefined,
             onEnded: () => {
@@ -181,7 +221,17 @@ export function playStreamingTtsQueued(text, voice, {
                 }
                 playNext();
             },
-            onError: (err) => onError?.(err),
+            onError: (err) => {
+                // Fall back to browser voice for this chunk, then continue — do NOT skip the whole script
+                const recovered = browserSpeechFallback(chunk, () => {
+                    if (paused) {
+                        continueAfterPause = true;
+                        return;
+                    }
+                    playNext();
+                });
+                if (!recovered) onError?.(err);
+            },
         });
 
         onChunkStart?.(chunkIdx, chunks.length);

@@ -7,7 +7,7 @@ import {
     MessageCircle
 } from "lucide-react";
 import api from "../api/axios";
-import { buildTtsUrl } from "../utils/streamingTts";
+import { fetchTtsObjectUrl } from "../utils/streamingTts";
 import { useTheme } from "../auth/ThemeContext";
 
 /** Consistent API origin for media + podcast speech (hero, player, TTS). */
@@ -254,7 +254,7 @@ export default function CsPodcastStudio() {
         prevVideoUrlRef.current = url;
     }, [episode?.video_url]);
 
-    // Audio engine: create a new Audio only when the segment/episode changes.
+    // Audio engine: blob POST per speaker (Jenny host / Brian expert) — no cross-origin GET.
     // Pause keeps the same element so resume continues from currentTime.
     useEffect(() => {
         if (!episode || (episode.video_url && !videoFailed)) return undefined;
@@ -266,6 +266,7 @@ export default function CsPodcastStudio() {
 
         const key = `${episode.id || episode.title || 'ep'}-${currentIdx}`;
         let cancelled = false;
+        let objectUrl = null;
 
         const teardown = () => {
             if (audioRef.current) {
@@ -274,80 +275,88 @@ export default function CsPodcastStudio() {
                 audioRef.current.pause();
                 audioRef.current = null;
             }
+            if (objectUrl) {
+                try { URL.revokeObjectURL(objectUrl); } catch { /* ignore */ }
+                objectUrl = null;
+            }
+        };
+
+        const normalizeSpeaker = (raw) => {
+            const s = String(raw || 'expert').toLowerCase();
+            return s === 'host' || s === 'aria' ? 'host' : 'expert';
+        };
+
+        const advanceOrStop = () => {
+            if (currentIdx < segments.length - 1) setActiveSegment((prev) => prev + 1);
+            else setIsPlaying(false);
         };
 
         const loadSegment = async () => {
             teardown();
             segmentKeyRef.current = key;
 
-            const apiBase = getApiOrigin();
-            const speaker = segment.speaker;
+            const speaker = normalizeSpeaker(segment.speaker);
+            const voice = speaker === 'host' ? 'en-US-JennyNeural' : 'en-US-BrianNeural';
+
+            // Prefetch next segment in background (distinct voice)
             const nextIdx = currentIdx + 1;
             if (nextIdx < segments.length) {
-                const nextSeg = segments[nextIdx];
-                const nextUrl = `${apiBase}/api/ai/podcast/speech?text=${encodeURIComponent(nextSeg.text)}&speaker=${nextSeg.speaker}`;
-                const preFetchAudio = new Audio();
-                preFetchAudio.preload = "auto";
-                preFetchAudio.src = nextUrl;
-                window._podcastAudioCache = window._podcastAudioCache || {};
-                window._podcastAudioCache[nextIdx] = nextUrl;
+                const nextSpeaker = normalizeSpeaker(segments[nextIdx].speaker);
+                api.post(
+                    '/ai/podcast/speech',
+                    { text: segments[nextIdx].text, speaker: nextSpeaker },
+                    { responseType: 'blob', timeout: 60000 }
+                ).catch(() => null);
             }
 
-            let url;
-            if (window._podcastAudioCache && window._podcastAudioCache[currentIdx]) {
-                url = window._podcastAudioCache[currentIdx];
-            } else {
-                url = `${apiBase}/api/ai/podcast/speech?text=${encodeURIComponent(segment.text)}&speaker=${speaker}`;
-            }
-
-            const audio = new Audio(url);
-            audio.preload = "auto";
-            audioRef.current = audio;
-
-            const fallbackToServerTTS = async () => {
-                if (cancelled) return;
-                console.warn(`[Podcast-Audio] Neural fallback triggered for ${speaker}. Using streaming TTS.`);
+            try {
+                let blob;
                 try {
-                    const voice = speaker === 'host' ? 'en-US-JennyNeural' : 'en-US-BrianNeural';
-                    const streamUrl = buildTtsUrl(segment.text, voice);
-                    const fallbackAudio = new Audio(streamUrl);
-                    fallbackAudio.preload = 'auto';
-                    audioRef.current = fallbackAudio;
-                    fallbackAudio.onended = () => {
-                        if (window._podcastAudioCache) delete window._podcastAudioCache[currentIdx];
-                        if (currentIdx < segments.length - 1) setActiveSegment((prev) => prev + 1);
-                        else setIsPlaying(false);
-                    };
-                    fallbackAudio.onerror = () => {
-                        if (currentIdx < segments.length - 1) setActiveSegment((prev) => prev + 1);
-                        else setIsPlaying(false);
-                    };
-                    if (isPlayingRef.current && !cancelled) await fallbackAudio.play();
-                } catch (ttsErr) {
-                    console.error("[Podcast-Audio] Server TTS fallback failed:", ttsErr);
-                    if (currentIdx < segments.length - 1) setActiveSegment((prev) => prev + 1);
-                    else setIsPlaying(false);
+                    const res = await api.post(
+                        '/ai/podcast/speech',
+                        { text: segment.text, speaker },
+                        { responseType: 'blob', timeout: 60000 }
+                    );
+                    blob = res.data;
+                    if (!(blob instanceof Blob) || blob.size < 200) throw new Error('Empty podcast speech');
+                } catch (speechErr) {
+                    console.warn(`[Podcast-Audio] podcast/speech failed for ${speaker}, falling back to /tts ${voice}`, speechErr?.message);
+                    objectUrl = await fetchTtsObjectUrl(segment.text, voice);
+                    if (cancelled) return;
+                    const audio = new Audio(objectUrl);
+                    audioRef.current = audio;
+                    audio.onended = advanceOrStop;
+                    audio.onerror = advanceOrStop;
+                    if (isPlayingRef.current && !cancelled) await audio.play();
+                    return;
                 }
-            };
 
-            audio.onended = () => {
-                if (window._podcastAudioCache) delete window._podcastAudioCache[currentIdx];
-                if (currentIdx < segments.length - 1) setActiveSegment((prev) => prev + 1);
-                else setIsPlaying(false);
-            };
-            audio.onerror = () => { fallbackToServerTTS(); };
+                if (cancelled) return;
+                objectUrl = URL.createObjectURL(blob);
+                const audio = new Audio(objectUrl);
+                audio.preload = 'auto';
+                audioRef.current = audio;
+                audio.onended = advanceOrStop;
+                audio.onerror = () => {
+                    console.error(`[Podcast-Audio] Playback error for speaker=${speaker}`);
+                    advanceOrStop();
+                };
 
-            if (isPlayingRef.current && !cancelled) {
-                try {
-                    await audio.play();
-                } catch (err) {
-                    if (err.name === 'AbortError' || String(err.message || '').includes('interrupted')) {
-                        console.warn("[Podcast-Audio] Playback aborted intentionally.");
-                    } else {
-                        console.error("[Podcast-Audio] Neural Synthesis Failure:", err.message);
-                        fallbackToServerTTS();
+                if (isPlayingRef.current && !cancelled) {
+                    try {
+                        await audio.play();
+                    } catch (err) {
+                        if (err.name === 'AbortError' || String(err.message || '').includes('interrupted')) {
+                            console.warn('[Podcast-Audio] Playback aborted intentionally.');
+                        } else {
+                            console.error('[Podcast-Audio] Play failure:', err.message);
+                            advanceOrStop();
+                        }
                     }
                 }
+            } catch (generalErr) {
+                console.error('[Podcast-Audio] Segment error:', generalErr.message);
+                if (!cancelled) advanceOrStop();
             }
         };
 

@@ -128,10 +128,12 @@ export default function InteractivePodcastPlayer({ topic }) {
                 if (onEnd) onEnd();
             },
             onError: () => {
+                // Do not skip ahead — stay on this paragraph so the user can retry
                 if (pausedRef.current) return;
                 ttsControlRef.current = null;
                 setIsSpeaking(false);
-                if (onEnd) onEnd();
+                setIsPaused(false);
+                setError('Voice playback failed. Tap play again, or continue with the transcript.');
             },
         });
     }, [stopAudio]);
