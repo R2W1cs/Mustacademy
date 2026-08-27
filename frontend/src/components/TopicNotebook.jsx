@@ -249,6 +249,7 @@ const TopicNotebook = ({ topic, isDark }) => {
     const pendingSpeech = useRef("");
     const fileInputRef = useRef(null);
     const synthesisRef = useRef(window.speechSynthesis);
+    const ttsControlRef = useRef(null);
 
 
     // ── Auto-scroll ──
@@ -355,11 +356,17 @@ const TopicNotebook = ({ topic, isDark }) => {
 
     // ── TTS ──
     const killAudio = useCallback(() => {
+        ttsControlRef.current?.stop?.();
+        ttsControlRef.current = null;
+        pendingSpeech.current = "";
         audioRef.current?.pause();
         if (audioRef.current) audioRef.current.src = "";
         try { synthesisRef.current?.cancel(); } catch { /* ignore */ }
         setIsSpeaking(false);
     }, []);
+
+    // Stop reading the moment the student leaves 1-on-1 tutor
+    useEffect(() => () => { killAudio(); }, [killAudio]);
 
     const toggleVoice = useCallback(() => {
         setVoiceEnabled((v) => {
@@ -375,11 +382,17 @@ const TopicNotebook = ({ topic, isDark }) => {
         killAudio();
         try {
             setIsSpeaking(true);
-            playStreamingTtsQueued(clean, 'en-US-AvaNeural', {
+            ttsControlRef.current = playStreamingTtsQueued(clean, 'en-US-AvaNeural', {
                 audioRef,
-                onEnded: () => killAudio(),
+                onEnded: () => {
+                    ttsControlRef.current = null;
+                    killAudio();
+                },
                 onError: () => {
-                    browserSpeechFallback(clean, () => killAudio());
+                    browserSpeechFallback(clean, () => {
+                        ttsControlRef.current = null;
+                        killAudio();
+                    });
                 },
             });
         } catch {

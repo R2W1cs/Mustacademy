@@ -5,8 +5,24 @@ import api from '../api/axios';
 import { useTheme } from '../auth/ThemeContext';
 import { playStreamingTtsQueued, prefetchTts } from '../utils/streamingTts';
 
-// Dr. Nova / topic podcast — Marcus (Brian), same expert voice as Podcast Studio
-const NOVA_VOICE = 'en-US-BrianNeural';
+// Two distinct podcast voices — must stay different
+const ARIA_VOICE = 'en-US-JennyNeural';  // Dr. Aria (host)
+const NOVA_VOICE = 'en-US-BrianNeural';  // Dr. Nova (expert)
+
+const voiceForSpeaker = (speaker) =>
+    (speaker === 'host' || speaker === 'aria') ? ARIA_VOICE : NOVA_VOICE;
+
+const labelForSpeaker = (speaker) => {
+    if (speaker === 'host' || speaker === 'aria') return 'Dr. Aria';
+    if (speaker === 'user') return 'You';
+    return 'Dr. Nova';
+};
+
+const initialForSpeaker = (speaker) => {
+    if (speaker === 'host' || speaker === 'aria') return 'A';
+    if (speaker === 'user') return 'Y';
+    return 'N';
+};
 
 export default function InteractivePodcastPlayer({ topic }) {
     const { theme } = useTheme();
@@ -14,9 +30,11 @@ export default function InteractivePodcastPlayer({ topic }) {
 
     // Session phases: 'idle' | 'lesson' | 'qa'
     const [phase, setPhase] = useState('idle');
-    const [lessonParagraphs, setLessonParagraphs] = useState([]);
-    const [currentParagraphIdx, setCurrentParagraphIdx] = useState(0);
-    const [transcript, setTranscript] = useState([]); // { role: 'nova'|'user', text: string }
+    const [segments, setSegments] = useState([]); // { speaker: 'host'|'expert', text }
+    const [episodeTitle, setEpisodeTitle] = useState('');
+    const [currentSegmentIdx, setCurrentSegmentIdx] = useState(0);
+    const [activeSpeaker, setActiveSpeaker] = useState(null);
+    const [transcript, setTranscript] = useState([]); // { role: 'host'|'expert'|'user'|'nova', text }
     const [inputValue, setInputValue] = useState('');
     const [isListening, setIsListening] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
@@ -34,17 +52,36 @@ export default function InteractivePodcastPlayer({ topic }) {
     const pausedRef = useRef(false);
     const ttsControlRef = useRef(null);
 
-    // Wave animation loop
     useEffect(() => {
         const tick = () => {
-            setPhaseOffset(p => p + (isSpeaking ? 0.04 : 0.01));
+            setPhaseOffset((p) => p + (isSpeaking ? 0.04 : 0.01));
             animFrameRef.current = requestAnimationFrame(tick);
         };
         animFrameRef.current = requestAnimationFrame(tick);
         return () => cancelAnimationFrame(animFrameRef.current);
     }, [isSpeaking]);
 
-    // Setup Speech Recognition
+    const stopAudio = useCallback(() => {
+        pausedRef.current = false;
+        setIsPaused(false);
+        if (abortControllerRef.current) abortControllerRef.current.abort();
+        ttsControlRef.current?.stop?.();
+        ttsControlRef.current = null;
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.removeAttribute('src');
+            try { audioRef.current.load(); } catch { /* ignore */ }
+            audioRef.current.onended = null;
+            audioRef.current.onerror = null;
+            audioRef.current = null;
+        }
+        setIsSpeaking(false);
+        setActiveSpeaker(null);
+    }, []);
+
+    // Hard-stop when leaving the podcast tab / page
+    useEffect(() => () => { stopAudio(); }, [stopAudio]);
+
     useEffect(() => {
         const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SR) {
@@ -60,28 +97,11 @@ export default function InteractivePodcastPlayer({ topic }) {
             recognitionRef.current.onend = () => setIsListening(false);
         }
         return () => stopAudio();
-    }, [topic]);
+    }, [topic, stopAudio]);
 
     useEffect(() => {
         transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [transcript, isGenerating]);
-
-    const stopAudio = useCallback(() => {
-        pausedRef.current = false;
-        setIsPaused(false);
-        if (abortControllerRef.current) abortControllerRef.current.abort();
-        ttsControlRef.current?.stop?.();
-        ttsControlRef.current = null;
-        if (audioRef.current) {
-            audioRef.current.pause();
-            audioRef.current.removeAttribute('src');
-            audioRef.current.load();
-            audioRef.current.onended = null;
-            audioRef.current.onerror = null;
-            audioRef.current = null;
-        }
-        setIsSpeaking(false);
-    }, []);
 
     const pauseAudio = useCallback(() => {
         if (!audioRef.current && !ttsControlRef.current) return;
@@ -98,11 +118,8 @@ export default function InteractivePodcastPlayer({ topic }) {
         setIsPaused(false);
         setIsSpeaking(true);
         try {
-            if (ttsControlRef.current?.resume) {
-                ttsControlRef.current.resume();
-            } else if (audioRef.current) {
-                await audioRef.current.play();
-            }
+            if (ttsControlRef.current?.resume) ttsControlRef.current.resume();
+            else if (audioRef.current) await audioRef.current.play();
         } catch {
             setIsSpeaking(false);
             setIsPaused(true);
@@ -110,62 +127,95 @@ export default function InteractivePodcastPlayer({ topic }) {
         }
     }, []);
 
-    const playText = useCallback(async (text, onEnd, nextText = null) => {
+    const playText = useCallback(async (text, speaker, onEnd, next = null) => {
         stopAudio();
         abortControllerRef.current = new AbortController();
         pausedRef.current = false;
         setIsPaused(false);
         setIsSpeaking(true);
-        if (nextText) prefetchTts(nextText, NOVA_VOICE);
+        setActiveSpeaker(speaker);
 
-        ttsControlRef.current = playStreamingTtsQueued(text, NOVA_VOICE, {
+        const voice = voiceForSpeaker(speaker);
+        if (next?.text) prefetchTts(next.text, voiceForSpeaker(next.speaker));
+
+        ttsControlRef.current = playStreamingTtsQueued(text, voice, {
             audioRef,
             signal: abortControllerRef.current.signal,
             onEnded: () => {
                 if (pausedRef.current) return;
                 ttsControlRef.current = null;
                 setIsSpeaking(false);
+                setActiveSpeaker(null);
                 if (onEnd) onEnd();
             },
             onError: () => {
-                // Do not skip ahead — stay on this paragraph so the user can retry
                 if (pausedRef.current) return;
                 ttsControlRef.current = null;
                 setIsSpeaking(false);
                 setIsPaused(false);
+                setActiveSpeaker(null);
                 setError('Voice playback failed. Tap play again, or continue with the transcript.');
             },
         });
     }, [stopAudio]);
 
-    // Play lesson paragraphs sequentially
-    const playLessonFrom = useCallback(async (paragraphs, startIdx) => {
-        if (startIdx >= paragraphs.length) {
-            // Lesson done — move to Q&A
+    const playSegmentsFrom = useCallback(async (list, startIdx) => {
+        if (startIdx >= list.length) {
             setPhase('qa');
             return;
         }
-        setCurrentParagraphIdx(startIdx);
-        const para = paragraphs[startIdx];
-        setTranscript(prev => [...prev, { role: 'nova', text: para }]);
-        await playText(para, () => playLessonFrom(paragraphs, startIdx + 1), paragraphs[startIdx + 1]);
+        setCurrentSegmentIdx(startIdx);
+        const seg = list[startIdx];
+        const role = seg.speaker === 'host' ? 'host' : 'expert';
+        setTranscript((prev) => [...prev, { role, text: seg.text }]);
+        const next = list[startIdx + 1] || null;
+        await playText(seg.text, role, () => playSegmentsFrom(list, startIdx + 1), next);
     }, [playText]);
+
+    const normalizeSegments = (raw) => {
+        const list = Array.isArray(raw) ? raw : [];
+        return list
+            .map((seg, i) => {
+                const s = String(seg.speaker || '').toLowerCase();
+                let speaker = 'expert';
+                if (s === 'host' || s === 'aria' || s.includes('aria') || s === 'leo') speaker = 'host';
+                else if (s === 'expert' || s === 'nova' || s.includes('nova') || s === 'aris') speaker = 'expert';
+                else speaker = i % 2 === 0 ? 'host' : 'expert';
+                return { speaker, text: String(seg.text || '').trim() };
+            })
+            .filter((seg) => seg.text.length > 0);
+    };
 
     const startSession = async () => {
         setIsLoadingLesson(true);
         setError(null);
         setTranscript([]);
+        setSegments([]);
         try {
-            const res = await api.post('/ai/nova-lesson', { topicTitle: topic?.title });
-            const paragraphs = res.data.paragraphs;
-            if (!paragraphs || paragraphs.length === 0) throw new Error('No lesson content');
-            setLessonParagraphs(paragraphs);
+            // Dual-host conversation (Aria + Nova) — not the solo nova-lesson lecture
+            const res = await api.post('/ai/topics/podcast', {
+                topicId: topic?.id,
+                topicTitle: topic?.title,
+            });
+            const episode = res.data?.episode || res.data;
+            const cleaned = normalizeSegments(episode?.segments);
+            if (!cleaned.length) throw new Error('No podcast segments');
+
+            // Guarantee we actually alternate if the model returned one speaker only
+            const hosts = cleaned.filter((s) => s.speaker === 'host').length;
+            const experts = cleaned.filter((s) => s.speaker === 'expert').length;
+            const balanced = (hosts === 0 || experts === 0)
+                ? cleaned.map((seg, i) => ({ ...seg, speaker: i % 2 === 0 ? 'host' : 'expert' }))
+                : cleaned;
+
+            setEpisodeTitle(episode?.title || topic?.title || 'Podcast');
+            setSegments(balanced);
             setPhase('lesson');
             setIsLoadingLesson(false);
-            await playLessonFrom(paragraphs, 0);
+            await playSegmentsFrom(balanced, 0);
         } catch (err) {
-            console.error('[Dr. Nova] Lesson generation failed:', err);
-            setError('Failed to start session. Please try again.');
+            console.error('[Podcast] Generation failed:', err);
+            setError('Failed to start the Aria × Nova podcast. Please try again.');
             setIsLoadingLesson(false);
         }
     };
@@ -184,39 +234,40 @@ export default function InteractivePodcastPlayer({ topic }) {
         setError(null);
 
         try {
-            const history = updatedTranscript.map(m => ({
-                role: m.role === 'nova' ? 'assistant' : 'user',
-                content: m.text
+            const history = updatedTranscript.map((m) => ({
+                role: m.role === 'user' ? 'user' : 'assistant',
+                content: m.role === 'user' ? m.text : `${labelForSpeaker(m.role)}: ${m.text}`,
             }));
             const res = await api.post('/ai/interactive-podcast', {
                 topicTitle: topic?.title,
-                history
+                history,
             });
             const reply = res.data.reply;
-            setTranscript(prev => [...prev, { role: 'nova', text: reply }]);
+            setTranscript((prev) => [...prev, { role: 'nova', text: reply }]);
             setIsGenerating(false);
-            await playText(reply);
+            await playText(reply, 'expert');
         } catch (err) {
-            console.error('[Dr. Nova] Q&A error:', err);
+            console.error('[Podcast] Q&A error:', err);
             setError('Failed to get a response. Please try again.');
             setIsGenerating(false);
         }
     };
 
     const toggleListening = () => {
-        if (!recognitionRef.current) { alert('Speech recognition not supported in this browser.'); return; }
-        if (isListening) {
-            recognitionRef.current.stop();
-        } else {
+        if (!recognitionRef.current) {
+            alert('Speech recognition not supported in this browser.');
+            return;
+        }
+        if (isListening) recognitionRef.current.stop();
+        else {
             setInputValue('');
             recognitionRef.current.start();
             setIsListening(true);
         }
     };
 
-    // Orb waveform lines
-    const WaveLine = ({ amplitude, frequency, opacity, yOffset = 0 }) => {
-        const W = 200, H = 80, mid = H / 2 + yOffset;
+    const WaveLine = ({ amplitude, frequency, opacity, yOffset = 0, color = 'rgba(99,102,241,1)' }) => {
+        const W = 200; const H = 80; const mid = H / 2 + yOffset;
         const pts = 80;
         const activeAmp = isSpeaking ? amplitude : amplitude * 0.15;
         const d = Array.from({ length: pts + 1 }, (_, i) => {
@@ -225,12 +276,20 @@ export default function InteractivePodcastPlayer({ topic }) {
             const y = mid + activeAmp * env * Math.sin((i / pts) * frequency * Math.PI * 2 + phaseOffset);
             return `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
         }).join(' ');
-        return <path d={d} fill="none" stroke="rgba(99,102,241,1)" strokeWidth="1.5" strokeLinecap="round" style={{ opacity }} />;
+        return <path d={d} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" style={{ opacity }} />;
     };
 
-    const lessonProgress = lessonParagraphs.length > 0
-        ? Math.min(((currentParagraphIdx + (isSpeaking ? 0 : 1)) / lessonParagraphs.length) * 100, 100)
+    const lessonProgress = segments.length > 0
+        ? Math.min(((currentSegmentIdx + (isSpeaking ? 0 : 1)) / segments.length) * 100, 100)
         : 0;
+
+    const speakingLabel = activeSpeaker === 'host'
+        ? 'Dr. Aria is speaking…'
+        : activeSpeaker === 'expert' || activeSpeaker === 'nova'
+            ? 'Dr. Nova is speaking…'
+            : null;
+
+    const waveColor = activeSpeaker === 'host' ? 'rgba(244,63,94,1)' : 'rgba(99,102,241,1)';
 
     return (
         <div
@@ -241,21 +300,24 @@ export default function InteractivePodcastPlayer({ topic }) {
                 ? { background: 'linear-gradient(145deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%)' }
                 : { background: 'linear-gradient(145deg, #0c0f1a 0%, #0f1420 50%, #0a0d18 100%)' }}
         >
-
             {/* Header */}
             <div className={`flex items-center justify-between px-6 py-4 border-b ${isLight ? 'border-gray-200' : 'border-slate-800/60'}`}>
                 <div className="flex items-center gap-3">
-                    <div className="relative flex items-center justify-center w-9 h-9">
-                        <div className={`absolute inset-0 rounded-full bg-indigo-500/20 ${isSpeaking ? 'animate-ping' : ''}`} />
-                        <div className={`relative w-7 h-7 rounded-full border flex items-center justify-center ${
-                            isLight ? 'bg-indigo-50 border-indigo-200' : 'bg-indigo-600/30 border-indigo-500/50'
-                        }`}>
-                            <span className={`text-xs font-bold ${isLight ? 'text-indigo-600' : 'text-indigo-300'}`}>N</span>
-                        </div>
+                    <div className="flex -space-x-2">
+                        <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-[10px] font-black ${
+                            isLight ? 'bg-rose-50 border-white text-rose-600' : 'bg-rose-500/20 border-slate-900 text-rose-300'
+                        }`}>A</div>
+                        <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-[10px] font-black ${
+                            isLight ? 'bg-indigo-50 border-white text-indigo-600' : 'bg-indigo-500/20 border-slate-900 text-indigo-300'
+                        }`}>N</div>
                     </div>
                     <div>
-                        <p className={`font-semibold text-sm tracking-wide ${isLight ? 'text-slate-900' : 'text-white'}`}>Dr. Nova</p>
-                        <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-500'}`}>Lesson Podcast</p>
+                        <p className={`font-semibold text-sm tracking-wide ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                            Dr. Aria × Dr. Nova
+                        </p>
+                        <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-500'}`}>
+                            {episodeTitle || 'Two-host lesson podcast'}
+                        </p>
                     </div>
                 </div>
 
@@ -267,7 +329,7 @@ export default function InteractivePodcastPlayer({ topic }) {
                                 : (isLight ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30')
                         }`}>
                             {phase === 'lesson' ? <BookOpen size={11} /> : <MessageSquare size={11} />}
-                            {phase === 'lesson' ? 'LECTURE' : 'Q&A'}
+                            {phase === 'lesson' ? 'DIALOGUE' : 'Q&A'}
                         </div>
                     )}
                     <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border ${
@@ -281,24 +343,20 @@ export default function InteractivePodcastPlayer({ topic }) {
                 </div>
             </div>
 
-            {/* Main body */}
             <div className="flex flex-col" style={{ height: '560px' }}>
-
-                {/* Idle / Start screen */}
                 {phase === 'idle' && (
                     <div className="flex-1 flex flex-col items-center justify-center gap-6 px-8">
-                        {/* Orb */}
-                        <div className="relative w-32 h-32 flex items-center justify-center">
-                            <div className="absolute inset-0 rounded-full"
-                                style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)' }} />
-                            <div className="absolute w-24 h-24 rounded-full border border-indigo-500/20 animate-pulse" />
-                            <div className="absolute w-32 h-32 rounded-full border border-indigo-500/10" />
-                            <div className={`w-16 h-16 rounded-full border flex items-center justify-center shadow-lg ${
-                                isLight
-                                    ? 'border-indigo-300 bg-indigo-50 shadow-indigo-100'
-                                    : 'border-indigo-400/40 bg-indigo-950/60 shadow-indigo-900/50'
+                        <div className="flex items-center gap-4">
+                            <div className={`w-16 h-16 rounded-full border flex items-center justify-center ${
+                                isLight ? 'border-rose-200 bg-rose-50 text-rose-600' : 'border-rose-500/40 bg-rose-950/40 text-rose-300'
                             }`}>
-                                <span className={`text-2xl font-light ${isLight ? 'text-indigo-600' : 'text-indigo-200'}`}>N</span>
+                                <span className="text-xl font-light">A</span>
+                            </div>
+                            <span className={`text-xs font-black uppercase tracking-widest ${isLight ? 'text-slate-400' : 'text-slate-600'}`}>×</span>
+                            <div className={`w-16 h-16 rounded-full border flex items-center justify-center ${
+                                isLight ? 'border-indigo-200 bg-indigo-50 text-indigo-600' : 'border-indigo-400/40 bg-indigo-950/60 text-indigo-200'
+                            }`}>
+                                <span className="text-xl font-light">N</span>
                             </div>
                         </div>
 
@@ -307,7 +365,7 @@ export default function InteractivePodcastPlayer({ topic }) {
                                 {topic?.title || 'Select a Topic'}
                             </h3>
                             <p className={`text-sm leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
-                                Dr. Nova will deliver a private lecture, then stay for your questions.
+                                Hear a real conversation: Dr. Aria asks the practical questions, Dr. Nova answers with depth — two different voices.
                             </p>
                         </div>
 
@@ -321,12 +379,12 @@ export default function InteractivePodcastPlayer({ topic }) {
                             {isLoadingLesson ? (
                                 <>
                                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                    Preparing lecture...
+                                    Writing dialogue…
                                 </>
                             ) : (
                                 <>
                                     <ChevronRight size={16} />
-                                    Begin Session
+                                    Start Aria × Nova Podcast
                                 </>
                             )}
                         </button>
@@ -335,39 +393,36 @@ export default function InteractivePodcastPlayer({ topic }) {
                     </div>
                 )}
 
-                {/* Lesson + Q&A active */}
                 {phase !== 'idle' && (
                     <>
-                        {/* Orb visualizer */}
                         <div className="flex flex-col items-center pt-5 pb-2 gap-2">
-                            <div className="relative w-24 h-24 flex items-center justify-center">
-                                {isSpeaking && (
-                                    <>
-                                        <div className="absolute inset-0 rounded-full bg-indigo-500/5 animate-ping" />
-                                        <div className="absolute w-20 h-20 rounded-full border border-indigo-500/30 animate-pulse" />
-                                    </>
-                                )}
-                                <div className={`w-14 h-14 rounded-full border flex items-center justify-center transition-all duration-500 ${
-                                    isSpeaking
-                                        ? (isLight ? 'border-indigo-400 bg-indigo-50 shadow-lg shadow-indigo-200' : 'border-indigo-400/60 bg-indigo-950/80 shadow-lg shadow-indigo-500/30')
-                                        : (isLight ? 'border-gray-200 bg-slate-50' : 'border-slate-700/60 bg-slate-900/60')
+                            <div className="relative w-28 h-20 flex items-center justify-center gap-3">
+                                <div className={`w-12 h-12 rounded-full border flex items-center justify-center transition-all ${
+                                    activeSpeaker === 'host'
+                                        ? (isLight ? 'border-rose-400 bg-rose-50 scale-110 shadow-lg' : 'border-rose-400 bg-rose-950/80 scale-110 shadow-lg')
+                                        : (isLight ? 'border-gray-200 bg-slate-50' : 'border-slate-700 bg-slate-900/60')
                                 }`}>
-                                    <span className={`text-xl font-light transition-colors ${isSpeaking ? (isLight ? 'text-indigo-600' : 'text-indigo-300') : (isLight ? 'text-slate-400' : 'text-slate-500')}`}>N</span>
+                                    <span className={`text-sm font-bold ${activeSpeaker === 'host' ? (isLight ? 'text-rose-600' : 'text-rose-300') : (isLight ? 'text-slate-400' : 'text-slate-500')}`}>A</span>
+                                </div>
+                                <div className={`w-12 h-12 rounded-full border flex items-center justify-center transition-all ${
+                                    activeSpeaker === 'expert' || activeSpeaker === 'nova'
+                                        ? (isLight ? 'border-indigo-400 bg-indigo-50 scale-110 shadow-lg' : 'border-indigo-400 bg-indigo-950/80 scale-110 shadow-lg')
+                                        : (isLight ? 'border-gray-200 bg-slate-50' : 'border-slate-700 bg-slate-900/60')
+                                }`}>
+                                    <span className={`text-sm font-bold ${activeSpeaker === 'expert' || activeSpeaker === 'nova' ? (isLight ? 'text-indigo-600' : 'text-indigo-300') : (isLight ? 'text-slate-400' : 'text-slate-500')}`}>N</span>
                                 </div>
                             </div>
 
-                            {/* Waveform */}
                             <svg width="200" height="40" viewBox="0 0 200 80" className="-mt-1">
-                                <WaveLine amplitude={16} frequency={3.5} opacity={0.9} yOffset={-10} />
-                                <WaveLine amplitude={10} frequency={5} opacity={0.5} yOffset={0} />
-                                <WaveLine amplitude={6} frequency={7} opacity={0.25} yOffset={6} />
+                                <WaveLine amplitude={16} frequency={3.5} opacity={0.9} yOffset={-10} color={waveColor} />
+                                <WaveLine amplitude={10} frequency={5} opacity={0.5} yOffset={0} color={waveColor} />
+                                <WaveLine amplitude={6} frequency={7} opacity={0.25} yOffset={6} color={waveColor} />
                             </svg>
 
-                            {/* Lesson progress bar */}
-                            {phase === 'lesson' && lessonParagraphs.length > 0 && (
+                            {phase === 'lesson' && segments.length > 0 && (
                                 <div className="w-48 mt-1">
                                     <div className={`flex justify-between text-[10px] mb-1 ${isLight ? 'text-slate-500' : 'text-slate-600'}`}>
-                                        <span>Lecture progress</span>
+                                        <span>Dialogue progress</span>
                                         <span>{Math.round(lessonProgress)}%</span>
                                     </div>
                                     <div className={`h-0.5 rounded-full overflow-hidden ${isLight ? 'bg-slate-200' : 'bg-slate-800'}`}>
@@ -381,50 +436,56 @@ export default function InteractivePodcastPlayer({ topic }) {
                             )}
                         </div>
 
-                        {/* Transcript */}
                         <div className="flex-1 overflow-y-auto px-5 py-3 space-y-4 custom-scrollbar">
                             <AnimatePresence initial={false}>
-                                {transcript.map((msg, idx) => (
-                                    <motion.div
-                                        key={idx}
-                                        initial={{ opacity: 0, y: 8 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ duration: 0.3 }}
-                                        className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                                    >
-                                        {msg.role === 'nova' && (
-                                            <div className={`w-5 h-5 rounded-full border flex items-center justify-center mr-2 mt-0.5 shrink-0 ${
-                                                isLight ? 'bg-indigo-50 border-indigo-200' : 'bg-indigo-900/60 border-indigo-700/40'
+                                {transcript.map((msg, idx) => {
+                                    const isUser = msg.role === 'user';
+                                    const isAria = msg.role === 'host' || msg.role === 'aria';
+                                    return (
+                                        <motion.div
+                                            key={idx}
+                                            initial={{ opacity: 0, y: 8 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ duration: 0.3 }}
+                                            className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
+                                        >
+                                            {!isUser && (
+                                                <div className={`w-5 h-5 rounded-full border flex items-center justify-center mr-2 mt-0.5 shrink-0 ${
+                                                    isAria
+                                                        ? (isLight ? 'bg-rose-50 border-rose-200 text-rose-600' : 'bg-rose-900/60 border-rose-700/40 text-rose-300')
+                                                        : (isLight ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-indigo-900/60 border-indigo-700/40 text-indigo-400')
+                                                }`}>
+                                                    <span className="text-[9px] font-bold">{initialForSpeaker(msg.role)}</span>
+                                                </div>
+                                            )}
+                                            <div className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm leading-relaxed ${
+                                                isUser
+                                                    ? (isLight
+                                                        ? 'bg-indigo-50 text-indigo-900 border border-indigo-100 rounded-br-none'
+                                                        : 'bg-indigo-600/20 text-indigo-100 border border-indigo-500/20 rounded-br-none')
+                                                    : isAria
+                                                        ? (isLight
+                                                            ? 'bg-rose-50/80 text-slate-800 border border-rose-100 rounded-bl-none'
+                                                            : 'bg-rose-950/30 text-slate-200 border border-rose-900/30 rounded-bl-none')
+                                                        : (isLight
+                                                            ? 'bg-slate-50 text-slate-800 border border-gray-200 rounded-bl-none'
+                                                            : 'bg-slate-800/50 text-slate-200 border border-slate-700/30 rounded-bl-none')
                                             }`}>
-                                                <span className={`text-[9px] font-bold ${isLight ? 'text-indigo-600' : 'text-indigo-400'}`}>N</span>
+                                                {!isUser && (
+                                                    <p className={`text-[9px] font-black uppercase tracking-widest mb-1 ${
+                                                        isAria ? (isLight ? 'text-rose-500' : 'text-rose-400') : (isLight ? 'text-indigo-500' : 'text-indigo-400')
+                                                    }`}>
+                                                        {labelForSpeaker(msg.role)}
+                                                    </p>
+                                                )}
+                                                {msg.text}
                                             </div>
-                                        )}
-                                        <div className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm leading-relaxed ${
-                                            msg.role === 'user'
-                                                ? (isLight
-                                                    ? 'bg-indigo-50 text-indigo-900 border border-indigo-100 rounded-br-none'
-                                                    : 'bg-indigo-600/20 text-indigo-100 border border-indigo-500/20 rounded-br-none')
-                                                : (isLight
-                                                    ? 'bg-slate-50 text-slate-800 border border-gray-200 rounded-bl-none'
-                                                    : 'bg-slate-800/50 text-slate-200 border border-slate-700/30 rounded-bl-none')
-                                        }`}>
-                                            {msg.text}
-                                        </div>
-                                    </motion.div>
-                                ))}
+                                        </motion.div>
+                                    );
+                                })}
 
                                 {isGenerating && (
-                                    <motion.div
-                                        key="thinking"
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        className="flex justify-start"
-                                    >
-                                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center mr-2 mt-0.5 shrink-0 ${
-                                            isLight ? 'bg-indigo-50 border-indigo-200' : 'bg-indigo-900/60 border-indigo-700/40'
-                                        }`}>
-                                            <span className={`text-[9px] font-bold ${isLight ? 'text-indigo-600' : 'text-indigo-400'}`}>N</span>
-                                        </div>
+                                    <motion.div key="thinking" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
                                         <div className={`rounded-xl rounded-bl-none px-4 py-3 border ${
                                             isLight ? 'bg-slate-50 border-gray-200' : 'bg-slate-800/50 border-slate-700/30'
                                         }`}>
@@ -437,21 +498,15 @@ export default function InteractivePodcastPlayer({ topic }) {
                                     </motion.div>
                                 )}
 
-                                {phase === 'lesson' && !isGenerating && isSpeaking && (
-                                    <motion.div
-                                        key="lecturing"
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        className="flex justify-center"
-                                    >
-                                        <span className={`text-xs italic ${isLight ? 'text-slate-500' : 'text-slate-600'}`}>Dr. Nova is speaking...</span>
+                                {phase === 'lesson' && !isGenerating && speakingLabel && (
+                                    <motion.div key="lecturing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-center">
+                                        <span className={`text-xs italic ${isLight ? 'text-slate-500' : 'text-slate-600'}`}>{speakingLabel}</span>
                                     </motion.div>
                                 )}
                             </AnimatePresence>
                             <div ref={transcriptEndRef} />
                         </div>
 
-                        {/* Error */}
                         {error && (
                             <div className={`mx-5 mb-2 px-3 py-2 rounded-lg text-xs border ${
                                 isLight ? 'bg-red-50 border-red-200 text-red-700' : 'bg-red-950/40 border-red-900/40 text-red-400'
@@ -460,11 +515,10 @@ export default function InteractivePodcastPlayer({ topic }) {
                             </div>
                         )}
 
-                        {/* Input dock */}
                         <div className={`px-5 pb-5 pt-2 border-t ${isLight ? 'border-gray-200' : 'border-slate-800/60'}`}>
                             {phase === 'lesson' && (
                                 <p className={`text-xs text-center mb-3 ${isLight ? 'text-slate-500' : 'text-slate-600'}`}>
-                                    Lecture in progress — questions unlock after Dr. Nova finishes.
+                                    Dialogue in progress — questions unlock after Aria & Nova finish.
                                 </p>
                             )}
                             <form onSubmit={handleSubmit} className="flex gap-2">
@@ -472,8 +526,8 @@ export default function InteractivePodcastPlayer({ topic }) {
                                     <input
                                         type="text"
                                         value={inputValue}
-                                        onChange={e => setInputValue(e.target.value)}
-                                        placeholder={phase === 'lesson' ? 'Listening to lecture...' : 'Ask Dr. Nova anything...'}
+                                        onChange={(e) => setInputValue(e.target.value)}
+                                        placeholder={phase === 'lesson' ? 'Listening to Aria × Nova…' : 'Ask Dr. Nova anything…'}
                                         disabled={isGenerating || isSpeaking || phase === 'lesson'}
                                         className={`w-full rounded-xl pl-4 pr-12 py-3 text-sm outline-none transition-all
                                             focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30
