@@ -148,18 +148,33 @@ export const generateTopicPodcast = async (req, res) => {
             return index % 2 === 0 ? 'host' : 'expert';
         };
 
-        const sanitized = {
-            ...aiData,
-            segments: aiData.segments.map((seg, i) => ({
-                ...seg,
-                speaker: normalizeSpeaker(seg.speaker, i),
-                text: String(seg.text || '').trim(),
-            })).filter((seg) => seg.text),
-        };
+        let segments = aiData.segments.map((seg, i) => ({
+            ...seg,
+            speaker: normalizeSpeaker(seg.speaker, i),
+            text: String(seg.text || '').trim(),
+        })).filter((seg) => seg.text);
 
-        if (!sanitized.segments.length) {
+        // Force true Aria↔Nova turn-taking (no monologues)
+        const hostCount = segments.filter((s) => s.speaker === 'host').length;
+        const expertCount = segments.filter((s) => s.speaker === 'expert').length;
+        if (hostCount === 0 || expertCount === 0 || hostCount + expertCount < 4) {
             return res.json({ success: true, episode: buildFallbackEpisode(topicTitle) });
         }
+        segments = segments.map((seg, i) => {
+            const expected = i % 2 === 0 ? 'host' : 'expert';
+            // If two identical speakers in a row, flip to keep conversation rhythm
+            if (i > 0 && seg.speaker === segments[i - 1].speaker) {
+                return { ...seg, speaker: expected };
+            }
+            return seg;
+        });
+
+        const sanitized = {
+            ...aiData,
+            title: aiData.title || `Aria × Nova: ${topicTitle}`,
+            summary: aiData.summary || `A conversation between Dr. Aria and Dr. Nova on ${topicTitle}.`,
+            segments,
+        };
 
         res.json({ success: true, episode: sanitized });
     } catch (err) {
