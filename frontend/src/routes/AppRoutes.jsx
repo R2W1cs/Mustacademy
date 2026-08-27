@@ -14,7 +14,6 @@ const TopicDetails = lazy(() => import("../pages/TopicDetails"));
 
 const ProfileSetup = lazy(() => import("../pages/ProfileSetup"));
 const Profile = lazy(() => import("../pages/Profile"));
-const RoadmapView = lazy(() => import("../pages/RoadmapView"));
 const CareerRoadmap = lazy(() => import("../pages/CareerRoadmap"));
 const KnowledgeMapPage = lazy(() => import("../pages/KnowledgeMapPage"));
 const LibraryPage = lazy(() => import("../pages/LibraryPage"));
@@ -75,7 +74,8 @@ export default function AppRoutes() {
       <Route path="/courses" element={<Navigate to="/library" replace />} />
       <Route path="/my-courses" element={protectedLayout(MyCourses)} />
       <Route path="/courses/:id" element={protectedLayout(CourseDetails)} />
-      <Route path="/courses/:id/roadmap" element={protectedLayout(RoadmapView)} />
+      {/* Old Map Path → course details (career usefulness lives there now) */}
+      <Route path="/courses/:id/roadmap" element={<Navigate to=".." relative="path" replace />} />
       <Route path="/topics/:id" element={protectedLayout(TopicDetails)} />
       <Route path="/knowledge-map" element={protectedPage(KnowledgeMapPage)} />
       <Route path="/library" element={protectedLayout(LibraryPage)} />

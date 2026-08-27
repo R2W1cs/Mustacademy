@@ -308,7 +308,7 @@ export default function Dashboard() {
                                     <span className={`text-xs font-bold ${sub}`}>{stats.stats.lastActiveCourse.progress ?? 0}%</span>
                                 </div>
                             </div>
-                            <button onClick={() => navigate(`/courses/${stats.stats.lastActiveCourse.id}/roadmap`)}
+                            <button onClick={() => navigate(`/courses/${stats.stats.lastActiveCourse.id}`)}
                                 className="shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black uppercase tracking-wider transition-all hover:scale-[1.02] active:scale-[0.98]">
                                 Resume <ArrowRight size={14} />
                             </button>

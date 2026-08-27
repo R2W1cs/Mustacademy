@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Compass, ArrowRight, Binary, Fingerprint, Network, ShieldCheck, Atom, Sparkles } from "lucide-react";
+import { ArrowRight, Binary, Fingerprint, Network, ShieldCheck, Atom } from "lucide-react";
 import { useTheme } from "../auth/ThemeContext";
 
 const CourseCard = ({ course, index }) => {
@@ -117,8 +117,8 @@ const CourseCard = ({ course, index }) => {
           {/* Interaction Area */}
           <div className="flex gap-5">
             <Link
-              to={`/courses/${course.id}/roadmap`}
-              className={`flex-[2] overflow-hidden relative group/btn1 h-16 border rounded-2xl flex items-center justify-center transition-all duration-300 ${
+              to={`/courses/${course.id}`}
+              className={`flex-1 overflow-hidden relative group/btn1 h-16 border rounded-2xl flex items-center justify-center gap-3 transition-all duration-300 ${
                 isDark
                   ? 'bg-white/5 border-white/10 hover:border-amber-300/50 hover:bg-amber-400/10 hover:scale-[1.02] hover:shadow-[0_0_24px_rgba(251,191,36,0.15)]'
                   : 'bg-white border-gray-100 hover:border-amber-300 hover:bg-amber-50 hover:scale-[1.02] hover:shadow-[0_8px_24px_rgba(251,191,36,0.2)] shadow-sm'
@@ -129,26 +129,13 @@ const CourseCard = ({ course, index }) => {
                   ? 'text-white group-hover/btn1:text-amber-100'
                   : 'text-slate-800 group-hover/btn1:text-amber-900'
               }`}>
-                <Compass size={16} className={`transition-colors duration-300 ${
-                  isDark ? 'group-hover/btn1:text-amber-300' : 'text-amber-700 group-hover/btn1:text-amber-800'
+                Open course
+                <ArrowRight size={16} className={`transition-all duration-300 ${
+                  isDark
+                    ? 'text-amber-300 group-hover/btn1:translate-x-1 group-hover/btn1:text-amber-200'
+                    : 'text-amber-700 group-hover/btn1:translate-x-1 group-hover/btn1:text-amber-800'
                 }`} />
-                Map Path
               </div>
-            </Link>
-
-            <Link
-              to={`/courses/${course.id}`}
-              className={`flex-1 h-16 border rounded-2xl flex items-center justify-center transition-all duration-300 group/btn2 ${
-                isDark
-                  ? 'bg-white/5 border-white/10 text-white hover:bg-amber-400/10 hover:border-amber-300/50 hover:scale-[1.04] hover:shadow-[0_0_20px_rgba(251,191,36,0.12)]'
-                  : 'bg-white border-gray-100 text-slate-700 hover:bg-amber-50 hover:border-amber-300 hover:scale-[1.04] hover:shadow-[0_8px_20px_rgba(251,191,36,0.18)] shadow-sm'
-              }`}
-            >
-              <ArrowRight size={24} className={`transition-all duration-300 ${
-                isDark
-                  ? 'text-amber-300 group-hover/btn2:translate-x-1.5 group-hover/btn2:text-amber-200'
-                  : 'text-amber-700 group-hover/btn2:translate-x-1.5 group-hover/btn2:text-amber-800'
-              }`} />
             </Link>
           </div>
         </div>
