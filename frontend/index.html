@@ -39,6 +39,13 @@
           try { event.preventDefault(); } catch (e) {}
           reloadOnce();
         });
+        window.addEventListener("error", function (event) {
+          var target = event && event.target;
+          var src = target && (target.src || target.href);
+          if (src && /\/assets\/[^?]+\.js(\?|$)/.test(src)) {
+            reloadOnce();
+          }
+        }, true);
         window.addEventListener("unhandledrejection", function (event) {
           var reason = event && event.reason;
           var msg = reason && (reason.message || reason);
