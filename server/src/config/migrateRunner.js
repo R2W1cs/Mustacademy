@@ -21,13 +21,14 @@ export async function runDbMigrations() {
 
   try {
     await runner({
-      databaseUrl: process.env.DATABASE_URL,
-      dir: MIGRATIONS_DIR,
-      direction: 'up',
-      migrationsTable: 'pgmigrations',
-      log: (msg) => console.log(`[Migrations] ${msg}`),
-      verbose: false,
-    });
+  databaseUrl: process.env.DATABASE_URL,
+  dir: MIGRATIONS_DIR,
+  direction: 'up',
+  migrationsTable: 'pgmigrations',
+  ignorePattern: '.*\\.(sql|md)$',
+  log: (msg) => console.log(`[Migrations] ${msg}`),
+  verbose: false,
+});
     console.log('[Migrations] ✓ All migrations applied');
   } catch (err) {
     console.error('[Migrations] Failed:', err.message);

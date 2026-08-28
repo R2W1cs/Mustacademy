@@ -8,20 +8,6 @@ const require = createRequire(import.meta.url);
 const _pdfModule = require("pdf-parse");
 const pdfParse = typeof _pdfModule === 'function' ? _pdfModule : (_pdfModule.default ?? _pdfModule);
 
-// Auto-create topic_resources table on startup
-pool.query(`
-  CREATE TABLE IF NOT EXISTS topic_resources (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    topic_id INTEGER REFERENCES topics(id) ON DELETE CASCADE,
-    title TEXT NOT NULL,
-    file_type VARCHAR(20) NOT NULL,
-    file_size INTEGER,
-    extracted_text TEXT,
-    created_at TIMESTAMP DEFAULT NOW()
-  )
-`).catch(err => console.warn('[topic_resources] Table init warning:', err.message));
-
 // Get all courses (with optional search + pagination)
 export const getAllCourses = async (req, res) => {
   const { search = '', page = 1, limit = 12 } = req.query;

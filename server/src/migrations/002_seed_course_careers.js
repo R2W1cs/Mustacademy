@@ -1,9 +1,6 @@
 /**
- * Seed course_career links from course name heuristics → career_paths.
- * Idempotent: uses ON CONFLICT DO NOTHING (requires unique(course_id, career_id)
- * or silently ignores duplicates via NOT EXISTS).
- *
- * Run: node src/migrations/002_seed_course_careers.js
+ * LEGACY data seed — prefer `npm run seed:course-careers` (uses ensureCourseCareerSeed).
+ * Do not treat this as a schema migration.
  */
 import pool from "../config/db.js";
 

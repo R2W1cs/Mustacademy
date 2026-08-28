@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Command, LayoutGrid, Network, BookOpen, Briefcase, Rocket, User, LogOut, Settings, Hash, Zap } from 'lucide-react';
+import { Search, Command, LayoutGrid, Map, BookOpen, Briefcase, Rocket, User, LogOut, Settings, Hash, Zap } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { useTheme } from '../auth/ThemeContext';
 
@@ -17,12 +17,12 @@ const CommandPalette = () => {
 
     const actions = [
         { id: 'dash', title: 'Dashboard', icon: LayoutGrid, shortcut: 'D', action: () => navigate('/dashboard'), category: 'Navigation' },
-        { id: 'km', title: 'Knowledge Map', icon: Network, shortcut: 'K', action: () => navigate('/knowledge-map'), category: 'Navigation' },
         { id: 'lib', title: 'Library', icon: BookOpen, shortcut: 'L', action: () => navigate('/library'), category: 'Navigation' },
+        { id: 'career', title: 'Career Roadmap', icon: Map, shortcut: 'R', action: () => navigate('/career'), category: 'Navigation' },
         { id: 'board', title: 'The Boardroom', icon: Briefcase, shortcut: 'B', action: () => navigate('/interview-boardroom'), category: 'Navigation' },
         { id: 'corner', title: 'Creator Corner', icon: Rocket, shortcut: 'C', action: () => navigate('/creator-corner'), category: 'Navigation' },
-        { id: 'prof', title: 'Career Profile', icon: User, shortcut: 'P', action: () => navigate('/profile'), category: 'Settings' },
-        { id: 'set', title: 'System Settings', icon: Settings, shortcut: 'S', action: () => navigate('/profile'), category: 'Settings' },
+        { id: 'prof', title: 'Profile', icon: User, shortcut: 'P', action: () => navigate('/profile'), category: 'Settings' },
+        { id: 'set', title: 'Profile Settings', icon: Settings, shortcut: 'S', action: () => navigate('/profile/setup'), category: 'Settings' },
         { id: 'exit', title: 'Terminate Session', icon: LogOut, shortcut: 'ESC', action: () => logout(), category: 'System' }
     ];
 

@@ -1,7 +1,11 @@
 /**
- * Run-once: add full_roadmap_json + career_key for persisted 3-year career plans.
- * Usage: node src/migrations/003_career_full_roadmap.js (from server/)
+ * LEGACY — do not run. Covered by server/migrations/1739200000004_career_full_roadmap.js
+ * and 1739200000005_schema_snapshot.
  */
+console.error('[Migration 003] DEPRECATED — use npm run migrate');
+process.exit(1);
+
+/* historical body retained below for reference — unreachable
 import dotenv from 'dotenv';
 dotenv.config({ path: '../../.env' });
 dotenv.config();
@@ -43,3 +47,4 @@ const migrate = async () => {
 };
 
 migrate();
+*/

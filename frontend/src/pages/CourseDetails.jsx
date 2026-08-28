@@ -107,6 +107,7 @@ const CourseDetails = () => {
 
   const completedCount = topics.filter(t => t.completed).length;
   const progressPercent = topics.length === 0 ? 0 : Math.round((completedCount / topics.length) * 100);
+  const careerUsefulness = useMemo(() => resolveCareerUsefulness(course), [course]);
 
   return (
     <div className={`min-h-screen transition-colors duration-700 pb-32 relative overflow-hidden selection:bg-indigo-500/30 ${isDark ? '' : 'bg-slate-50'}`}>
@@ -119,7 +120,7 @@ const CourseDetails = () => {
           All courses
         </Link>
         {/* COMMAND CENTER HEADER */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-10 mb-20 relative">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-10 mb-12 relative">
           <div className="max-w-3xl">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -168,7 +169,44 @@ const CourseDetails = () => {
           </div>
         </div>
 
-        {/* INTERACTIVE ROADMAP */}
+        {/* Career usefulness (from former Map Path) */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="grid grid-cols-1 md:grid-cols-3 gap-6"
+        >
+          <div className={`rounded-[1.5rem] border p-7 ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-md'}`}>
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-cyan-500 mb-3">Career usefulness</h3>
+            <p className={`text-sm font-medium leading-relaxed ${isDark ? 'text-white/85' : 'text-slate-700'}`}>
+              {careerUsefulness.useful_for}
+            </p>
+          </div>
+          <div className={`rounded-[1.5rem] border p-7 ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-md'}`}>
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-3">Why it matters</h3>
+            <p className={`text-sm font-medium leading-relaxed ${isDark ? 'text-white/85' : 'text-slate-700'}`}>
+              {careerUsefulness.necessity}
+            </p>
+          </div>
+          <div className={`rounded-[1.5rem] border p-7 ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-md'}`}>
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-amber-500 mb-3">Careers that benefit</h3>
+            <div className="flex flex-wrap gap-2">
+              {(careerUsefulness.careers || []).map((name) => (
+                <span
+                  key={name}
+                  className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${
+                    isDark
+                      ? 'bg-[#0a0e1a] border-indigo-500/30 text-white'
+                      : 'bg-indigo-50 border-indigo-100 text-indigo-700'
+                  }`}
+                >
+                  {name}
+                </span>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+
+        {/* LESSON LIST */}
         <div className="relative">
           {/* Timeline Line */}
           <div className="absolute left-8 lg:left-1/2 top-0 bottom-0 w-0.5 bg-gradient-to-b from-indigo-500/50 via-indigo-500/10 to-transparent lg:-translate-x-1/2" />

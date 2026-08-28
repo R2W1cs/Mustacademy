@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { getMyProfile } from "../api/profile";
 import { getMyContributions } from "../api/contributions";
 import { getMyBadges } from "../api/badge";
-import { getCareerRoadmap, generateTrajectory } from "../api/career";
 import Badge from "../components/Badge";
 import { useTheme } from "../auth/ThemeContext";
 
@@ -81,9 +80,7 @@ const Profile = () => {
   const [profile, setProfile] = useState(null);
   const [contrib, setContrib] = useState(null);
   const [badges, setBadges] = useState([]);
-  const [roadmap, setRoadmap] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [forging, setForging] = useState(false);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
   const { theme } = useTheme();
@@ -96,15 +93,13 @@ const Profile = () => {
         setProfile(profileRes.data);
 
         // Fetch secondary data resiliently
-        const [contribRes, badgesRes, roadmapRes] = await Promise.all([
+        const [contribRes, badgesRes] = await Promise.all([
           getMyContributions().catch(e => { console.warn("Contrib fetch failed", e); return { data: { stats: {}, recentActivity: [] } }; }),
           getMyBadges().catch(e => { console.warn("Badges fetch failed", e); return { data: [] }; }),
-          getCareerRoadmap().catch(() => ({ data: null }))
         ]);
 
         setContrib(contribRes.data);
         setBadges(badgesRes.data);
-        setRoadmap(roadmapRes.data);
       } catch (error) {
         console.error("Critical Profile Failure:", error);
         setError("Unable to establish connection with Academic mainframe. Please verify your network authentication.");
@@ -116,18 +111,6 @@ const Profile = () => {
   }, []);
 
   const recentHistory = useMemo(() => contrib?.recentActivity || [], [contrib]);
-
-  const handleForgeTrajectory = async () => {
-    setForging(true);
-    try {
-      const res = await generateTrajectory();
-      setRoadmap(res.data);
-    } catch (err) {
-      console.error("Failed to forge trajectory", err);
-    } finally {
-      setForging(false);
-    }
-  };
 
   // Safe default for percentile
   const percentile = contrib?.stats?.cohort_percentile || 0;
@@ -192,7 +175,7 @@ const Profile = () => {
               <span className={`text-[10px] font-mono tracking-widest uppercase ${isDark ? 'text-white/40' : 'text-slate-500'}`}>ID: {String(profile.id).substring(0, 8)}</span>
             </div>
             <h1 className={`text-4xl md:text-5xl font-black tracking-tighter ${isDark ? 'text-white' : 'text-slate-900'}`}>
-              SCHOLAR<span className="text-[#FFD700]">.DASHBOARD</span>
+              MY<span className="text-[#FFD700]">.PROFILE</span>
             </h1>
           </div>
           <button
@@ -294,87 +277,27 @@ const Profile = () => {
             <p className={`text-[9px] font-mono mt-2 text-right uppercase ${isDark ? 'text-white/30' : 'text-slate-400'}`}>Level Progression</p>
           </BentoCard>
 
-          {/* 6. CAREER ARCHITECTURE [THE PROFESSOR'S TRAJECTORY] */}
-          <BentoCard className="md:col-span-12 lg:col-span-8 overflow-hidden group">
-            <div className={`flex flex-col md:flex-row justify-between items-start md:items-center mb-8 pb-6 border-b ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
+          {/* Career roadmap lives on its own page */}
+          <BentoCard className="md:col-span-12 lg:col-span-8">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
               <div>
                 <h3 className={`text-sm font-bold uppercase tracking-[0.2em] flex items-center gap-3 ${isDark ? 'text-white/60' : 'text-slate-900'}`}>
-                  <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-                  Professor's Trajectory
+                  <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                  Career Roadmap
                 </h3>
-                <p className={`text-[10px] font-mono mt-1 uppercase ${isDark ? 'text-white/30' : 'text-indigo-600 font-bold'}`}>AI-Forged Professional Architecture</p>
+                <p className={`text-sm mt-2 max-w-xl ${isDark ? 'text-white/50' : 'text-slate-600'}`}>
+                  {profile.dream_job
+                    ? `View your personalized path toward ${profile.dream_job}.`
+                    : "Set your dream job in profile settings, then generate your career roadmap."}
+                </p>
               </div>
-              {!roadmap ? (
-                <button
-                  disabled={forging}
-                  onClick={handleForgeTrajectory}
-                  className={`px-8 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${forging ? 'bg-white/10 text-white/40 cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-lg shadow-indigo-900/20 active:scale-95'}`}
-                >
-                  {forging ? "CALCULATING ARCHITECTURE..." : "Initialize Forging Node"}
-                </button>
-              ) : (
-                <div className="flex gap-4">
-                  <button
-                    disabled={forging}
-                    onClick={handleForgeTrajectory}
-                    className="px-6 py-2 bg-indigo-600/20 border border-indigo-500/30 rounded-lg text-[10px] font-bold text-indigo-400 hover:bg-indigo-600 hover:text-white transition-all uppercase tracking-widest disabled:opacity-50"
-                  >
-                    {forging ? "FORGING..." : "Regenerate Trajectory"}
-                  </button>
-                  <button
-                    onClick={() => navigate(`/career/roadmap`)}
-                    className={`px-6 py-2 border rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${isDark ? 'bg-white/5 border-white/10 text-white/60 hover:text-white hover:border-white/30' : 'bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-900 hover:border-slate-300'}`}
-                  >
-                    View Full Roadmap
-                  </button>
-                </div>
-              )}
+              <button
+                onClick={() => navigate('/career')}
+                className="px-6 py-3 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-500 transition-all active:scale-95 shadow-lg shadow-indigo-900/20"
+              >
+                Open Career Roadmap
+              </button>
             </div>
-
-            {roadmap ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                <div className="space-y-6">
-                  <div>
-                    <h4 className={`text-2xl font-black tracking-tight mb-2 uppercase ${isDark ? 'text-white' : 'text-slate-900'}`}>{roadmap.architecture_json?.title}</h4>
-                    <p className={`text-xs leading-relaxed font-mono italic ${isDark ? 'text-white/50' : 'text-slate-500'}`}>"{roadmap.architecture_json?.summary}"</p>
-                  </div>
-                  <div className="space-y-4">
-                    <p className="text-[8px] font-black uppercase tracking-[0.3em] ${isDark ? 'text-white/20' : 'text-slate-400'}">Core Technical Pillars</p>
-                    <div className="flex flex-wrap gap-2">
-                      {roadmap.architecture_json?.technical_pillars?.map((pillar, i) => (
-                        <div key={i} className={`px-4 py-2 border rounded-xl text-[10px] font-bold group-hover:border-indigo-500/30 transition-colors ${isDark ? 'bg-white/5 border-white/10 text-indigo-400' : 'bg-indigo-50 border-indigo-200 text-indigo-700'}`}>
-                          {typeof pillar === 'string' ? pillar : (pillar.name || pillar.title || JSON.stringify(pillar))}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="relative">
-                  <div className={`absolute left-6 top-0 bottom-0 w-px ${isDark ? 'bg-white/5' : 'bg-slate-100'}`} />
-                  <div className="space-y-6">
-                    {/* Preview first 2 phases */}
-                    {roadmap.roadmap_steps_json?.slice(0, 2).map((step, i) => (
-                      <div key={i} className="relative z-10 flex gap-6">
-                        <div className={`w-12 h-12 shrink-0 border rounded-full flex items-center justify-center text-[#FFD700] text-xs font-black shadow-lg ${isDark ? 'bg-[#0f1729] border-indigo-500/30' : 'bg-white border-indigo-100'}`}>
-                          0{i + 1}
-                        </div>
-                        <div>
-                          <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1">{String(step.phase || '')}</p>
-                          <h5 className={`text-sm font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>{String(step.title || '')}</h5>
-                          <p className={`text-[10px] leading-relaxed font-medium line-clamp-2 ${isDark ? 'text-white/40' : 'text-slate-500'}`}>{String(step.description || '')}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="h-48 flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-3xl group-hover:border-indigo-500/20 transition-colors">
-                <p className="text-xs font-black text-white/20 uppercase tracking-[0.2em] mb-4">Trajectory Not Established</p>
-                <p className="text-[10px] text-white/10 font-mono text-center max-w-sm">The Professor requires a career initialization protocol to calculate your professional trajectory.</p>
-              </div>
-            )}
           </BentoCard>
 
           {/* 4. RECENT TRANSMISSIONS (Data Feed) */}

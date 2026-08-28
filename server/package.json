@@ -8,8 +8,12 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "migrate": "node-pg-migrate up --migrations-dir migrations --migration-file-language js",
-    "migrate:status": "node-pg-migrate up --dry-run --migrations-dir migrations --migration-file-language js",
+    "migrate": "node src/scripts/runMigrate.mjs",
+    "migrate:status": "node src/scripts/runMigrate.mjs --dry-run",
+    "schema:dump": "node src/scripts/dumpLiveSchema.mjs",
+    "schema:snapshot": "node src/scripts/generateSchemaSnapshot.mjs",
+    "seed:course-careers": "node src/scripts/seedCourseCareers.js",
+    "seed:lesson-content": "node src/scripts/seedLessonContent.js",
     "storage:sync": "node src/scripts/syncMediaToStorage.js"
   },
   "dependencies": {

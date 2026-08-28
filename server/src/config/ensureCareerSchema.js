@@ -1,8 +1,8 @@
 import pool from './db.js';
 
 /**
- * Idempotent career_roadmaps schema patch for free-tier hosts without a shell.
- * Safe to run every boot — uses IF NOT EXISTS / information_schema checks.
+ * @deprecated Schema now lives in server/migrations/ (incl. snapshot + career_full_roadmap).
+ * Kept for emergency repair only — do not call from boot.
  */
 export async function ensureCareerRoadmapSchema() {
   if (!process.env.DATABASE_URL || process.env.NODE_ENV === 'test') return;
@@ -58,7 +58,7 @@ export async function ensureCareerRoadmapSchema() {
 }
 
 /**
- * Optional idempotent course↔career seed (no-op if tables/careers missing).
+ * Idempotent course↔career data seed. Run via `npm run seed:course-careers` (not boot).
  */
 export async function ensureCourseCareerSeed() {
   if (!process.env.DATABASE_URL || process.env.NODE_ENV === 'test') return;

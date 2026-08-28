@@ -22,11 +22,25 @@ Sentry initializes only when the DSN is present.
 
 ## Migrations
 
-Files: `server/migrations/`. Applied on boot via node-pg-migrate.
+**Canonical path only:** `server/migrations/` via node-pg-migrate (also applied on boot). See `server/MIGRATIONS.md`.
+
+Do not run `server/src/scripts/migration_*.js` or `server/src/migrations/*` — those are legacy.
 
 ```bash
-cd server && npm run migrate
+cd server
+npm run migrate          # apply pending
+npm run migrate:status   # dry-run
+npm run schema:dump      # dump live schema → tmp/schema-dump.json
 ```
+
+Optional content seeds (not schema; not on boot):
+
+```bash
+npm run seed:course-careers
+npm run seed:lesson-content
+```
+
+If boot logs `[DB] Connection or migrations FAILED`, fix schema before traffic — migrations no longer continue on failure.
 
 ## Rollback
 

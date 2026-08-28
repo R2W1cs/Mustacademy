@@ -1,12 +1,10 @@
-import 'dotenv/config';
+import { loadServerEnv } from './src/config/loadServerEnv.js';
+loadServerEnv();
+
 import { validateEnv } from './src/config/validateEnv.js';
 import { initSentry } from './src/monitoring/sentry.js';
 import { runDbMigrations } from './src/config/migrateRunner.js';
-import {
-  ensureCareerRoadmapSchema,
-  ensureCourseCareerSeed,
-} from './src/config/ensureCareerSchema.js';
-import { ensureCourseLessonContent } from './src/config/ensureCourseLessonContent.js';
+
 validateEnv();
 initSentry();
 
@@ -36,21 +34,16 @@ const server = http.createServer(app);
 // Initialize Socket.io
 initIo(server);
 
-// Test DB Connection + run schema migrations + free-tier schema ensure
+// Test DB Connection + run versioned schema migrations (fail closed)
 pool.query('SELECT NOW()')
   .then(async () => {
     console.log('[DB] Connection Verified.');
-    try {
-      await runDbMigrations();
-    } catch (err) {
-      console.error('[DB] node-pg-migrate failed (continuing with ensure):', err.message);
-    }
-    // Always patch career columns — works without Render shell / migrate CLI
-    await ensureCareerRoadmapSchema();
-    await ensureCourseCareerSeed();
-    await ensureCourseLessonContent();
+    await runDbMigrations();
   })
-  .catch(err => console.error('[DB] Connection FAILED:', err.message));
+  .catch((err) => {
+    console.error('[DB] Connection or migrations FAILED:', err.message);
+    process.exit(1);
+  });
 
 // Start BullMQ workers (no-ops when REDIS_URL is not set)
 if (redisAvailable) {

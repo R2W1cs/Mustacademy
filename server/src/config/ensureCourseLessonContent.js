@@ -1,5 +1,6 @@
 /**
- * Idempotent lesson markdown sync for CS 342 + CS 321 + MATH 270 (no Render shell required).
+ * Idempotent lesson markdown sync for CS 342 + CS 321 + MATH 270.
+ * Run via `npm run seed:lesson-content` (not boot) — this is content, not schema.
  */
 import pool from './db.js';
 import { topics as cs342Topics } from '../scripts/cs342/topics.mjs';

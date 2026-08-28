@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-    GraduationCap, LayoutGrid, Network, BookOpen, Users, User,
+    GraduationCap, LayoutGrid, Map, BookOpen, Users, User,
     Sun, Moon, ChevronLeft, PanelLeftClose, PanelLeftOpen, Activity, Rocket,
     Briefcase, FileText, Swords, X, Shield
 } from "lucide-react";
@@ -82,13 +82,13 @@ export default function Sidebar({ isCollapsed, toggleSidebar, mobileOpen = false
     const navItems = profileComplete
         ? [
             { name: "Dashboard", icon: LayoutGrid, path: "/dashboard", id: "dashboard" },
-            { name: "Knowledge Map", icon: Network, path: "/knowledge-map", id: "knowledge-map", badge: "Active" },
             { name: "Library", icon: BookOpen, path: "/library", id: "library" },
+            { name: "Career Roadmap", icon: Map, path: "/career", id: "career" },
             { name: "Boardroom", icon: Briefcase, path: "/interview-boardroom", id: "interview", badge: "AI" },
             { name: "Creator Corner", icon: Rocket, path: "/creator-corner", id: "creator-corner", badge: "Elite" },
             { name: "Market Pulse", icon: Activity, path: "/market", id: "market", badge: "LIVE" },
             { name: "Neural Clash", icon: Swords, path: "/neural-clash", id: "neural-clash", badge: "ARENA" },
-            { name: "Career Profile", icon: User, path: "/profile", id: "profile" },
+            { name: "Profile", icon: User, path: "/profile", id: "profile" },
             ...( ["admin", "professor"].includes(role) ? [{ name: "Admin Panel", icon: Shield, path: "/admin", id: "admin", badge: "STAFF" }] : [] ),
         ]
         : [
