@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import api from "../api/axios";
@@ -107,7 +107,7 @@ const CourseDetails = () => {
 
   const completedCount = topics.filter(t => t.completed).length;
   const progressPercent = topics.length === 0 ? 0 : Math.round((completedCount / topics.length) * 100);
-  const careerUsefulness = useMemo(() => resolveCareerUsefulness(course), [course]);
+  const careerUsefulness = resolveCareerUsefulness(course);
 
   return (
     <div className={`min-h-screen transition-colors duration-700 pb-32 relative overflow-hidden selection:bg-indigo-500/30 ${isDark ? '' : 'bg-slate-50'}`}>

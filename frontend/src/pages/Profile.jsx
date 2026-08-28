@@ -277,29 +277,6 @@ const Profile = () => {
             <p className={`text-[9px] font-mono mt-2 text-right uppercase ${isDark ? 'text-white/30' : 'text-slate-400'}`}>Level Progression</p>
           </BentoCard>
 
-          {/* Career roadmap lives on its own page */}
-          <BentoCard className="md:col-span-12 lg:col-span-8">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-              <div>
-                <h3 className={`text-sm font-bold uppercase tracking-[0.2em] flex items-center gap-3 ${isDark ? 'text-white/60' : 'text-slate-900'}`}>
-                  <span className="w-2 h-2 rounded-full bg-indigo-500" />
-                  Career Roadmap
-                </h3>
-                <p className={`text-sm mt-2 max-w-xl ${isDark ? 'text-white/50' : 'text-slate-600'}`}>
-                  {profile.dream_job
-                    ? `View your personalized path toward ${profile.dream_job}.`
-                    : "Set your dream job in profile settings, then generate your career roadmap."}
-                </p>
-              </div>
-              <button
-                onClick={() => navigate('/career')}
-                className="px-6 py-3 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-500 transition-all active:scale-95 shadow-lg shadow-indigo-900/20"
-              >
-                Open Career Roadmap
-              </button>
-            </div>
-          </BentoCard>
-
           {/* 4. RECENT TRANSMISSIONS (Data Feed) */}
           <BentoCard className="md:col-span-3 lg:col-span-4 row-span-2" delay={0.3}>
             <div className={`sticky top-0 backdrop-blur-md z-10 pb-4 mb-2 border-b flex justify-between items-center ${isDark ? 'bg-[#0f1729]/95 border-white/5' : 'bg-white/95 border-slate-200'}`}>
